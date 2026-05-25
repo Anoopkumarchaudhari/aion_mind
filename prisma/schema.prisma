@@ -1,0 +1,51 @@
+// Optional database schema for server-side persistence.
+// The current local app works with localStorage-backed Zustand stores and API sync routes.
+// Connect this schema to your Prisma datasource when you are ready to persist per user.
+
+model Notebook {
+  id        String         @id @default(cuid())
+  userId    String
+  title     String
+  emoji     String         @default("📓")
+  color     String         @default("#10b981")
+  items     NotebookItem[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model NotebookItem {
+  id         String   @id @default(cuid())
+  notebookId String
+  notebook   Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  kind       String
+  refId      String?
+  noteTitle  String?
+  noteHtml   String?  @db.Text
+  order      Int
+}
+
+model LibraryItem {
+  id              String   @id @default(cuid())
+  userId          String
+  type            String
+  title           String
+  content         String?  @db.Text
+  url             String?
+  sourceChatId    String?
+  sourceMessageId String?
+  language        String?
+  createdAt       DateTime @default(now())
+}
+
+model VideoJob {
+  id            String   @id @default(cuid())
+  userId        String
+  prompt        String   @db.Text
+  style         String
+  duration      Int
+  status        String   @default("queued")
+  outputUrl     String?
+  thumbnailUrl  String?
+  providerJobId String?
+  createdAt     DateTime @default(now())
+}

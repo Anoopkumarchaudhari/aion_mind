@@ -1,0 +1,15 @@
+
+> aion-mind@0.1.0 dev
+> next dev -p 3001
+
+   ▲ Next.js 15.5.18
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.0.13:3001
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 2.2s
+ ✓ Compiled /middleware in 186ms (115 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 5.9s (3528 modules)
+ GET / 200 in 6901ms
