@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { Bookmark, CheckCircle2, Copy, RotateCcw, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -81,7 +81,7 @@ export function MessageBubble({
         {isConfigMessage ? (
           <ConfigAlert message={message.content} />
         ) : (
-          <MarkdownContent content={message.content} messageId={message.id} sourceChatId={activeThreadId} />
+          <MarkdownContent content={message.content} />
         )}
         {isStreaming ? <span className="streaming-caret message-caret" aria-hidden="true" /> : null}
         {debugEnabled && message.diagnostics?.length ? (
@@ -166,17 +166,7 @@ export function LoadingBubble({ model }: { model: AionModelId }) {
   );
 }
 
-function MarkdownContent({
-  content,
-  messageId,
-  sourceChatId
-}: {
-  content: string;
-  messageId: string;
-  sourceChatId: string;
-}) {
-  const addLibraryItem = useLibraryStore((state) => state.addItem);
-
+function MarkdownContent({ content }: { content: string }) {
   return (
     <div className="markdown prose prose-invert prose-sm">
       <ReactMarkdown
@@ -193,38 +183,7 @@ function MarkdownContent({
 
             if (match) {
               return (
-                <div className="code-snippet-shell">
-                  <button
-                    className="code-save-button"
-                    type="button"
-                    onClick={() => {
-                      addLibraryItem({
-                        type: "code",
-                        title: `${match[1]} snippet`,
-                        content: value,
-                        language: match[1],
-                        sourceChatId,
-                        sourceMessageId: messageId
-                      });
-                      toast.success("Snippet saved");
-                    }}
-                  >
-                    Save snippet
-                  </button>
-                  <SyntaxHighlighter
-                    language={match[1]}
-                    PreTag="div"
-                    style={oneDark as Record<string, CSSProperties>}
-                    customStyle={{
-                      margin: 0,
-                      borderRadius: 10,
-                      background: "rgba(0, 0, 0, 0.4)",
-                      fontSize: "0.86rem"
-                    }}
-                  >
-                    {value}
-                  </SyntaxHighlighter>
-                </div>
+                <CodeSnippetBlock code={value} language={match[1]} />
               );
             }
 
@@ -234,6 +193,55 @@ function MarkdownContent({
       >
         {content}
       </ReactMarkdown>
+    </div>
+  );
+}
+
+function CodeSnippetBlock({
+  code,
+  language
+}: {
+  code: string;
+  language: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function copySnippet() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      toast.success("Copied code");
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error("Could not copy code");
+    }
+  }
+
+  return (
+    <div className="code-snippet-shell">
+      <button
+        className={clsx("code-copy-button", copied && "is-copied")}
+        type="button"
+        title={copied ? "Copied" : "Copy"}
+        aria-label={copied ? "Code copied" : "Copy code"}
+        onClick={() => void copySnippet()}
+      >
+        {copied ? <CheckCircle2 size={13} /> : <Copy size={13} />}
+        <span>{copied ? "Copied" : "Copy"}</span>
+      </button>
+      <SyntaxHighlighter
+        language={language}
+        PreTag="div"
+        style={oneDark as Record<string, CSSProperties>}
+        customStyle={{
+          margin: 0,
+          borderRadius: 10,
+          background: "rgba(0, 0, 0, 0.4)",
+          fontSize: "0.86rem"
+        }}
+      >
+        {code}
+      </SyntaxHighlighter>
     </div>
   );
 }

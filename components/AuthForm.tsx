@@ -109,7 +109,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             <AionLogo size={30} decorative />
             <div>
               <strong>Aion Mind</strong>
-              <span>anoop kumar</span>
+              <span>JB Crownstone </span>
             </div>
           </div>
           <div className="auth-orbit-line auth-orbit-one" />

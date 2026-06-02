@@ -2715,21 +2715,36 @@ a {
   position: relative;
 }
 
-.code-save-button {
+.code-copy-button {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.42);
   color: var(--text-secondary);
   padding: 4px 8px;
   font-size: 0.72rem;
+  line-height: 1;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
 }
 
-.code-save-button:hover {
+.code-copy-button:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.58);
   color: var(--text-primary);
+}
+
+.code-copy-button.is-copied {
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
+  color: var(--accent);
 }
 
 .video-hero {
