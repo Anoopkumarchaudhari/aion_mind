@@ -1,16 +1,31 @@
 import type { ChatAttachment, ChatMessage } from "@/types/aion";
-import type { ProviderCallOptions, ProviderName, ProviderResponse } from "@/services/types";
+import type {
+  ProviderCallOptions,
+  ProviderName,
+  ProviderResponse,
+  ProviderStreamResponse
+} from "@/services/types";
 import {
   compactContent,
+  fetchWithTimeout,
   fetchJsonWithTimeout,
   getTimeoutMs,
   missingProviderConfig,
-  providerFailure
+  providerFailure,
+  truncate
 } from "@/providers/providerUtils";
 
 type OpenAIChatResponse = {
   choices?: Array<{
     message?: {
+      content?: string;
+    };
+  }>;
+};
+
+type OpenAIChatStreamEvent = {
+  choices?: Array<{
+    delta?: {
       content?: string;
     };
   }>;
@@ -34,20 +49,26 @@ type OpenAIContentPart =
       };
     };
 
+type OpenAIVariant = "base" | "advanced" | "judge";
+
+type OpenAIConfig = {
+  provider: ProviderName;
+  model: string;
+  modelEnvName: string;
+};
+
+const DEFAULT_OPENAI_JUDGE_MODEL = "gpt-5.5";
+
 export async function callOpenAI(
   options: ProviderCallOptions,
-  variant: "base" | "advanced" = "base"
+  variant: OpenAIVariant = "base"
 ): Promise<ProviderResponse> {
-  const provider: ProviderName = variant === "advanced" ? "openai-advanced" : "openai";
+  const { provider, model, modelEnvName } = getOpenAIConfig(options, variant);
   const startedAt = Date.now();
   const apiKey = process.env.OPENAI_API_KEY ?? "";
-  const model =
-    options.model ??
-    (variant === "advanced" ? process.env.OPENAI_ADVANCED_MODEL : process.env.OPENAI_MODEL) ??
-    "";
   const missing = [
     !apiKey ? "OPENAI_API_KEY" : "",
-    !model ? (variant === "advanced" ? "OPENAI_ADVANCED_MODEL" : "OPENAI_MODEL") : ""
+    !model ? modelEnvName : ""
   ].filter(Boolean);
 
   if (missing.length > 0) {
@@ -70,7 +91,7 @@ export async function callOpenAI(
         body: JSON.stringify({
           model,
           messages,
-          temperature: options.temperature ?? 0.4
+          ...getOpenAITemperaturePayload(model, options.temperature ?? 0.4)
         })
       },
       timeoutMs
@@ -92,6 +113,104 @@ export async function callOpenAI(
   } catch (error) {
     return providerFailure(provider, error, startedAt, model);
   }
+}
+
+export async function streamOpenAI(
+  options: ProviderCallOptions,
+  variant: OpenAIVariant = "base"
+): Promise<ProviderStreamResponse> {
+  const { provider, model, modelEnvName } = getOpenAIConfig(options, variant);
+  const startedAt = Date.now();
+  const apiKey = process.env.OPENAI_API_KEY ?? "";
+  const missing = [
+    !apiKey ? "OPENAI_API_KEY" : "",
+    !model ? modelEnvName : ""
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    return {
+      ...missingProviderConfig(provider, missing, startedAt, model),
+      stream: undefined
+    };
+  }
+
+  const messages = toOpenAIMessages(options.messages, options.systemPrompt, options.attachments);
+  const timeoutMs =
+    options.timeoutMs ?? getTimeoutMs(process.env.AION_PROVIDER_TIMEOUT_MS, 25000);
+
+  try {
+    const response = await fetchWithTimeout(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          ...getOpenAITemperaturePayload(model, options.temperature ?? 0.4),
+          stream: true
+        })
+      },
+      timeoutMs
+    );
+
+    if (!response.ok || !response.body) {
+      const text = await response.text();
+
+      return {
+        provider,
+        model,
+        ok: false,
+        error: `HTTP ${response.status}: ${truncate(text, 220)}`,
+        latencyMs: Date.now() - startedAt
+      };
+    }
+
+    return {
+      provider,
+      model,
+      ok: true,
+      stream: readOpenAIChatSse(response.body),
+      latencyMs: Date.now() - startedAt
+    };
+  } catch (error) {
+    return providerFailure(provider, error, startedAt, model);
+  }
+}
+
+function getOpenAIConfig(options: ProviderCallOptions, variant: OpenAIVariant): OpenAIConfig {
+  if (variant === "advanced") {
+    return {
+      provider: "openai-advanced",
+      model: options.model ?? process.env.OPENAI_ADVANCED_MODEL ?? "",
+      modelEnvName: "OPENAI_ADVANCED_MODEL"
+    };
+  }
+
+  if (variant === "judge") {
+    return {
+      provider: "aion-judge",
+      model: options.model ?? (process.env.OPENAI_JUDGE_MODEL || DEFAULT_OPENAI_JUDGE_MODEL),
+      modelEnvName: "OPENAI_JUDGE_MODEL"
+    };
+  }
+
+  return {
+    provider: "openai",
+    model: options.model ?? process.env.OPENAI_MODEL ?? "",
+    modelEnvName: "OPENAI_MODEL"
+  };
+}
+
+function getOpenAITemperaturePayload(model: string, temperature: number) {
+  if (model.trim().toLowerCase().startsWith("gpt-5.5")) {
+    return {};
+  }
+
+  return { temperature };
 }
 
 function toOpenAIMessages(
@@ -147,4 +266,66 @@ function toOpenAIImageParts(attachments: ChatAttachment[]): OpenAIContentPart[] 
         detail: "auto"
       }
     }));
+}
+
+async function* readOpenAIChatSse(body: ReadableStream<Uint8Array>) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let eventData = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        if (!line.trim()) {
+          yield* parseOpenAIEventData(eventData);
+          eventData = "";
+          continue;
+        }
+
+        if (line.startsWith("data:")) {
+          eventData += line.slice(5).trim();
+        }
+      }
+    }
+
+    buffer += decoder.decode();
+
+    if (buffer.startsWith("data:")) {
+      eventData += buffer.slice(5).trim();
+    }
+
+    yield* parseOpenAIEventData(eventData);
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function* parseOpenAIEventData(eventData: string) {
+  const data = eventData.trim();
+
+  if (!data || data === "[DONE]") {
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(data) as OpenAIChatStreamEvent;
+    const text = parsed.choices?.map((choice) => choice.delta?.content ?? "").join("");
+
+    if (text) {
+      yield text;
+    }
+  } catch {
+    return;
+  }
 }

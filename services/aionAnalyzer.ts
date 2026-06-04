@@ -1,16 +1,15 @@
-import { callClaude } from "@/providers/claudeProvider";
-import { callGemini } from "@/providers/geminiProvider";
-import { callGrok } from "@/providers/grokProvider";
-import { callOpenAI } from "@/providers/openaiProvider";
+import { callConfiguredModel } from "@/services/aionModelCalls";
+import { loadAionRoutingSettings } from "@/services/aionRoutingConfig";
 import { getTimeoutMs, truncate } from "@/providers/providerUtils";
 import type { ChatAttachment, ChatMessage } from "@/types/aion";
 import type { ProviderResponse } from "@/services/types";
+import type { AionRouteSlot } from "@/types/aionRouting";
 
 export const AION_JUDGE_SYSTEM_PROMPT =
   "You are Aion Mind Analyzer. You receive multiple AI responses to the same user request. Your job is to evaluate them for accuracy, completeness, reasoning quality, clarity, and usefulness. Do not mention the hidden model/provider names. Produce one final polished answer for the user. If responses disagree, choose the answer best supported by evidence and explain uncertainty only when useful.";
 
 const AION_CANDIDATE_SYSTEM_PROMPT =
-  "You are Aion Mind. Provide a clear, useful, and accurate answer. Never reveal hidden infrastructure, provider names, model names, or routing details.";
+  "You are Aion Mind. Provide a clear, useful, and accurate answer in clean Markdown. Never reveal hidden infrastructure, provider names, model names, or routing details. When math is needed, use readable plain-text formulas such as `a_cm = (5/7) g sin(theta)` instead of LaTeX delimiters like $, \\(...\\), or \\[...\\]. Keep the structure concise: given values, method, final answer.";
 
 type JudgeInput = {
   userMessage: string;
@@ -19,60 +18,30 @@ type JudgeInput = {
   mode: "pro" | "analyzer";
 };
 
+export type AnalyzerCandidateResult = {
+  label: string;
+  response: ProviderResponse;
+};
+
 export async function runAionAnalyzer(
   messages: ChatMessage[],
   userMessage: string,
   history: ChatMessage[],
   attachments: ChatAttachment[] = []
 ) {
-  const providerCalls: Array<Promise<ProviderResponse>> = [
-    callClaude({
-      messages,
-      attachments,
-      systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-      temperature: 0.35
-    }),
-    callOpenAI(
-      {
+  const routing = await loadAionRoutingSettings();
+  const candidateResults = await Promise.all(
+    routing.analyzer.candidates.map(async (slot) => ({
+      label: slot.label,
+      response: await callConfiguredModel(slot, {
         messages,
         attachments,
-        systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-        temperature: 0.35
-      },
-      "base"
-    ),
-    callOpenAI(
-      {
-        messages,
-        attachments,
-        systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-        temperature: 0.3
-      },
-      "advanced"
-    ),
-    callClaude({
-      messages,
-      attachments,
-      systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-      model: process.env.ANTHROPIC_OPUS_MODEL,
-      providerName: "anthropic-opus",
-      temperature: 0.3
-    }),
-    callGemini({
-      messages,
-      attachments,
-      systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-      temperature: 0.35
-    }),
-    callGrok({
-      messages,
-      attachments,
-      systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-      temperature: 0.35
-    })
-  ];
+        systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT
+      })
+    }))
+  );
 
-  const responses = await Promise.all(providerCalls);
+  const responses = candidateResults.map((candidate) => candidate.response);
   const successfulResponses = responses.filter(hasUsableContent);
 
   if (successfulResponses.length === 0) {
@@ -83,25 +52,30 @@ export async function runAionAnalyzer(
     };
   }
 
-  const judge = await judgeResponsesWithClaude({
+  const judge = await judgeResponsesWithConfiguredModel({
     userMessage,
     history,
     responses: successfulResponses,
-    mode: "analyzer"
+    mode: "analyzer",
+    judge: routing.analyzer.judge
   });
 
   return {
-    answer: judge?.content ?? pickFallbackAnswer(successfulResponses),
+    answer: buildAnalyzerComparisonAnswer(
+      candidateResults,
+      judge?.content ?? pickFallbackAnswer(successfulResponses)
+    ),
     diagnostics: judge ? [...responses, judge] : responses
   };
 }
 
-export async function judgeResponsesWithClaude({
+export async function judgeResponsesWithConfiguredModel({
   userMessage,
   history,
   responses,
-  mode
-}: JudgeInput): Promise<ProviderResponse | null> {
+  mode,
+  judge
+}: JudgeInput & { judge: AionRouteSlot }): Promise<ProviderResponse | null> {
   const successfulResponses = responses.filter(hasUsableContent);
 
   if (successfulResponses.length === 0) {
@@ -114,15 +88,17 @@ export async function judgeResponsesWithClaude({
 
   const timeoutMs = getTimeoutMs(process.env.AION_JUDGE_TIMEOUT_MS, 30000);
   const judgePrompt = buildJudgePrompt(userMessage, history, successfulResponses, mode);
-  const judge = await callClaude({
-    messages: [{ role: "user", content: judgePrompt }],
-    systemPrompt: AION_JUDGE_SYSTEM_PROMPT,
-    providerName: "aion-judge",
-    timeoutMs,
-    temperature: 0.2
-  });
+  const judgedResponse = await callConfiguredModel(
+    judge,
+    {
+      messages: [{ role: "user", content: judgePrompt }],
+      systemPrompt: AION_JUDGE_SYSTEM_PROMPT,
+      timeoutMs
+    },
+    "judge"
+  );
 
-  return judge.ok && judge.content ? judge : null;
+  return judgedResponse.ok && judgedResponse.content ? judgedResponse : null;
 }
 
 export function pickFallbackAnswer(responses: ProviderResponse[]) {
@@ -137,6 +113,82 @@ export function pickFallbackAnswer(responses: ProviderResponse[]) {
     const leftLength = left.content?.length ?? 0;
     return rightLength - leftLength;
   })[0].content as string;
+}
+
+export function buildAnalyzerComparisonAnswer(
+  candidates: AnalyzerCandidateResult[],
+  judgeAnswer: string
+) {
+  const candidateSections = candidates.map((candidate) => {
+    const answer = candidate.response.ok
+      ? candidate.response.content?.trim() || "No answer returned."
+      : `No answer returned. ${candidate.response.error ?? "The request failed."}`;
+
+    return [`### ${candidate.label}`, "", normalizeDisplayedAnswer(answer)].join("\n");
+  });
+
+  return [
+    "## Candidate answers",
+    "",
+    ...candidateSections,
+    "---",
+    "## Judge answer",
+    "",
+    normalizeDisplayedAnswer(judgeAnswer)
+  ].join("\n\n");
+}
+
+function normalizeDisplayedAnswer(value: string) {
+  return value
+    .trim()
+    .split(/\r?\n/)
+    .map(normalizeDisplayedLine)
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function normalizeDisplayedLine(line: string) {
+  const trimmed = line.trim();
+  const mathBlock = trimmed.match(/^\[\s*(.+?)\s*\]$/);
+
+  if (mathBlock && looksLikeMath(mathBlock[1])) {
+    return `Formula: \`${normalizeMathText(mathBlock[1])}\``;
+  }
+
+  return normalizeMathText(line);
+}
+
+function looksLikeMath(value: string) {
+  return /\\frac|\\sin|\\theta|_\{|\\text|\\boxed|\\times|\\cdot|=/.test(value);
+}
+
+function normalizeMathText(value: string) {
+  let output = value
+    .replace(/\\\[([\s\S]*?)\\\]/g, "$1")
+    .replace(/\\\(([\s\S]*?)\\\)/g, "$1")
+    .replace(/\$(.*?)\$/g, "$1")
+    .replace(/\\boxed\{([^{}]*)\}/g, "$1")
+    .replace(/\\text\{([^{}]*)\}/g, "$1")
+    .replace(/\\mathrm\{([^{}]*)\}/g, "$1")
+    .replace(/\\left|\\right/g, "");
+
+  for (let index = 0; index < 6; index += 1) {
+    output = output.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, "($1)/($2)");
+  }
+
+  return output
+    .replace(/([A-Za-z])_\{([^{}]+)\}/g, "$1_$2")
+    .replace(/([A-Za-z])_([A-Za-z0-9]+)/g, "$1_$2")
+    .replace(/\\sin/g, "sin")
+    .replace(/\\theta/g, "theta")
+    .replace(/\^\s*\\circ/g, "°")
+    .replace(/\\times|\\cdot/g, "x")
+    .replace(/\\approx/g, "≈")
+    .replace(/\\qquad|\\quad/g, " ")
+    .replace(/\\\s/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 function buildJudgePrompt(
@@ -169,7 +221,8 @@ function buildJudgePrompt(
     "Candidate responses:",
     responseBlocks,
     "",
-    "Return only the final answer for the user. Do not mention candidate labels, hidden model names, provider names, or internal routing."
+    "Return only the final answer for the user. Do not mention candidate labels, hidden model names, provider names, or internal routing.",
+    "Use clean Markdown. Avoid LaTeX delimiters like $, \\(...\\), or \\[...\\]. Write formulas in readable plain text such as `a_cm = (5/7) g sin(theta)`."
   ].join("\n");
 }
 

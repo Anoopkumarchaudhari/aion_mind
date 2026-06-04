@@ -87,10 +87,14 @@ Copy-Item .env.example .env.local
 OPENAI_API_KEY=
 OPENAI_MODEL=
 OPENAI_ADVANCED_MODEL=
+OPENAI_JUDGE_MODEL=gpt-5.5
 
 ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=
 ANTHROPIC_OPUS_MODEL=
+
+DEEPSEEK_API_KEY=
+DEEPSEEK_MODEL=deepseek-v4-pro
 
 GEMINI_API_KEY=
 GEMINI_MODEL=
@@ -109,15 +113,17 @@ Where each key goes:
 
 - `GEMINI_API_KEY` and `GEMINI_MODEL`: required for the default Aion Mind tab and also used as the Gemini candidate for Analyzer.
 - `GEMINI_FALLBACK_MODELS`: optional comma-separated Gemini model IDs to try if the primary Gemini model is quota-blocked or unavailable.
-- `OPENAI_API_KEY`: key used by the GPT candidate in Pro/Analyzer.
+- `OPENAI_API_KEY`: key used by the GPT candidate in Pro/Analyzer and by the Analyzer judge.
 - `OPENAI_MODEL`: base GPT model ID for Pro/Analyzer.
 - `OPENAI_ADVANCED_MODEL`: optional advanced GPT model ID for Analyzer.
-- `ANTHROPIC_API_KEY`: key used by Aion Mind Pro, Analyzer, and the Analyzer judge.
-- `ANTHROPIC_MODEL`: Claude model ID used by Pro/Analyzer and as the judge model.
+- `OPENAI_JUDGE_MODEL`: OpenAI model ID used by the Analyzer judge. The app defaults to `gpt-5.5`.
+- `ANTHROPIC_API_KEY`: key used by Aion Mind Pro and Analyzer.
+- `ANTHROPIC_MODEL`: Claude model ID used by Pro/Analyzer.
 - `ANTHROPIC_OPUS_MODEL`: optional Opus model ID for the Analyzer pipeline.
+- `DEEPSEEK_API_KEY` and `DEEPSEEK_MODEL`: optional DeepSeek candidate for Analyzer. The recommended Analyzer default is `deepseek-v4-pro`.
 - `GROK_API_KEY` and `GROK_MODEL`: optional Grok candidate for Analyzer.
 
-Missing provider keys are skipped gracefully. At least one configured provider is needed for a useful response, and Claude/Anthropic is needed for the Analyzer judge step.
+Missing provider keys are skipped gracefully. At least one configured provider is needed for a useful response, and OpenAI is used for the Analyzer judge step. If the judge is unavailable, Aion Mind falls back to a successful candidate response.
 
 Provider calls retry transient failures and HTTP 429 rate limits with exponential backoff. The default is two retries, starting around one second and capped at eight seconds. If you are hitting daily quota, retries will still fail until the provider resets or the quota is raised.
 
@@ -148,6 +154,12 @@ Leave both as `false` for normal use so users only see Aion Mind brand names.
 
 ## Analyzer Workflow
 
-`Aion Mind Analyzer` sends the user request to all configured candidates in parallel, then asks the Claude-backed judge to evaluate correctness, completeness, clarity, confidence, safety, and usefulness. The final response is a single polished answer for the user.
+`Aion Mind Analyzer` sends the user request to Claude Opus, DeepSeek, and GPT-5.5 in parallel, shows each candidate answer, then asks the OpenAI-backed judge to evaluate correctness, completeness, clarity, confidence, safety, and usefulness. The final section is labeled `Judge answer`.
 
 The judge system prompt lives in `services/aionAnalyzer.ts`.
+
+## Model routing GUI
+
+Use the slider button beside the `Aion / Pro / Analyser` selector to open Model Routing. The drawer lets signed-in users choose provider, model ID, enabled state, and temperature for each Aion, Pro, Analyzer, and judge slot.
+
+API keys still live in `.env`. Saved routing choices are stored locally in `data/aion-routing.json`, which is ignored by git.

@@ -1,11 +1,10 @@
-import { callClaude } from "@/providers/claudeProvider";
-import { callGemini } from "@/providers/geminiProvider";
-import { callOpenAI } from "@/providers/openaiProvider";
+import { callConfiguredModel } from "@/services/aionModelCalls";
+import { loadAionRoutingSettings } from "@/services/aionRoutingConfig";
 import { getAionGreetingAnswer } from "@/services/aionGreeting";
 import { getAionModelLabel } from "@/types/aion";
 import type { ChatMessage, DebugDiagnostic } from "@/types/aion";
 import {
-  judgeResponsesWithClaude,
+  judgeResponsesWithConfiguredModel,
   pickFallbackAnswer,
   runAionAnalyzer
 } from "@/services/aionAnalyzer";
@@ -31,13 +30,13 @@ export async function routeAionRequest({
   }
 
   const messages: ChatMessage[] = [...history, { role: "user", content: message }];
+  const routing = await loadAionRoutingSettings();
 
   if (selectedModel === "aion-mind") {
-    const response = await callGemini({
+    const response = await callConfiguredModel(routing.aion.primary, {
       messages,
       attachments,
-      systemPrompt: BASE_SYSTEM_PROMPT,
-      temperature: 0.35
+      systemPrompt: BASE_SYSTEM_PROMPT
     });
 
     return toRouteResult(
@@ -48,20 +47,15 @@ export async function routeAionRequest({
   }
 
   if (selectedModel === "aion-mind-pro") {
-    const responses = await Promise.all([
-      callOpenAI({
-        messages,
-        attachments,
-        systemPrompt: PRO_SYSTEM_PROMPT,
-        temperature: 0.32
-      }),
-      callClaude({
-        messages,
-        attachments,
-        systemPrompt: PRO_SYSTEM_PROMPT,
-        temperature: 0.32
-      })
-    ]);
+    const responses = await Promise.all(
+      routing.pro.candidates.map((slot) =>
+        callConfiguredModel(slot, {
+          messages,
+          attachments,
+          systemPrompt: PRO_SYSTEM_PROMPT
+        })
+      )
+    );
 
     const successfulResponses = responses.filter(hasUsableContent);
 
@@ -73,11 +67,12 @@ export async function routeAionRequest({
       );
     }
 
-    const judge = await judgeResponsesWithClaude({
+    const judge = await judgeResponsesWithConfiguredModel({
       userMessage: message,
       history,
       responses: successfulResponses,
-      mode: "pro"
+      mode: "pro",
+      judge: routing.pro.judge
     });
 
     return toRouteResult(

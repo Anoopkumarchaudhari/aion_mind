@@ -5,6 +5,7 @@ export type ProviderName =
   | "openai-advanced"
   | "anthropic"
   | "anthropic-opus"
+  | "deepseek"
   | "gemini"
   | "grok"
   | "aion-judge";

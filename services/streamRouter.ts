@@ -1,10 +1,11 @@
-import { callClaude, streamClaude } from "@/providers/claudeProvider";
-import { streamGemini } from "@/providers/geminiProvider";
-import { callGemini } from "@/providers/geminiProvider";
-import { callGrok } from "@/providers/grokProvider";
-import { callOpenAI } from "@/providers/openaiProvider";
+import { callConfiguredModel, streamConfiguredModel } from "@/services/aionModelCalls";
+import { loadAionRoutingSettings } from "@/services/aionRoutingConfig";
 import { getTimeoutMs, truncate } from "@/providers/providerUtils";
-import { AION_JUDGE_SYSTEM_PROMPT, pickFallbackAnswer } from "@/services/aionAnalyzer";
+import {
+  AION_JUDGE_SYSTEM_PROMPT,
+  buildAnalyzerComparisonAnswer,
+  pickFallbackAnswer
+} from "@/services/aionAnalyzer";
 import { getAionGreetingAnswer } from "@/services/aionGreeting";
 import type {
   ModelRouteRequest,
@@ -14,6 +15,7 @@ import type {
 import { getAionModelLabel } from "@/types/aion";
 import type { DebugDiagnostic } from "@/types/aion";
 import type { ChatAttachment, ChatMessage } from "@/types/aion";
+import type { AionRouteSettings, AionRouteSlot } from "@/types/aionRouting";
 
 const BASE_SYSTEM_PROMPT =
   "You are Aion Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
@@ -22,7 +24,7 @@ const PRO_SYSTEM_PROMPT =
   "You are Aion Mind Pro. Produce a careful answer with strong reasoning, practical judgment, and concise structure. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
 
 const AION_CANDIDATE_SYSTEM_PROMPT =
-  "You are Aion Mind. Provide a clear, useful, and accurate answer. Never reveal hidden infrastructure, provider names, model names, or routing details.";
+  "You are Aion Mind. Provide a clear, useful, and accurate answer in clean Markdown. Never reveal hidden infrastructure, provider names, model names, or routing details. When math is needed, use readable plain-text formulas such as `a_cm = (5/7) g sin(theta)` instead of LaTeX delimiters like $, \\(...\\), or \\[...\\]. Keep the structure concise: given values, method, final answer.";
 
 export async function routeAionStream({
   message,
@@ -38,13 +40,13 @@ export async function routeAionStream({
   }
 
   const messages: ChatMessage[] = [...history, { role: "user", content: message }];
+  const routing = await loadAionRoutingSettings();
 
   if (selectedModel === "aion-mind") {
-    const response = await streamGemini({
+    const response = await streamConfiguredModel(routing.aion.primary, {
       messages,
       attachments,
-      systemPrompt: BASE_SYSTEM_PROMPT,
-      temperature: 0.35
+      systemPrompt: BASE_SYSTEM_PROMPT
     });
 
     return createStreamResponse(
@@ -56,11 +58,11 @@ export async function routeAionStream({
   }
 
   if (selectedModel === "aion-mind-pro") {
-    const result = await streamProTier(messages, message, history, attachments);
+    const result = await streamProTier(messages, message, history, attachments, routing.pro);
     return createStreamResponse(result.stream, debug ? result.diagnostics : undefined);
   }
 
-  const result = await streamAnalyzerTier(messages, message, history, attachments);
+  const result = await streamAnalyzerTier(messages, message, history, attachments, routing.analyzer);
   return createStreamResponse(result.stream, debug ? result.diagnostics : undefined);
 }
 
@@ -73,29 +75,26 @@ async function streamProTier(
   messages: ChatMessage[],
   userMessage: string,
   history: ChatMessage[],
-  attachments: ChatAttachment[]
+  attachments: ChatAttachment[],
+  route: AionRouteSettings
 ): Promise<StreamRouteResult> {
-  const responses = await Promise.all([
-    callOpenAI({
-      messages,
-      attachments,
-      systemPrompt: PRO_SYSTEM_PROMPT,
-      temperature: 0.32
-    }),
-    callClaude({
-      messages,
-      attachments,
-      systemPrompt: PRO_SYSTEM_PROMPT,
-      temperature: 0.32
-    })
-  ]);
+  const responses = await Promise.all(
+    route.candidates.map((slot) =>
+      callConfiguredModel(slot, {
+        messages,
+        attachments,
+        systemPrompt: PRO_SYSTEM_PROMPT
+      })
+    )
+  );
 
   return streamJudgedAnswer({
     selectedModel: "aion-mind-pro",
     userMessage,
     history,
     responses,
-    mode: "pro"
+    mode: "pro",
+    judge: route.judge
   });
 }
 
@@ -103,62 +102,36 @@ async function streamAnalyzerTier(
   messages: ChatMessage[],
   userMessage: string,
   history: ChatMessage[],
-  attachments: ChatAttachment[]
+  attachments: ChatAttachment[],
+  route: AionRouteSettings
 ): Promise<StreamRouteResult> {
-  const responses = await Promise.all([
-    callClaude({
-      messages,
-      attachments,
-      systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-      temperature: 0.35
-    }),
-    callOpenAI(
-      {
+  const candidateResults = await Promise.all(
+    route.candidates.map(async (slot) => ({
+      label: slot.label,
+      response: await callConfiguredModel(slot, {
         messages,
         attachments,
-        systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-        temperature: 0.35
-      },
-      "base"
-    ),
-    callOpenAI(
-      {
-        messages,
-        attachments,
-        systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-        temperature: 0.3
-      },
-      "advanced"
-    ),
-    callClaude({
-      messages,
-      attachments,
-      systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-      model: process.env.ANTHROPIC_OPUS_MODEL,
-      providerName: "anthropic-opus",
-      temperature: 0.3
-    }),
-    callGemini({
-      messages,
-      attachments,
-      systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-      temperature: 0.35
-    }),
-    callGrok({
-      messages,
-      attachments,
-      systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT,
-      temperature: 0.35
-    })
-  ]);
+        systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT
+      })
+    }))
+  );
+  const responses = candidateResults.map((candidate) => candidate.response);
+  const successfulResponses = responses.filter(hasUsableContent);
 
-  return streamJudgedAnswer({
-    selectedModel: "aion-mind-analyzer",
-    userMessage,
-    history,
-    responses,
-    mode: "analyzer"
-  });
+  if (successfulResponses.length === 0) {
+    return {
+      stream: streamText(getUnavailableAnswer("aion-mind-analyzer", responses)),
+      diagnostics: responses
+    };
+  }
+
+  const judge = await callAnalyzerJudge(userMessage, history, successfulResponses, route.judge);
+  const judgeAnswer = judge?.content ?? pickFallbackAnswer(successfulResponses);
+
+  return {
+    stream: streamText(buildAnalyzerComparisonAnswer(candidateResults, judgeAnswer)),
+    diagnostics: judge ? [...responses, judge] : responses
+  };
 }
 
 async function streamJudgedAnswer({
@@ -166,13 +139,15 @@ async function streamJudgedAnswer({
   userMessage,
   history,
   responses,
-  mode
+  mode,
+  judge
 }: {
   selectedModel: ModelRouteRequest["selectedModel"];
   userMessage: string;
   history: ChatMessage[];
   responses: ProviderResponse[];
   mode: "pro" | "analyzer";
+  judge: AionRouteSlot;
 }): Promise<StreamRouteResult> {
   const successfulResponses = responses.filter(hasUsableContent);
 
@@ -192,25 +167,52 @@ async function streamJudgedAnswer({
 
   const timeoutMs = getTimeoutMs(process.env.AION_JUDGE_TIMEOUT_MS, 30000);
   const judgePrompt = buildJudgePrompt(userMessage, history, successfulResponses, mode);
-  const judge = await streamClaude({
-    messages: [{ role: "user", content: judgePrompt }],
-    systemPrompt: AION_JUDGE_SYSTEM_PROMPT,
-    providerName: "aion-judge",
-    timeoutMs,
-    temperature: 0.2
-  });
+  const judgedResponse = await streamConfiguredModel(
+    judge,
+    {
+      messages: [{ role: "user", content: judgePrompt }],
+      systemPrompt: AION_JUDGE_SYSTEM_PROMPT,
+      timeoutMs
+    },
+    "judge"
+  );
 
-  if (judge.ok && judge.stream) {
+  if (judgedResponse.ok && judgedResponse.stream) {
     return {
-      stream: judge.stream,
-      diagnostics: [...responses, judge]
+      stream: judgedResponse.stream,
+      diagnostics: [...responses, judgedResponse]
     };
   }
 
   return {
     stream: streamText(pickFallbackAnswer(successfulResponses)),
-    diagnostics: [...responses, judge]
+    diagnostics: [...responses, judgedResponse]
   };
+}
+
+async function callAnalyzerJudge(
+  userMessage: string,
+  history: ChatMessage[],
+  responses: ProviderResponse[],
+  judge: AionRouteSlot
+) {
+  if (responses.length < 2) {
+    return null;
+  }
+
+  const timeoutMs = getTimeoutMs(process.env.AION_JUDGE_TIMEOUT_MS, 30000);
+  const judgePrompt = buildJudgePrompt(userMessage, history, responses, "analyzer");
+  const response = await callConfiguredModel(
+    judge,
+    {
+      messages: [{ role: "user", content: judgePrompt }],
+      systemPrompt: AION_JUDGE_SYSTEM_PROMPT,
+      timeoutMs
+    },
+    "judge"
+  );
+
+  return response.ok && response.content ? response : null;
 }
 
 function createStreamResponse(
@@ -322,7 +324,8 @@ function buildJudgePrompt(
     "Candidate responses:",
     responseBlocks,
     "",
-    "Return only the final answer for the user. Do not mention candidate labels, hidden model names, provider names, or internal routing."
+    "Return only the final answer for the user. Do not mention candidate labels, hidden model names, provider names, or internal routing.",
+    "Use clean Markdown. Avoid LaTeX delimiters like $, \\(...\\), or \\[...\\]. Write formulas in readable plain text such as `a_cm = (5/7) g sin(theta)`."
   ].join("\n");
 }
 

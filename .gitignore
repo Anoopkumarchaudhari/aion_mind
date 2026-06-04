@@ -12,3 +12,4 @@ pnpm-debug.log*
 dev-server*.log
 tsconfig.tsbuildinfo
 .DS_Store
+data/aion-routing.json

@@ -82,7 +82,7 @@ export async function callClaude(options: ProviderCallOptions = { messages: [] }
         body: JSON.stringify({
           model,
           max_tokens: 4096,
-          temperature: options.temperature ?? 0.35,
+          ...getAnthropicTemperaturePayload(model, options.temperature ?? 0.35),
           system: options.systemPrompt,
           messages: toAnthropicMessages(options.messages, options.attachments)
         })
@@ -151,7 +151,7 @@ export async function streamClaude(
         body: JSON.stringify({
           model,
           max_tokens: 4096,
-          temperature: options.temperature ?? 0.35,
+          ...getAnthropicTemperaturePayload(model, options.temperature ?? 0.35),
           system: options.systemPrompt,
           messages: toAnthropicMessages(options.messages, options.attachments),
           stream: true
@@ -182,6 +182,14 @@ export async function streamClaude(
   } catch (error) {
     return providerFailure(provider, error, startedAt, model);
   }
+}
+
+function getAnthropicTemperaturePayload(model: string, temperature: number) {
+  if (model.trim().toLowerCase().startsWith("claude-opus-4")) {
+    return {};
+  }
+
+  return { temperature };
 }
 
 function toAnthropicMessages(messages: ChatMessage[], attachments: ChatAttachment[] = []): AnthropicMessage[] {

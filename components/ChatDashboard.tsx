@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { EmptyState } from "@/components/EmptyState";
 import { MessageInput } from "@/components/MessageInput";
+import { ModelRoutingDrawer } from "@/components/ModelRoutingDrawer";
 import { MessageList } from "@/components/MessageList";
 import { ModelPill } from "@/components/ModelPill";
 import { NeuralBackdrop } from "@/components/NeuralBackdrop";
@@ -15,7 +16,7 @@ import { TopBar } from "@/components/TopBar";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { sortThreads, useChatStore } from "@/store/useChatStore";
 import { useNotebookStore } from "@/store/useNotebookStore";
-import type { ChatAttachment } from "@/types/aion";
+import type { AionModelId, ChatAttachment } from "@/types/aion";
 
 const debugEnabled = process.env.NEXT_PUBLIC_AION_DEBUG === "true";
 const MAX_ATTACHMENTS = 5;
@@ -45,6 +46,7 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
   const [accountName, setAccountName] = useState("Anoop Kumar");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [routingOpen, setRoutingOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const rawThreads = useChatStore((state) => state.threads);
@@ -232,7 +234,11 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
 
   const controls = (
     <>
-      <ModelPill active={selectedModel} onChange={setSelectedModel} />
+      <ModelPill
+        active={selectedModel}
+        onChange={setSelectedModel}
+        onOpenRouting={() => setRoutingOpen(true)}
+      />
       <MessageInput
         value={input}
         disabled={isLoading}
@@ -337,8 +343,25 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
       </main>
 
       <ShareLinkToast toast={toast} onUndoDelete={undoDelete} onClose={clearToast} />
+      <ModelRoutingDrawer
+        open={routingOpen}
+        initialTab={getRoutingTab(selectedModel)}
+        onOpenChange={setRoutingOpen}
+      />
     </div>
   );
+}
+
+function getRoutingTab(model: AionModelId) {
+  if (model === "aion-mind-pro") {
+    return "pro";
+  }
+
+  if (model === "aion-mind-analyzer") {
+    return "analyzer";
+  }
+
+  return "aion";
 }
 
 const SUPPORTED_TEXT_EXTENSIONS = new Set([
