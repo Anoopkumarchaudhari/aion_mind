@@ -1,5 +1,7 @@
 import { callConfiguredModel } from "@/services/aionModelCalls";
 import { loadAionRoutingSettings } from "@/services/aionRoutingConfig";
+import { callOpenAIWithWebSearch } from "@/providers/openaiProvider";
+import { getTimeoutMs } from "@/providers/providerUtils";
 import { getAionGreetingAnswer } from "@/services/aionGreeting";
 import { getAionModelLabel } from "@/types/aion";
 import type { ChatMessage, DebugDiagnostic } from "@/types/aion";
@@ -8,6 +10,10 @@ import {
   pickFallbackAnswer,
   runAionAnalyzer
 } from "@/services/aionAnalyzer";
+import {
+  LIVE_VERIFICATION_SYSTEM_PROMPT,
+  needsLiveVerification
+} from "@/services/liveVerification";
 import type { ModelRouteRequest, ModelRouteResult, ProviderResponse } from "@/services/types";
 
 const BASE_SYSTEM_PROMPT =
@@ -30,6 +36,23 @@ export async function routeAionRequest({
   }
 
   const messages: ChatMessage[] = [...history, { role: "user", content: message }];
+
+  if (needsLiveVerification(message, attachments)) {
+    const response = await callOpenAIWithWebSearch({
+      messages,
+      systemPrompt: LIVE_VERIFICATION_SYSTEM_PROMPT,
+      timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
+    });
+
+    return toRouteResult(
+      selectedModel,
+      response.ok && response.content
+        ? response.content
+        : getLiveVerificationUnavailableAnswer(selectedModel, response),
+      debug ? [response] : undefined
+    );
+  }
+
   const routing = await loadAionRoutingSettings();
 
   if (selectedModel === "aion-mind") {
@@ -130,4 +153,17 @@ function getUnavailableAnswer(
   }
 
   return `${label} could not complete that request. The configured AI service was rejected, rate-limited, or timed out. Check the server-side credentials, quota, and model access, then try again.`;
+}
+
+function getLiveVerificationUnavailableAnswer(
+  selectedModel: ModelRouteRequest["selectedModel"],
+  response: ProviderResponse
+) {
+  const label = getAionModelLabel(selectedModel);
+
+  if (response.skipped) {
+    return `${label} needs live verification for that question, but live search is not configured yet. Add OPENAI_API_KEY, then restart the dev server.`;
+  }
+
+  return `${label} needs live verification for that question, but live search could not return verifiable sources right now. Please try again in a moment or provide a trusted source.`;
 }

@@ -2,6 +2,7 @@ import type { AionModelId, ChatAttachment, ChatMessage, DebugDiagnostic } from "
 
 export type ProviderName =
   | "openai"
+  | "openai-live"
   | "openai-advanced"
   | "anthropic"
   | "anthropic-opus"

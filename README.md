@@ -88,6 +88,7 @@ OPENAI_API_KEY=
 OPENAI_MODEL=
 OPENAI_ADVANCED_MODEL=
 OPENAI_JUDGE_MODEL=gpt-5.5
+OPENAI_LIVE_MODEL=gpt-5.5
 
 ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=
@@ -107,6 +108,7 @@ AION_PROVIDER_TIMEOUT_MS=25000
 AION_PROVIDER_MAX_RETRIES=2
 AION_PROVIDER_RETRY_BASE_MS=1000
 AION_PROVIDER_RETRY_MAX_MS=8000
+AION_LIVE_VERIFICATION_TIMEOUT_MS=35000
 ```
 
 Where each key goes:
@@ -117,6 +119,7 @@ Where each key goes:
 - `OPENAI_MODEL`: base GPT model ID for Pro/Analyzer.
 - `OPENAI_ADVANCED_MODEL`: optional advanced GPT model ID for Analyzer.
 - `OPENAI_JUDGE_MODEL`: OpenAI model ID used by the Analyzer judge. The app defaults to `gpt-5.5`.
+- `OPENAI_LIVE_MODEL`: optional OpenAI model ID used for live web verification of current facts. Defaults to `OPENAI_JUDGE_MODEL`, then `gpt-5.5`.
 - `ANTHROPIC_API_KEY`: key used by Aion Mind Pro and Analyzer.
 - `ANTHROPIC_MODEL`: Claude model ID used by Pro/Analyzer.
 - `ANTHROPIC_OPUS_MODEL`: optional Opus model ID for the Analyzer pipeline.
@@ -126,6 +129,8 @@ Where each key goes:
 Missing provider keys are skipped gracefully. At least one configured provider is needed for a useful response, and OpenAI is used for the Analyzer judge step. If the judge is unavailable, Aion Mind falls back to a successful candidate response.
 
 Provider calls retry transient failures and HTTP 429 rate limits with exponential backoff. The default is two retries, starting around one second and capped at eight seconds. If you are hitting daily quota, retries will still fail until the provider resets or the quota is raised.
+
+Current or changeable factual questions, such as office holders, prices, scores, weather, elections, releases, regulations, or recent news, are routed through OpenAI live web verification before the model answers. If live search cannot return verifiable sources, Aion Mind tells the user it could not verify instead of falling back to a guessed model-memory answer.
 
 4. Run locally:
 

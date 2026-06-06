@@ -31,6 +31,36 @@ type OpenAIChatStreamEvent = {
   }>;
 };
 
+type OpenAIResponsesResponse = {
+  output_text?: string;
+  output?: OpenAIResponsesOutputItem[];
+};
+
+type OpenAIResponsesOutputItem = {
+  type?: string;
+  content?: OpenAIResponsesContentPart[];
+  action?: {
+    sources?: OpenAIWebSource[];
+  };
+};
+
+type OpenAIResponsesContentPart = {
+  type?: string;
+  text?: string;
+  annotations?: OpenAIUrlCitation[];
+};
+
+type OpenAIUrlCitation = {
+  type?: string;
+  title?: string;
+  url?: string;
+};
+
+type OpenAIWebSource = {
+  title?: string;
+  url?: string;
+};
+
 type OpenAIMessage = {
   role: "system" | "user" | "assistant";
   content: string | OpenAIContentPart[];
@@ -49,7 +79,7 @@ type OpenAIContentPart =
       };
     };
 
-type OpenAIVariant = "base" | "advanced" | "judge";
+type OpenAIVariant = "base" | "advanced" | "judge" | "live";
 
 type OpenAIConfig = {
   provider: ProviderName;
@@ -58,6 +88,7 @@ type OpenAIConfig = {
 };
 
 const DEFAULT_OPENAI_JUDGE_MODEL = "gpt-5.5";
+const DEFAULT_OPENAI_LIVE_MODEL = DEFAULT_OPENAI_JUDGE_MODEL;
 
 export async function callOpenAI(
   options: ProviderCallOptions,
@@ -181,12 +212,91 @@ export async function streamOpenAI(
   }
 }
 
+export async function callOpenAIWithWebSearch(
+  options: ProviderCallOptions,
+  variant: OpenAIVariant = "live"
+): Promise<ProviderResponse> {
+  const { provider, model, modelEnvName } = getOpenAIConfig(options, variant);
+  const startedAt = Date.now();
+  const apiKey = process.env.OPENAI_API_KEY ?? "";
+  const missing = [
+    !apiKey ? "OPENAI_API_KEY" : "",
+    !model ? modelEnvName : ""
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    return missingProviderConfig(provider, missing, startedAt, model);
+  }
+
+  const timeoutMs =
+    options.timeoutMs ??
+    getTimeoutMs(
+      process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS,
+      getTimeoutMs(process.env.AION_PROVIDER_TIMEOUT_MS, 35000)
+    );
+
+  try {
+    const data = await fetchJsonWithTimeout<OpenAIResponsesResponse>(
+      "https://api.openai.com/v1/responses",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model,
+          input: buildLiveVerificationInput(options.messages, options.systemPrompt),
+          tools: [{ type: "web_search", external_web_access: true }],
+          tool_choice: "auto",
+          include: ["web_search_call.action.sources"],
+          ...getOpenAITemperaturePayload(model, options.temperature ?? 0.2)
+        })
+      },
+      timeoutMs
+    );
+
+    const sources = extractOpenAIWebSources(data);
+    const content = compactContent(extractOpenAIResponseText(data));
+
+    if (sources.length === 0) {
+      throw new Error("Live web search returned no verifiable sources");
+    }
+
+    if (!content) {
+      throw new Error("Empty verified response");
+    }
+
+    return {
+      provider,
+      model,
+      ok: true,
+      content: appendVerifiedSources(content, sources),
+      latencyMs: Date.now() - startedAt
+    };
+  } catch (error) {
+    return providerFailure(provider, error, startedAt, model);
+  }
+}
+
 function getOpenAIConfig(options: ProviderCallOptions, variant: OpenAIVariant): OpenAIConfig {
   if (variant === "advanced") {
     return {
       provider: "openai-advanced",
       model: options.model ?? process.env.OPENAI_ADVANCED_MODEL ?? "",
       modelEnvName: "OPENAI_ADVANCED_MODEL"
+    };
+  }
+
+  if (variant === "live") {
+    return {
+      provider: "openai-live",
+      model:
+        options.model ??
+        (process.env.OPENAI_LIVE_MODEL ||
+          process.env.OPENAI_JUDGE_MODEL ||
+          DEFAULT_OPENAI_LIVE_MODEL),
+      modelEnvName: "OPENAI_LIVE_MODEL"
     };
   }
 
@@ -249,6 +359,104 @@ function findLastUserMessageIndex(messages: ChatMessage[]) {
   }
 
   return -1;
+}
+
+function buildLiveVerificationInput(messages: ChatMessage[], systemPrompt?: string) {
+  const conversation = messages
+    .map((message, index) => {
+      const label = message.role === "assistant" ? "Assistant" : "User";
+      return `${index + 1}. ${label}: ${truncate(message.content, 2500)}`;
+    })
+    .join("\n\n");
+
+  return [
+    systemPrompt,
+    "Conversation:",
+    conversation || "No prior conversation.",
+    "",
+    "Use live web search for the latest facts before answering the final user request."
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function extractOpenAIResponseText(data: OpenAIResponsesResponse) {
+  if (typeof data.output_text === "string") {
+    return data.output_text;
+  }
+
+  return (
+    data.output
+      ?.flatMap((item) => item.content?.map((part) => part.text ?? "") ?? [])
+      .join("")
+      .trim() ?? ""
+  );
+}
+
+function extractOpenAIWebSources(data: OpenAIResponsesResponse) {
+  const sources: OpenAIWebSource[] = [];
+
+  for (const item of data.output ?? []) {
+    for (const source of item.action?.sources ?? []) {
+      if (source.url) {
+        sources.push(source);
+      }
+    }
+
+    for (const part of item.content ?? []) {
+      for (const annotation of part.annotations ?? []) {
+        if (annotation.url) {
+          sources.push({
+            title: annotation.title,
+            url: annotation.url
+          });
+        }
+      }
+    }
+  }
+
+  return dedupeSources(sources).slice(0, 6);
+}
+
+function dedupeSources(sources: OpenAIWebSource[]) {
+  const seen = new Set<string>();
+  const output: OpenAIWebSource[] = [];
+
+  for (const source of sources) {
+    const url = source.url?.trim();
+
+    if (!url || seen.has(url)) {
+      continue;
+    }
+
+    seen.add(url);
+    output.push({
+      title: source.title?.trim() || getSourceLabel(url),
+      url
+    });
+  }
+
+  return output;
+}
+
+function appendVerifiedSources(content: string, sources: OpenAIWebSource[]) {
+  const sourceLines = sources
+    .map((source, index) => `${index + 1}. [${escapeMarkdownLabel(source.title ?? "Source")}](${source.url})`)
+    .join("\n");
+
+  return `${content.trim()}\n\nSources:\n${sourceLines}`;
+}
+
+function getSourceLabel(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "Source";
+  }
+}
+
+function escapeMarkdownLabel(value: string) {
+  return value.replace(/[[\]]/g, "");
 }
 
 function toOpenAIImageParts(attachments: ChatAttachment[]): OpenAIContentPart[] {

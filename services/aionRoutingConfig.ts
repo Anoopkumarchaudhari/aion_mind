@@ -126,7 +126,11 @@ export function getAionProviderStatus(): AionProviderStatus[] {
       defaultModels: [
         { label: "Base", value: readEnv("OPENAI_MODEL") },
         { label: "Advanced", value: readEnv("OPENAI_ADVANCED_MODEL") },
-        { label: "Judge", value: readEnv("OPENAI_JUDGE_MODEL") || DEFAULT_JUDGE_MODEL }
+        { label: "Judge", value: readEnv("OPENAI_JUDGE_MODEL") || DEFAULT_JUDGE_MODEL },
+        {
+          label: "Live Search",
+          value: readEnv("OPENAI_LIVE_MODEL") || readEnv("OPENAI_JUDGE_MODEL") || DEFAULT_JUDGE_MODEL
+        }
       ]
     },
     {
