@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, Code2, FileText, MoreHorizontal, Search } from "lucide-react";
 
@@ -42,8 +42,12 @@ const DASHBOARD_ACTIONS = [
 ] as const;
 
 export function EmptyState({ controls, accountName, onPromptSelect }: EmptyStateProps) {
+  const [greeting, setGreeting] = useState("Welcome back");
   const firstName = getFirstName(accountName);
-  const greeting = getGreeting();
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+  }, []);
 
   return (
     <motion.section
