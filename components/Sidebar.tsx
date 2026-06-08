@@ -12,6 +12,7 @@ import {
   Copy,
   Film,
   HelpCircle,
+  Image as ImageIcon,
   Keyboard,
   LogOut,
   MoreVertical,
@@ -187,6 +188,10 @@ export function Sidebar({
             <span className="sidebar-action-label">Search chats</span>
             <kbd className="sidebar-kbd">⌘K</kbd>
           </button>
+          <Link className="sidebar-action" href="/images" onClick={onClose} title="Images">
+            <ImageIcon size={17} />
+            <span className="sidebar-action-label">Images</span>
+          </Link>
           <Link className="sidebar-action" href="/videos" onClick={markVideosVisited} title="Videos">
             <Film size={17} />
             <span className="sidebar-action-label">Videos</span>

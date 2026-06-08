@@ -1,8 +1,16 @@
-import type { LibraryItem, Notebook, VideoJob, VideoStyle } from "@/types/workspace";
+import type {
+  GeneratedImage,
+  LibraryItem,
+  Notebook,
+  StoredGeneratedImage,
+  VideoJob,
+  VideoStyle
+} from "@/types/workspace";
 
 type MemoryState = {
   library: Map<string, LibraryItem>;
   notebooks: Map<string, Notebook>;
+  images: Map<string, StoredGeneratedImage>;
   videos: Map<string, VideoJob>;
 };
 
@@ -13,6 +21,7 @@ const memory: MemoryState =
   {
     library: new Map<string, LibraryItem>(),
     notebooks: new Map<string, Notebook>(),
+    images: new Map<string, StoredGeneratedImage>(),
     videos: new Map<string, VideoJob>()
   };
 
@@ -70,6 +79,15 @@ export function patchNotebook(id: string, patch: Partial<Notebook>) {
 
 export function deleteNotebook(id: string) {
   return memory.notebooks.delete(id);
+}
+
+export function saveGeneratedImage(image: StoredGeneratedImage): GeneratedImage {
+  memory.images.set(image.id, image);
+  return toPublicImage(image);
+}
+
+export function getGeneratedImage(id: string) {
+  return memory.images.get(id) ?? null;
 }
 
 export function createVideoJob(prompt: string, style: VideoStyle, duration: number) {
@@ -157,4 +175,10 @@ function escapeSvg(value: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function toPublicImage(image: StoredGeneratedImage): GeneratedImage {
+  const { base64: _base64, mimeType: _mimeType, sourceUrl: _sourceUrl, ...publicImage } = image;
+
+  return publicImage;
 }

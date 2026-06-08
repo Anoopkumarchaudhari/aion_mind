@@ -12,6 +12,28 @@ export type LibraryItem = {
   createdAt: number;
 };
 
+export type ImageAspectRatio = "square" | "portrait" | "landscape";
+
+export type ImageQuality = "auto" | "low" | "medium" | "high";
+
+export type GeneratedImage = {
+  id: string;
+  prompt: string;
+  model: string;
+  aspectRatio: ImageAspectRatio;
+  size: string;
+  quality: ImageQuality;
+  url: string;
+  revisedPrompt?: string;
+  createdAt: number;
+};
+
+export type StoredGeneratedImage = GeneratedImage & {
+  mimeType: string;
+  base64?: string;
+  sourceUrl?: string;
+};
+
 export type NotebookItem =
   | { kind: "chat"; chatId: string; order: number }
   | { kind: "library"; libraryItemId: string; order: number }
