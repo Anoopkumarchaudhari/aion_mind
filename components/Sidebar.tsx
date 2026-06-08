@@ -134,7 +134,7 @@ export function Sidebar({
   }
 
   async function handleSignOut() {
-    if (!window.confirm("Sign out of Aion Mind on this device?")) {
+    if (!window.confirm("Sign out of Arya Mind on this device?")) {
       return;
     }
 
@@ -163,7 +163,7 @@ export function Sidebar({
         <div className="brand-row">
           <AionLogo size={28} />
           <div className="brand-copy">
-            <p className="brand-name">Aion Mind</p>
+            <p className="brand-name">Arya Mind</p>
             <p className="brand-status">AI dashboard</p>
           </div>
           <button
@@ -521,10 +521,10 @@ function ThreadSection({
 function getDisplayModelLabel(model: AionModelId) {
   switch (model) {
     case "aion-mind":
-      return "Aion Mind";
+      return "Arya Mind";
     case "aion-mind-pro":
-      return "Aion Mind Pro";
+      return "Arya Mind Pro";
     case "aion-mind-analyzer":
-      return "Aion Mind Analyser";
+      return "Arya Mind Analyser";
   }
 }

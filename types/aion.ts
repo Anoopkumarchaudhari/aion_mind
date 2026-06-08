@@ -50,11 +50,11 @@ export type ChatApiResponse = {
 export function getAionModelLabel(model: AionModelId) {
   switch (model) {
     case "aion-mind":
-      return "Aion Mind";
+      return "Arya Mind";
     case "aion-mind-pro":
-      return "Aion Mind Pro";
+      return "Arya Mind Pro";
     case "aion-mind-analyzer":
-      return "Aion Mind Analyzer";
+      return "Arya Mind Analyzer";
   }
 }
 

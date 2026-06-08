@@ -26,7 +26,7 @@ export function KeyboardShortcutsModal({ open, onOpenChange }: KeyboardShortcuts
             <div>
               <Dialog.Title className="dialog-title">Keyboard shortcuts</Dialog.Title>
               <Dialog.Description className="dialog-description">
-                Move around Aion Mind without leaving the keyboard.
+                Move around Arya Mind without leaving the keyboard.
               </Dialog.Description>
             </div>
             <Dialog.Close className="dialog-close" aria-label="Close">

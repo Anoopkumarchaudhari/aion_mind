@@ -518,7 +518,7 @@ function buildImageAttachmentNote(file: File) {
     `[Attached image: ${file.name}]`,
     `Type: ${fileType}`,
     `Size: ${formatBytes(file.size)}`,
-    "This image was sent directly to Aion Mind vision. Use it to extract text, describe visible content, and answer the user's question."
+    "This image was sent directly to Arya Mind vision. Use it to extract text, describe visible content, and answer the user's question."
   ].join("\n");
 }
 

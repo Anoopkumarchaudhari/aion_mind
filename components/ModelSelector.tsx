@@ -9,9 +9,9 @@ type ModelOption = {
 };
 
 const MODEL_OPTIONS: ModelOption[] = [
-  { id: "aion-mind", label: "Aion Mind" },
-  { id: "aion-mind-pro", label: "Aion Mind Pro" },
-  { id: "aion-mind-analyzer", label: "Aion Mind Analyser" }
+  { id: "aion-mind", label: "Arya Mind" },
+  { id: "aion-mind-pro", label: "Arya Mind Pro" },
+  { id: "aion-mind-analyzer", label: "Arya Mind Analyser" }
 ];
 
 type ModelSelectorProps = {
@@ -43,7 +43,7 @@ export function ModelSelector({
         </button>
       </div>
 
-      <div className="model-selector-wrap" aria-label="Aion Mind model selector">
+      <div className="model-selector-wrap" aria-label="Arya Mind model selector">
         <div className="segmented-control">
           {MODEL_OPTIONS.map((model) => (
             <button
@@ -64,7 +64,7 @@ export function ModelSelector({
             className="model-dropdown"
             value={selectedModel}
             onChange={(event) => onModelChange(event.target.value as AionModelId)}
-            aria-label="Select Aion Mind model"
+            aria-label="Select Arya Mind model"
           >
             {MODEL_OPTIONS.map((model) => (
               <option key={model.id} value={model.id}>

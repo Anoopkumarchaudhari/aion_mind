@@ -22,14 +22,17 @@ import type { DebugDiagnostic } from "@/types/aion";
 import type { ChatAttachment, ChatMessage } from "@/types/aion";
 import type { AionRouteSettings, AionRouteSlot } from "@/types/aionRouting";
 
+const WEB_SEARCH_INTENT_PATTERN =
+  /\b(?:web search|search the web|google|look up|browse|internet|online|sources?|citations?|cite|research)\b/i;
+
 const BASE_SYSTEM_PROMPT =
-  "You are Aion Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+  "You are Arya Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
 
 const PRO_SYSTEM_PROMPT =
-  "You are Aion Mind Pro. Produce a careful answer with strong reasoning, practical judgment, and concise structure. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+  "You are Arya Mind Pro. Produce a careful answer with strong reasoning, practical judgment, and concise structure. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
 
 const AION_CANDIDATE_SYSTEM_PROMPT =
-  "You are Aion Mind. Provide a clear, useful, and accurate answer in clean Markdown. Never reveal hidden infrastructure, provider names, model names, or routing details. When math is needed, use readable plain-text formulas such as `a_cm = (5/7) g sin(theta)` instead of LaTeX delimiters like $, \\(...\\), or \\[...\\]. Keep the structure concise: given values, method, final answer.";
+  "You are Arya Mind. Provide a clear, useful, and accurate answer in clean Markdown. Never reveal hidden infrastructure, provider names, model names, or routing details. When math is needed, use readable plain-text formulas such as `a_cm = (5/7) g sin(theta)` instead of LaTeX delimiters like $, \\(...\\), or \\[...\\]. Keep the structure concise: given values, method, final answer.";
 
 export async function routeAionStream({
   message,
@@ -45,27 +48,35 @@ export async function routeAionStream({
   }
 
   const messages: ChatMessage[] = [...history, { role: "user", content: message }];
+  const liveSearchResponse = await getLiveSearchResponse({
+    selectedModel,
+    message,
+    messages,
+    attachments
+  });
 
-  if (needsLiveVerification(message, attachments)) {
-    const response = await callOpenAIWithWebSearch({
-      messages,
-      systemPrompt: LIVE_VERIFICATION_SYSTEM_PROMPT,
-      timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
-    });
-
+  if (liveSearchResponse && (!liveSearchResponse.ok || !liveSearchResponse.content)) {
     return createStreamResponse(
-      response.ok && response.content
-        ? streamText(response.content)
-        : streamText(getLiveVerificationUnavailableAnswer(selectedModel, response)),
-      debug ? [response] : undefined
+      streamText(getLiveVerificationUnavailableAnswer(selectedModel, liveSearchResponse)),
+      debug ? [liveSearchResponse] : undefined
     );
   }
 
+  if (liveSearchResponse && selectedModel !== "aion-mind-pro") {
+    return createStreamResponse(
+      streamText(liveSearchResponse.content ?? ""),
+      debug ? [liveSearchResponse] : undefined
+    );
+  }
+
+  const routedMessages = liveSearchResponse?.content
+    ? withLiveSearchContext(messages, liveSearchResponse.content)
+    : messages;
   const routing = await loadAionRoutingSettings();
 
   if (selectedModel === "aion-mind") {
     const response = await streamConfiguredModel(routing.aion.primary, {
-      messages,
+      messages: routedMessages,
       attachments,
       systemPrompt: BASE_SYSTEM_PROMPT
     });
@@ -79,12 +90,92 @@ export async function routeAionStream({
   }
 
   if (selectedModel === "aion-mind-pro") {
-    const result = await streamProTier(messages, message, history, attachments, routing.pro);
+    const result = await streamProTier(
+      routedMessages,
+      message,
+      history,
+      attachments,
+      routing.pro,
+      liveSearchResponse ? [liveSearchResponse] : []
+    );
     return createStreamResponse(result.stream, debug ? result.diagnostics : undefined);
   }
 
   const result = await streamAnalyzerTier(messages, message, history, attachments, routing.analyzer);
   return createStreamResponse(result.stream, debug ? result.diagnostics : undefined);
+}
+
+async function getLiveSearchResponse({
+  selectedModel,
+  message,
+  messages,
+  attachments
+}: {
+  selectedModel: ModelRouteRequest["selectedModel"];
+  message: string;
+  messages: ChatMessage[];
+  attachments: ChatAttachment[];
+}) {
+  if (!needsModelWebSearch(selectedModel, message, attachments)) {
+    return null;
+  }
+
+  return callOpenAIWithWebSearch({
+    messages,
+    systemPrompt: LIVE_VERIFICATION_SYSTEM_PROMPT,
+    timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
+  });
+}
+
+function needsModelWebSearch(
+  selectedModel: ModelRouteRequest["selectedModel"],
+  message: string,
+  attachments: ChatAttachment[]
+) {
+  if (selectedModel === "aion-mind-analyzer") {
+    return needsLiveVerification(message, attachments);
+  }
+
+  const normalized = message.replace(/\s+/g, " ").trim();
+
+  return (
+    needsLiveVerification(message, attachments) ||
+    (attachments.length === 0 && WEB_SEARCH_INTENT_PATTERN.test(normalized))
+  );
+}
+
+function withLiveSearchContext(messages: ChatMessage[], liveSearchContent: string) {
+  const lastUserIndex = findLastUserMessageIndex(messages);
+
+  if (lastUserIndex === -1) {
+    return messages;
+  }
+
+  return messages.map((message, index) =>
+    index === lastUserIndex
+      ? {
+          ...message,
+          content: [
+            message.content,
+            "",
+            "Live web-search context:",
+            liveSearchContent,
+            "",
+            "Use this verified web context as source material. Include the most relevant source links when they support the final answer, and do not invent facts that the live sources do not support."
+          ].join("\n")
+        }
+      : message
+  );
+}
+
+function findLastUserMessageIndex(messages: ChatMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index].role === "user") {
+      return index;
+    }
+  }
+
+  return -1;
 }
 
 type StreamRouteResult = {
@@ -97,7 +188,8 @@ async function streamProTier(
   userMessage: string,
   history: ChatMessage[],
   attachments: ChatAttachment[],
-  route: AionRouteSettings
+  route: AionRouteSettings,
+  preDiagnostics: ProviderResponse[] = []
 ): Promise<StreamRouteResult> {
   const responses = await Promise.all(
     route.candidates.map((slot) =>
@@ -109,7 +201,7 @@ async function streamProTier(
     )
   );
 
-  return streamJudgedAnswer({
+  const result = await streamJudgedAnswer({
     selectedModel: "aion-mind-pro",
     userMessage,
     history,
@@ -117,6 +209,11 @@ async function streamProTier(
     mode: "pro",
     judge: route.judge
   });
+
+  return {
+    stream: result.stream,
+    diagnostics: [...preDiagnostics, ...result.diagnostics]
+  };
 }
 
 async function streamAnalyzerTier(
@@ -263,7 +360,7 @@ function createStreamResponse(
         } catch {
           controller.enqueue(
             encoder.encode(
-              "\n\nAion Mind stopped while streaming this response. Please try again."
+              "\n\nArya Mind stopped while streaming this response. Please try again."
             )
           );
         } finally {
@@ -334,7 +431,7 @@ function buildJudgePrompt(
     .join("\n\n---\n\n");
 
   return [
-    `Mode: ${mode === "pro" ? "Aion Mind Pro" : "Aion Mind Analyzer"}`,
+    `Mode: ${mode === "pro" ? "Arya Mind Pro" : "Arya Mind Analyzer"}`,
     "",
     "Conversation context:",
     context || "No prior conversation.",
@@ -345,6 +442,11 @@ function buildJudgePrompt(
     "Candidate responses:",
     responseBlocks,
     "",
+    ...(mode === "pro"
+      ? [
+          "When candidate responses include live source links, keep the most relevant links in the final answer and use them like search-result evidence."
+        ]
+      : []),
     "Return only the final answer for the user. Do not mention candidate labels, hidden model names, provider names, or internal routing.",
     "Use clean Markdown. Avoid LaTeX delimiters like $, \\(...\\), or \\[...\\]. Write formulas in readable plain text such as `a_cm = (5/7) g sin(theta)`."
   ].join("\n");

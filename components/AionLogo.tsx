@@ -12,7 +12,7 @@ export function AionLogo({ size, decorative = false }: AionLogoProps) {
       src="/aion-mind-logo.jpg"
       width={size}
       height={size}
-      alt={decorative ? "" : "Aion Mind"}
+      alt={decorative ? "" : "Arya Mind"}
       aria-hidden={decorative || undefined}
       draggable={false}
     />

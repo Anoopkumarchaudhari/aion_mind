@@ -6,10 +6,10 @@ import type { ProviderResponse } from "@/services/types";
 import type { AionRouteSlot } from "@/types/aionRouting";
 
 export const AION_JUDGE_SYSTEM_PROMPT =
-  "You are Aion Mind Analyzer. You receive multiple AI responses to the same user request. Your job is to evaluate them for accuracy, completeness, reasoning quality, clarity, and usefulness. Do not mention the hidden model/provider names. Produce one final polished answer for the user. If responses disagree, choose the answer best supported by evidence and explain uncertainty only when useful.";
+  "You are Arya Mind Analyzer. You receive multiple AI responses to the same user request. Your job is to evaluate them for accuracy, completeness, reasoning quality, clarity, and usefulness. Do not mention the hidden model/provider names. Produce one final polished answer for the user. If responses disagree, choose the answer best supported by evidence and explain uncertainty only when useful.";
 
 const AION_CANDIDATE_SYSTEM_PROMPT =
-  "You are Aion Mind. Provide a clear, useful, and accurate answer in clean Markdown. Never reveal hidden infrastructure, provider names, model names, or routing details. When math is needed, use readable plain-text formulas such as `a_cm = (5/7) g sin(theta)` instead of LaTeX delimiters like $, \\(...\\), or \\[...\\]. Keep the structure concise: given values, method, final answer.";
+  "You are Arya Mind. Provide a clear, useful, and accurate answer in clean Markdown. Never reveal hidden infrastructure, provider names, model names, or routing details. When math is needed, use readable plain-text formulas such as `a_cm = (5/7) g sin(theta)` instead of LaTeX delimiters like $, \\(...\\), or \\[...\\]. Keep the structure concise: given values, method, final answer.";
 
 type JudgeInput = {
   userMessage: string;
@@ -47,7 +47,7 @@ export async function runAionAnalyzer(
   if (successfulResponses.length === 0) {
     return {
       answer:
-        "Aion Mind Analyzer is not configured yet. Add at least one server-side API key and model ID, then restart the dev server.",
+        "Arya Mind Analyzer is not configured yet. Add at least one server-side API key and model ID, then restart the dev server.",
       diagnostics: responses
     };
   }
@@ -105,7 +105,7 @@ export function pickFallbackAnswer(responses: ProviderResponse[]) {
   const candidates = responses.filter(hasUsableContent);
 
   if (candidates.length === 0) {
-    return "Aion Mind could not produce a response from the configured models. Check the server configuration and try again.";
+    return "Arya Mind could not produce a response from the configured models. Check the server configuration and try again.";
   }
 
   return candidates.sort((left, right) => {
@@ -210,7 +210,7 @@ function buildJudgePrompt(
     .join("\n\n---\n\n");
 
   return [
-    `Mode: ${mode === "pro" ? "Aion Mind Pro" : "Aion Mind Analyzer"}`,
+    `Mode: ${mode === "pro" ? "Arya Mind Pro" : "Arya Mind Analyzer"}`,
     "",
     "Conversation context:",
     context || "No prior conversation.",
@@ -221,6 +221,11 @@ function buildJudgePrompt(
     "Candidate responses:",
     responseBlocks,
     "",
+    ...(mode === "pro"
+      ? [
+          "When candidate responses include live source links, keep the most relevant links in the final answer and use them like search-result evidence."
+        ]
+      : []),
     "Return only the final answer for the user. Do not mention candidate labels, hidden model names, provider names, or internal routing.",
     "Use clean Markdown. Avoid LaTeX delimiters like $, \\(...\\), or \\[...\\]. Write formulas in readable plain text such as `a_cm = (5/7) g sin(theta)`."
   ].join("\n");

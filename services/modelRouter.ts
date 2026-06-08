@@ -15,12 +15,16 @@ import {
   needsLiveVerification
 } from "@/services/liveVerification";
 import type { ModelRouteRequest, ModelRouteResult, ProviderResponse } from "@/services/types";
+import type { ChatAttachment } from "@/types/aion";
+
+const WEB_SEARCH_INTENT_PATTERN =
+  /\b(?:web search|search the web|google|look up|browse|internet|online|sources?|citations?|cite|research)\b/i;
 
 const BASE_SYSTEM_PROMPT =
-  "You are Aion Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+  "You are Arya Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
 
 const PRO_SYSTEM_PROMPT =
-  "You are Aion Mind Pro. Produce a careful answer with strong reasoning, practical judgment, and concise structure. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+  "You are Arya Mind Pro. Produce a careful answer with strong reasoning, practical judgment, and concise structure. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
 
 export async function routeAionRequest({
   message,
@@ -36,28 +40,37 @@ export async function routeAionRequest({
   }
 
   const messages: ChatMessage[] = [...history, { role: "user", content: message }];
+  const liveSearchResponse = await getLiveSearchResponse({
+    selectedModel,
+    message,
+    messages,
+    attachments
+  });
 
-  if (needsLiveVerification(message, attachments)) {
-    const response = await callOpenAIWithWebSearch({
-      messages,
-      systemPrompt: LIVE_VERIFICATION_SYSTEM_PROMPT,
-      timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
-    });
-
+  if (liveSearchResponse && (!liveSearchResponse.ok || !liveSearchResponse.content)) {
     return toRouteResult(
       selectedModel,
-      response.ok && response.content
-        ? response.content
-        : getLiveVerificationUnavailableAnswer(selectedModel, response),
-      debug ? [response] : undefined
+      getLiveVerificationUnavailableAnswer(selectedModel, liveSearchResponse),
+      debug ? [liveSearchResponse] : undefined
     );
   }
 
+  if (liveSearchResponse && selectedModel !== "aion-mind-pro") {
+    return toRouteResult(
+      selectedModel,
+      liveSearchResponse.content ?? "",
+      debug ? [liveSearchResponse] : undefined
+    );
+  }
+
+  const routedMessages = liveSearchResponse?.content
+    ? withLiveSearchContext(messages, liveSearchResponse.content)
+    : messages;
   const routing = await loadAionRoutingSettings();
 
   if (selectedModel === "aion-mind") {
     const response = await callConfiguredModel(routing.aion.primary, {
-      messages,
+      messages: routedMessages,
       attachments,
       systemPrompt: BASE_SYSTEM_PROMPT
     });
@@ -73,7 +86,7 @@ export async function routeAionRequest({
     const responses = await Promise.all(
       routing.pro.candidates.map((slot) =>
         callConfiguredModel(slot, {
-          messages,
+          messages: routedMessages,
           attachments,
           systemPrompt: PRO_SYSTEM_PROMPT
         })
@@ -86,7 +99,7 @@ export async function routeAionRequest({
       return toRouteResult(
         selectedModel,
         getUnavailableAnswer(selectedModel, responses),
-        debug ? responses : undefined
+        debug ? [...(liveSearchResponse ? [liveSearchResponse] : []), ...responses] : undefined
       );
     }
 
@@ -101,7 +114,13 @@ export async function routeAionRequest({
     return toRouteResult(
       selectedModel,
       judge?.content ?? pickFallbackAnswer(successfulResponses),
-      debug ? (judge ? [...responses, judge] : responses) : undefined
+      debug
+        ? [
+            ...(liveSearchResponse ? [liveSearchResponse] : []),
+            ...responses,
+            ...(judge ? [judge] : [])
+          ]
+        : undefined
     );
   }
 
@@ -112,6 +131,79 @@ export async function routeAionRequest({
     analyzerResult.answer,
     debug ? analyzerResult.diagnostics : undefined
   );
+}
+
+async function getLiveSearchResponse({
+  selectedModel,
+  message,
+  messages,
+  attachments
+}: {
+  selectedModel: ModelRouteRequest["selectedModel"];
+  message: string;
+  messages: ChatMessage[];
+  attachments: ChatAttachment[];
+}) {
+  if (!needsModelWebSearch(selectedModel, message, attachments)) {
+    return null;
+  }
+
+  return callOpenAIWithWebSearch({
+    messages,
+    systemPrompt: LIVE_VERIFICATION_SYSTEM_PROMPT,
+    timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
+  });
+}
+
+function needsModelWebSearch(
+  selectedModel: ModelRouteRequest["selectedModel"],
+  message: string,
+  attachments: ChatAttachment[]
+) {
+  if (selectedModel === "aion-mind-analyzer") {
+    return needsLiveVerification(message, attachments);
+  }
+
+  const normalized = message.replace(/\s+/g, " ").trim();
+
+  return (
+    needsLiveVerification(message, attachments) ||
+    (attachments.length === 0 && WEB_SEARCH_INTENT_PATTERN.test(normalized))
+  );
+}
+
+function withLiveSearchContext(messages: ChatMessage[], liveSearchContent: string) {
+  const lastUserIndex = findLastUserMessageIndex(messages);
+
+  if (lastUserIndex === -1) {
+    return messages;
+  }
+
+  return messages.map((message, index) =>
+    index === lastUserIndex
+      ? {
+          ...message,
+          content: [
+            message.content,
+            "",
+            "Live web-search context:",
+            liveSearchContent,
+            "",
+            "Use this verified web context as source material. Include the most relevant source links when they support the final answer, and do not invent facts that the live sources do not support."
+          ].join("\n")
+        }
+      : message
+  );
+}
+
+function findLastUserMessageIndex(messages: ChatMessage[]) {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index].role === "user") {
+      return index;
+    }
+  }
+
+  return -1;
 }
 
 function toRouteResult(

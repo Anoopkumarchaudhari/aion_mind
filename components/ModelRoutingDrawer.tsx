@@ -29,7 +29,7 @@ type ModelRoutingDrawerProps = {
 };
 
 const ROUTING_TABS: Array<{ id: RoutingTab; label: string }> = [
-  { id: "aion", label: "Aion" },
+  { id: "aion", label: "Arya" },
   { id: "pro", label: "Pro" },
   { id: "analyzer", label: "Analyser" }
 ];
@@ -70,7 +70,7 @@ export function ModelRoutingDrawer({
   }, [onOpenChange, open]);
 
   const activeRouteLabel = useMemo(
-    () => ROUTING_TABS.find((tab) => tab.id === activeTab)?.label ?? "Aion",
+    () => ROUTING_TABS.find((tab) => tab.id === activeTab)?.label ?? "Arya",
     [activeTab]
   );
 

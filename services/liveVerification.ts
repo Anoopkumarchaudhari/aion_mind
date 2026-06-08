@@ -15,7 +15,7 @@ const QUESTION_PATTERN =
   /\b(?:who|what|when|where|which|is|are|was|were|did|does|do|has|have|can you tell|give me|show me)\b/i;
 
 export const LIVE_VERIFICATION_SYSTEM_PROMPT = [
-  "You are Aion Mind with live verification enabled.",
+  "You are Arya Mind with live verification enabled.",
   "Before answering the user's latest request, use web search to verify current or changeable facts.",
   "Answer only from sources found during live verification.",
   "Include exact dates when they matter.",

@@ -333,7 +333,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       if (!response.body) {
-        throw new Error("Aion Mind did not return a response stream.");
+        throw new Error("Arya Mind did not return a response stream.");
       }
 
       const diagnostics = debug ? readResponseDiagnostics(response) : undefined;
@@ -398,7 +398,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           tempMode,
           threadId: targetThreadId,
           messageId: assistantMessage.id,
-          content: "Aion Mind did not return a response."
+          content: "Arya Mind did not return a response."
         });
       }
     } catch (error) {
@@ -414,7 +414,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       const message =
-        error instanceof Error ? error.message : "Aion Mind could not process that request.";
+        error instanceof Error ? error.message : "Arya Mind could not process that request.";
       replaceAssistantContent({
         set,
         get,
@@ -1021,7 +1021,7 @@ function updateAssistantMessage({
 }
 
 async function readErrorMessage(response: Response) {
-  const fallback = "Aion Mind could not process that request.";
+  const fallback = "Arya Mind could not process that request.";
 
   try {
     const contentType = response.headers.get("content-type") ?? "";

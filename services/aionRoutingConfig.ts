@@ -10,7 +10,9 @@ import {
 
 const ROUTING_CONFIG_PATH = path.join(process.cwd(), "data", "aion-routing.json");
 const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-pro";
+const DEFAULT_OPENAI_MODEL = "gpt-5.5";
 const DEFAULT_JUDGE_MODEL = "gpt-5.5";
+const DEFAULT_CLAUDE_OPUS_MODEL = "claude-opus-4-8";
 
 export async function getAionRoutingPayload() {
   return {
@@ -43,9 +45,9 @@ export function getDefaultAionRoutingSettings(): AionRoutingSettings {
     aion: {
       primary: {
         id: "aion-primary",
-        label: "Primary",
-        provider: "gemini",
-        model: readEnv("GEMINI_MODEL"),
+        label: "GPT-5.5",
+        provider: "openai",
+        model: DEFAULT_OPENAI_MODEL,
         enabled: true,
         temperature: 0.35
       }
@@ -54,26 +56,26 @@ export function getDefaultAionRoutingSettings(): AionRoutingSettings {
       candidates: [
         {
           id: "pro-openai",
-          label: "GPT candidate",
+          label: "GPT-5.5",
           provider: "openai",
-          model: readEnv("OPENAI_MODEL"),
+          model: DEFAULT_OPENAI_MODEL,
           enabled: true,
           temperature: 0.32
         },
         {
-          id: "pro-claude",
-          label: "Claude candidate",
+          id: "pro-claude-opus",
+          label: "Claude Opus 4.8",
           provider: "anthropic",
-          model: readEnv("ANTHROPIC_MODEL"),
+          model: DEFAULT_CLAUDE_OPUS_MODEL,
           enabled: true,
           temperature: 0.32
         }
       ],
       judge: {
         id: "pro-judge",
-        label: "Judge",
+        label: "GPT-5.5 Judge",
         provider: "openai",
-        model: readEnv("OPENAI_JUDGE_MODEL") || DEFAULT_JUDGE_MODEL,
+        model: DEFAULT_JUDGE_MODEL,
         enabled: true,
         temperature: 0.2
       }
@@ -124,6 +126,7 @@ export function getAionProviderStatus(): AionProviderStatus[] {
       label: "OpenAI",
       apiKeyConfigured: Boolean(readEnv("OPENAI_API_KEY")),
       defaultModels: [
+        { label: "GPT-5.5", value: DEFAULT_OPENAI_MODEL },
         { label: "Base", value: readEnv("OPENAI_MODEL") },
         { label: "Advanced", value: readEnv("OPENAI_ADVANCED_MODEL") },
         { label: "Judge", value: readEnv("OPENAI_JUDGE_MODEL") || DEFAULT_JUDGE_MODEL },
@@ -139,6 +142,7 @@ export function getAionProviderStatus(): AionProviderStatus[] {
       apiKeyConfigured: Boolean(readEnv("ANTHROPIC_API_KEY")),
       defaultModels: [
         { label: "Claude", value: readEnv("ANTHROPIC_MODEL") },
+        { label: "Opus 4.8", value: DEFAULT_CLAUDE_OPUS_MODEL },
         { label: "Opus", value: readEnv("ANTHROPIC_OPUS_MODEL") }
       ]
     },
@@ -170,12 +174,49 @@ function normalizeRoutingSettings(value: unknown): AionRoutingSettings {
   const defaults = getDefaultAionRoutingSettings();
   const record = asRecord(value);
 
-  return {
+  const settings = {
     aion: {
       primary: normalizeSlot(asRecord(asRecord(record.aion).primary), defaults.aion.primary)
     },
     pro: normalizeRoute(asRecord(record.pro), defaults.pro),
     analyzer: normalizeRoute(asRecord(record.analyzer), defaults.analyzer)
+  };
+
+  return applyRequiredAryaProRouting(settings, defaults);
+}
+
+function applyRequiredAryaProRouting(
+  settings: AionRoutingSettings,
+  defaults: AionRoutingSettings
+): AionRoutingSettings {
+  const savedOpenAI = settings.pro.candidates.find((slot) => slot.id === "pro-openai");
+  const savedClaude = settings.pro.candidates.find((slot) =>
+    ["pro-claude", "pro-claude-opus"].includes(slot.id)
+  );
+
+  return {
+    aion: {
+      primary: keepRuntimeToggles(settings.aion.primary, defaults.aion.primary)
+    },
+    pro: {
+      candidates: [
+        keepRuntimeToggles(savedOpenAI, defaults.pro.candidates[0]),
+        keepRuntimeToggles(savedClaude, defaults.pro.candidates[1])
+      ],
+      judge: keepRuntimeToggles(settings.pro.judge, defaults.pro.judge)
+    },
+    analyzer: settings.analyzer
+  };
+}
+
+function keepRuntimeToggles(
+  source: AionRouteSlot | undefined,
+  fixed: AionRouteSlot
+): AionRouteSlot {
+  return {
+    ...fixed,
+    enabled: source?.enabled ?? fixed.enabled,
+    temperature: source?.temperature ?? fixed.temperature
   };
 }
 

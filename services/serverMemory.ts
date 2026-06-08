@@ -118,7 +118,7 @@ function createThumbnail(prompt: string, style: VideoStyle) {
     abstract: ["#18181b", "#f472b6"]
   } satisfies Record<VideoStyle, [string, string]>;
   const [from, to] = palette[style];
-  const title = escapeSvg(prompt.slice(0, 80) || "Aion Mind video");
+  const title = escapeSvg(prompt.slice(0, 80) || "Arya Mind video");
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
     <defs>
       <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
@@ -132,7 +132,7 @@ function createThumbnail(prompt: string, style: VideoStyle) {
     </defs>
     <rect width="960" height="540" fill="url(#g)"/>
     <circle cx="520" cy="250" r="220" fill="url(#r)"/>
-    <text x="56" y="84" fill="#ecfeff" font-family="Inter, Arial" font-size="28" font-weight="700">Aion Mind Video</text>
+    <text x="56" y="84" fill="#ecfeff" font-family="Inter, Arial" font-size="28" font-weight="700">Arya Mind Video</text>
     <text x="56" y="456" fill="#ffffff" font-family="Inter, Arial" font-size="34" font-weight="700">${title}</text>
     <text x="56" y="498" fill="rgba(255,255,255,0.72)" font-family="Inter, Arial" font-size="18">${style}</text>
   </svg>`;

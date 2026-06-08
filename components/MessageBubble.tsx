@@ -331,7 +331,7 @@ function getAttachmentPreviewSrc(attachment: MessageAttachment) {
 }
 
 function isAionConfigMessage(content: string) {
-  return /^Aion Mind(?: Pro| Analyzer)? is not configured yet\. Add (?:the required|at least one) server-side API key and model ID, then restart the dev server\./i.test(
+  return /^(?:Aion|Arya) Mind(?: Pro| Analyzer)? is not configured yet\. Add (?:the required|at least one) server-side API key and model ID, then restart the dev server\./i.test(
     content.trim()
   );
 }

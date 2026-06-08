@@ -45,7 +45,7 @@ export function VideosHubContent() {
       <section className="route-content">
         <div className="video-hero">
           <Film size={26} />
-          <h2>Generate video with Aion Mind</h2>
+          <h2>Generate video with Arya Mind</h2>
           <p>Describe a scene, choose a style and duration, then generate a video session.</p>
           <form className="video-form" onSubmit={handleSubmit}>
             <textarea

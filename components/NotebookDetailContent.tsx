@@ -144,14 +144,14 @@ export function NotebookDetailContent({ notebookId }: NotebookDetailContentProps
           <p>Tags</p>
           <div className="tag-row">
             <span>Research</span>
-            <span>Aion</span>
+            <span>Arya</span>
           </div>
           <button
             className="primary-button full"
             type="button"
             onClick={() => window.location.assign(`/?notebook=${currentNotebook.id}`)}
           >
-            Ask Aion Mind
+            Ask Arya Mind
           </button>
         </aside>
       </section>

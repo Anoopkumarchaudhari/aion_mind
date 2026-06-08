@@ -11,7 +11,7 @@ type ModelPillProps = {
 };
 
 const TIERS: Array<{ id: AionModelId; label: string }> = [
-  { id: "aion-mind", label: "Aion" },
+  { id: "aion-mind", label: "Arya" },
   { id: "aion-mind-pro", label: "Pro" },
   { id: "aion-mind-analyzer", label: "Analyser" }
 ];
@@ -19,7 +19,7 @@ const TIERS: Array<{ id: AionModelId; label: string }> = [
 export function ModelPill({ active, onChange, onOpenRouting }: ModelPillProps) {
   return (
     <div className="model-pill-shell">
-      <div className="model-pill" aria-label="Aion Mind model selector">
+      <div className="model-pill" aria-label="Arya Mind model selector">
         {TIERS.map((tier) => (
           <button
             key={tier.id}

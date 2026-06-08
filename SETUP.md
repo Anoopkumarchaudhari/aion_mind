@@ -1,4 +1,4 @@
-# Aion Mind — Setup Guide (Fresh Windows System)
+# Arya Mind — Setup Guide (Fresh Windows System)
 
 Complete walkthrough to run this app on a new machine, from installing VS Code
 to `npm run dev`.
