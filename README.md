@@ -90,6 +90,7 @@ OPENAI_ADVANCED_MODEL=
 OPENAI_JUDGE_MODEL=gpt-5.5
 OPENAI_LIVE_MODEL=gpt-5.5
 OPENAI_IMAGE_MODEL=gpt-image-1
+OPENAI_IMAGE_MODEL_PRO=gpt-image-1
 
 ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=
@@ -105,12 +106,17 @@ GEMINI_FALLBACK_MODELS=
 GROK_API_KEY=
 GROK_MODEL=
 
+RUNWARE_API_KEY=
+RUNWARE_IMAGE_MODEL_DEFAULT=runware:100@1
+RUNWARE_IMAGE_MODEL_PRO=runware:400@1
+
 AION_PROVIDER_TIMEOUT_MS=25000
 AION_PROVIDER_MAX_RETRIES=2
 AION_PROVIDER_RETRY_BASE_MS=1000
 AION_PROVIDER_RETRY_MAX_MS=8000
 AION_LIVE_VERIFICATION_TIMEOUT_MS=35000
 AION_IMAGE_TIMEOUT_MS=60000
+RUNWARE_IMAGE_TIMEOUT_MS=60000
 ```
 
 Where each key goes:
@@ -122,7 +128,11 @@ Where each key goes:
 - `OPENAI_ADVANCED_MODEL`: optional advanced GPT model ID for Analyzer.
 - `OPENAI_JUDGE_MODEL`: OpenAI model ID used by the Analyzer judge. The app defaults to `gpt-5.5`.
 - `OPENAI_LIVE_MODEL`: optional OpenAI model ID used for live web verification of current facts. Defaults to `OPENAI_JUDGE_MODEL`, then `gpt-5.5`.
-- `OPENAI_IMAGE_MODEL`: optional OpenAI image generation model used by the Images page. Defaults to `gpt-image-1`.
+- `OPENAI_IMAGE_MODEL`: OpenAI image model used by the Images page `OpenAI / Default` option. Defaults to `gpt-image-1`.
+- `OPENAI_IMAGE_MODEL_PRO`: optional OpenAI image model used by the Images page `OpenAI / Pro` option. Falls back to `OPENAI_IMAGE_MODEL`.
+- `RUNWARE_API_KEY`: key used by the Images page when `Runware` is selected.
+- `RUNWARE_IMAGE_MODEL_DEFAULT`: Runware model used by `Runware / FLUX Schnell`. Defaults to `runware:100@1`.
+- `RUNWARE_IMAGE_MODEL_PRO`: Runware model used by `Runware / Pro`. Defaults to `runware:400@1`.
 - `ANTHROPIC_API_KEY`: key used by Arya Mind Pro and Analyzer.
 - `ANTHROPIC_MODEL`: Claude model ID used by Pro/Analyzer.
 - `ANTHROPIC_OPUS_MODEL`: optional Opus model ID for the Analyzer pipeline.

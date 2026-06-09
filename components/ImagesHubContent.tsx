@@ -16,9 +16,25 @@ import { useLibraryStore } from "@/store/useLibraryStore";
 import type {
   GeneratedImage,
   ImageAspectRatio,
+  ImageModelKey,
+  ImageProvider,
   ImageQuality
 } from "@/types/workspace";
 
+const providers: Array<{ value: ImageProvider; label: string }> = [
+  { value: "openai", label: "OpenAI" },
+  { value: "runware", label: "Runware" }
+];
+const providerModels: Record<ImageProvider, Array<{ value: ImageModelKey; label: string }>> = {
+  openai: [
+    { value: "default", label: "Default" },
+    { value: "pro", label: "Pro" }
+  ],
+  runware: [
+    { value: "default", label: "FLUX Schnell" },
+    { value: "pro", label: "Pro" }
+  ]
+};
 const aspectRatios: Array<{ value: ImageAspectRatio; label: string }> = [
   { value: "square", label: "Square" },
   { value: "portrait", label: "Portrait" },
@@ -38,6 +54,8 @@ type GenerateImageResponse = {
 
 export function ImagesHubContent() {
   const [prompt, setPrompt] = useState("");
+  const [provider, setProvider] = useState<ImageProvider>("openai");
+  const [modelKey, setModelKey] = useState<ImageModelKey>("default");
   const [aspectRatio, setAspectRatio] = useState<ImageAspectRatio>("square");
   const [quality, setQuality] = useState<ImageQuality>("auto");
   const [images, setImages] = useState<GeneratedImage[]>([]);
@@ -68,6 +86,8 @@ export function ImagesHubContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: cleanPrompt,
+          provider,
+          modelKey,
           aspectRatio,
           quality
         })
@@ -128,6 +148,41 @@ export function ImagesHubContent() {
             />
 
             <div className="image-control-grid">
+              <fieldset className="image-control-group">
+                <legend>Provider</legend>
+                <div className="chip-row">
+                  {providers.map((item) => (
+                    <button
+                      className={item.value === provider ? "is-active" : ""}
+                      type="button"
+                      key={item.value}
+                      onClick={() => {
+                        setProvider(item.value);
+                        setModelKey("default");
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              <fieldset className="image-control-group">
+                <legend>Sub model</legend>
+                <div className="chip-row">
+                  {providerModels[provider].map((item) => (
+                    <button
+                      className={item.value === modelKey ? "is-active" : ""}
+                      type="button"
+                      key={item.value}
+                      onClick={() => setModelKey(item.value)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
               <fieldset className="image-control-group">
                 <legend>Frame</legend>
                 <div className="chip-row">
@@ -202,7 +257,7 @@ export function ImagesHubContent() {
                 <div className="artifact-card-body">
                   <h3>{image.prompt.slice(0, 72)}</h3>
                   <p>
-                    {image.aspectRatio} - {image.quality} - {image.size}
+                    {getProviderLabel(image.provider)} - {getModelKeyLabel(image)} - {image.aspectRatio} - {image.quality} - {image.size}
                   </p>
                 </div>
                 <div className="artifact-meta">
@@ -299,10 +354,24 @@ function getLibraryContent(image: GeneratedImage) {
   return [
     image.prompt,
     image.revisedPrompt ? `Revised prompt: ${image.revisedPrompt}` : "",
+    `Provider: ${getProviderLabel(image.provider)}`,
+    `Sub model: ${getModelKeyLabel(image)}`,
     `Model: ${image.model}`,
     `Size: ${image.size}`,
     `Quality: ${image.quality}`
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function getProviderLabel(provider: ImageProvider) {
+  return provider === "runware" ? "Runware" : "OpenAI";
+}
+
+function getModelKeyLabel(image: GeneratedImage) {
+  if (image.provider === "runware" && image.modelKey === "default") {
+    return "FLUX Schnell";
+  }
+
+  return image.modelKey === "pro" ? "Pro" : "Default";
 }

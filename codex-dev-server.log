@@ -1,65 +1,20 @@
+
+> aion-mind@0.1.0 dev
+> next dev
+
    ▲ Next.js 15.5.18
-   - Local:        http://127.0.0.1:3000
-   - Network:      http://127.0.0.1:3000
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.14:3000
    - Environments: .env
 
  ✓ Starting...
- ✓ Ready in 2.6s
- ○ Compiling /middleware ...
- ✓ Compiled /middleware in 575ms (115 modules)
+ ✓ Ready in 5.1s
+ ✓ Compiled /middleware in 385ms (115 modules)
  ○ Compiling /login ...
- ✓ Compiled /login in 5.3s (1654 modules)
- GET /login 200 in 5927ms
- GET /login 200 in 64ms
- ✓ Compiled in 490ms (753 modules)
- ✓ Compiled in 381ms (742 modules)
- ✓ Compiled in 806ms (756 modules)
- ○ Compiling /login ...
- ✓ Compiled /login in 1027ms (1648 modules)
- GET /login 200 in 1241ms
- GET /signup 200 in 1516ms
- ✓ Compiled in 26ms
- ✓ Compiled in 636ms (743 modules)
- ✓ Compiled in 274ms (757 modules)
- ✓ Compiled in 219ms (757 modules)
- ✓ Compiled in 245ms (757 modules)
- ○ Compiling /signup ...
- ✓ Compiled /signup in 577ms (905 modules)
- ✓ Compiled (907 modules)
- GET /signup 200 in 1246ms
- GET /login 200 in 1254ms
- ✓ Compiled in 362ms (757 modules)
- ✓ Compiled in 205ms (757 modules)
- ✓ Compiled /login in 394ms (905 modules)
- ✓ Compiled (907 modules)
- GET /login 200 in 1118ms
- GET /signup 200 in 1149ms
- ✓ Compiled in 630ms (757 modules)
- ✓ Compiled in 357ms (757 modules)
- ✓ Compiled in 207ms (757 modules)
- ✓ Compiled /login in 249ms (905 modules)
- ✓ Compiled (907 modules)
- GET /login 200 in 610ms
- GET /signup 200 in 668ms
- ✓ Compiled in 554ms (743 modules)
- ✓ Compiled in 357ms (757 modules)
- ○ Compiling /login ...
- ✓ Compiled /login in 1006ms (905 modules)
- ✓ Compiled (907 modules)
- GET /login 200 in 1879ms
- GET /signup 200 in 1926ms
- ✓ Compiled in 352ms (757 modules)
- ✓ Compiled in 225ms (757 modules)
- ✓ Compiled in 241ms (757 modules)
- ✓ Compiled in 364ms (757 modules)
- ✓ Compiled in 531ms (757 modules)
- ✓ Compiled in 325ms (757 modules)
- ✓ Compiled in 317ms (743 modules)
- ✓ Compiled in 123ms (743 modules)
- ✓ Compiled in 194ms (743 modules)
- ✓ Compiled in 193ms (743 modules)
- ✓ Compiled in 224ms (743 modules)
- ✓ Compiled in 258ms (743 modules)
- ○ Compiling /login ...
- ✓ Compiled /login in 834ms (905 modules)
- GET /login 200 in 1312ms
+ ✓ Compiled /login in 4.7s (1648 modules)
+ GET /login 200 in 5849ms
+ ○ Compiling /images ...
+ ✓ Compiled /images in 2.8s (1738 modules)
+ GET /images 200 in 3633ms
+ GET /images 200 in 189ms
+ GET /images 200 in 208ms

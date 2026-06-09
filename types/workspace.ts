@@ -14,10 +14,16 @@ export type LibraryItem = {
 
 export type ImageAspectRatio = "square" | "portrait" | "landscape";
 
+export type ImageProvider = "openai" | "runware";
+
+export type ImageModelKey = "default" | "pro";
+
 export type ImageQuality = "auto" | "low" | "medium" | "high";
 
 export type GeneratedImage = {
   id: string;
+  provider: ImageProvider;
+  modelKey: ImageModelKey;
   prompt: string;
   model: string;
   aspectRatio: ImageAspectRatio;

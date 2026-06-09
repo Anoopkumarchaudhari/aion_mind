@@ -1,9 +1,0 @@
- ⨯ ./components/AuthForm.tsx
-Error: 
-
-Caused by:
-    0: Failed to read source code from D:\Aion_mind\components\AuthForm.tsx
-    1: The system cannot find the file specified. (os error 2)
-
-Import trace for requested module:
-./components/AuthForm.tsx
