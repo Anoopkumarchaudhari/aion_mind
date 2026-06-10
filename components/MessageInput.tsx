@@ -308,7 +308,7 @@ export function MessageInput({
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={onKeyDown}
             onPaste={handlePaste}
-            placeholder="Ask Arya Mind"
+            placeholder="Ask Aria Mind"
             disabled={disabled}
             aria-label="Message"
           />
@@ -371,7 +371,7 @@ export function MessageInput({
       <p className="composer-disclaimer">
         {tempMode
           ? "Temporary chat. Nothing here will be saved or used to train models."
-          : "Arya Mind synthesizes answers from multiple reasoning engines. Verify important info."}
+          : "Aria Mind can use live search and specialist research modes. Verify important info."}
       </p>
     </form>
   );

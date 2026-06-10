@@ -4,7 +4,6 @@ import { callOpenAIWithWebSearch } from "@/providers/openaiProvider";
 import { getTimeoutMs, truncate } from "@/providers/providerUtils";
 import {
   AION_JUDGE_SYSTEM_PROMPT,
-  buildAnalyzerComparisonAnswer,
   pickFallbackAnswer
 } from "@/services/aionAnalyzer";
 import { getAionGreetingAnswer } from "@/services/aionGreeting";
@@ -17,7 +16,7 @@ import type {
   ProviderResponse,
   ProviderStreamResponse
 } from "@/services/types";
-import { getAionModelLabel } from "@/types/aion";
+import { getAionModelLabel, type AionResearchModelId } from "@/types/aion";
 import type { DebugDiagnostic } from "@/types/aion";
 import type { ChatAttachment, ChatMessage } from "@/types/aion";
 import type { AionRouteSettings, AionRouteSlot } from "@/types/aionRouting";
@@ -26,17 +25,20 @@ const WEB_SEARCH_INTENT_PATTERN =
   /\b(?:web search|search the web|google|look up|browse|internet|online|sources?|citations?|cite|research)\b/i;
 
 const BASE_SYSTEM_PROMPT =
-  "You are Arya Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+  "You are Aria Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
 
 const PRO_SYSTEM_PROMPT =
-  "You are Arya Mind Pro. Produce a careful answer with strong reasoning, practical judgment, and concise structure. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+  "You are Aria Research. Produce a focused deep-dive answer using the selected research engine. Be accurate, structured, and practical. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
 
 const AION_CANDIDATE_SYSTEM_PROMPT =
-  "You are Arya Mind. Provide a clear, useful, and accurate answer in clean Markdown. Never reveal hidden infrastructure, provider names, model names, or routing details. When math is needed, use readable plain-text formulas such as `a_cm = (5/7) g sin(theta)` instead of LaTeX delimiters like $, \\(...\\), or \\[...\\]. Keep the structure concise: given values, method, final answer.";
+  "You are an expert Aria Analyzer candidate. Use the provided live-search context when present, reason carefully, and produce a strong candidate answer in clean Markdown. Never reveal hidden infrastructure, provider names, model names, or routing details. When math is needed, use readable plain-text formulas such as `a_cm = (5/7) g sin(theta)` instead of LaTeX delimiters like $, \\(...\\), or \\[...\\].";
+
+const DEFAULT_RESEARCH_MODEL: AionResearchModelId = "gpt-5.5";
 
 export async function routeAionStream({
   message,
   selectedModel,
+  researchModel,
   history,
   attachments = [],
   debug
@@ -62,13 +64,6 @@ export async function routeAionStream({
     );
   }
 
-  if (liveSearchResponse && selectedModel !== "aion-mind-pro") {
-    return createStreamResponse(
-      streamText(liveSearchResponse.content ?? ""),
-      debug ? [liveSearchResponse] : undefined
-    );
-  }
-
   const routedMessages = liveSearchResponse?.content
     ? withLiveSearchContext(messages, liveSearchResponse.content)
     : messages;
@@ -90,18 +85,24 @@ export async function routeAionStream({
   }
 
   if (selectedModel === "aion-mind-pro") {
-    const result = await streamProTier(
+    const result = await streamResearchTier(
       routedMessages,
-      message,
-      history,
       attachments,
       routing.pro,
+      researchModel ?? DEFAULT_RESEARCH_MODEL,
       liveSearchResponse ? [liveSearchResponse] : []
     );
     return createStreamResponse(result.stream, debug ? result.diagnostics : undefined);
   }
 
-  const result = await streamAnalyzerTier(messages, message, history, attachments, routing.analyzer);
+  const result = await streamAnalyzerTier(
+    routedMessages,
+    message,
+    history,
+    attachments,
+    routing.analyzer,
+    liveSearchResponse ? [liveSearchResponse] : []
+  );
   return createStreamResponse(result.stream, debug ? result.diagnostics : undefined);
 }
 
@@ -133,7 +134,7 @@ function needsModelWebSearch(
   attachments: ChatAttachment[]
 ) {
   if (selectedModel === "aion-mind-analyzer") {
-    return needsLiveVerification(message, attachments);
+    return true;
   }
 
   const normalized = message.replace(/\s+/g, " ").trim();
@@ -183,36 +184,26 @@ type StreamRouteResult = {
   diagnostics: Array<ProviderResponse | ProviderStreamResponse>;
 };
 
-async function streamProTier(
+async function streamResearchTier(
   messages: ChatMessage[],
-  userMessage: string,
-  history: ChatMessage[],
   attachments: ChatAttachment[],
   route: AionRouteSettings,
+  researchModel: AionResearchModelId,
   preDiagnostics: ProviderResponse[] = []
 ): Promise<StreamRouteResult> {
-  const responses = await Promise.all(
-    route.candidates.map((slot) =>
-      callConfiguredModel(slot, {
-        messages,
-        attachments,
-        systemPrompt: PRO_SYSTEM_PROMPT
-      })
-    )
-  );
-
-  const result = await streamJudgedAnswer({
-    selectedModel: "aion-mind-pro",
-    userMessage,
-    history,
-    responses,
-    mode: "pro",
-    judge: route.judge
+  const slot = getResearchSlot(route, researchModel);
+  const response = await streamConfiguredModel(slot, {
+    messages,
+    attachments,
+    systemPrompt: PRO_SYSTEM_PROMPT
   });
 
   return {
-    stream: result.stream,
-    diagnostics: [...preDiagnostics, ...result.diagnostics]
+    stream:
+      response.ok && response.stream
+        ? response.stream
+        : streamText(getUnavailableAnswer("aion-mind-pro", [response])),
+    diagnostics: [...preDiagnostics, response]
   };
 }
 
@@ -221,7 +212,8 @@ async function streamAnalyzerTier(
   userMessage: string,
   history: ChatMessage[],
   attachments: ChatAttachment[],
-  route: AionRouteSettings
+  route: AionRouteSettings,
+  preDiagnostics: ProviderResponse[] = []
 ): Promise<StreamRouteResult> {
   const candidateResults = await Promise.all(
     route.candidates.map(async (slot) => ({
@@ -239,7 +231,7 @@ async function streamAnalyzerTier(
   if (successfulResponses.length === 0) {
     return {
       stream: streamText(getUnavailableAnswer("aion-mind-analyzer", responses)),
-      diagnostics: responses
+      diagnostics: [...preDiagnostics, ...responses]
     };
   }
 
@@ -247,9 +239,74 @@ async function streamAnalyzerTier(
   const judgeAnswer = judge?.content ?? pickFallbackAnswer(successfulResponses);
 
   return {
-    stream: streamText(buildAnalyzerComparisonAnswer(candidateResults, judgeAnswer)),
-    diagnostics: judge ? [...responses, judge] : responses
+    stream: streamText(judgeAnswer),
+    diagnostics: judge ? [...preDiagnostics, ...responses, judge] : [...preDiagnostics, ...responses]
   };
+}
+
+function getResearchSlot(route: AionRouteSettings, model: AionResearchModelId): AionRouteSlot {
+  const slotId = getResearchSlotId(model);
+  const matched = route.candidates.find((slot) => slot.id === slotId);
+
+  if (matched) {
+    return matched;
+  }
+
+  return getFallbackResearchSlot(model);
+}
+
+function getResearchSlotId(model: AionResearchModelId) {
+  switch (model) {
+    case "gpt-5.5":
+      return "research-gpt-55";
+    case "opus-4.8":
+      return "research-opus-48";
+    case "deepseek":
+      return "research-deepseek";
+    case "gemini-3.1":
+      return "research-gemini-31";
+  }
+}
+
+function getFallbackResearchSlot(model: AionResearchModelId): AionRouteSlot {
+  switch (model) {
+    case "opus-4.8":
+      return {
+        id: "research-opus-48",
+        label: "Opus-4.8",
+        provider: "anthropic",
+        model: process.env.ANTHROPIC_OPUS_MODEL || "claude-opus-4-8",
+        enabled: true,
+        temperature: 0.3
+      };
+    case "deepseek":
+      return {
+        id: "research-deepseek",
+        label: "DeepSeek",
+        provider: "deepseek",
+        model: process.env.DEEPSEEK_MODEL || "deepseek-v4-pro",
+        enabled: true,
+        temperature: 0.7
+      };
+    case "gemini-3.1":
+      return {
+        id: "research-gemini-31",
+        label: "Gemini-3.1",
+        provider: "gemini",
+        model: process.env.GEMINI_RESEARCH_MODEL || process.env.GEMINI_MODEL || "gemini-3.1",
+        enabled: true,
+        temperature: 0.35
+      };
+    case "gpt-5.5":
+      return {
+        id: "research-gpt-55",
+        label: "GPT-5.5",
+        provider: "openai",
+        model: process.env.OPENAI_ADVANCED_MODEL || process.env.OPENAI_JUDGE_MODEL || "gpt-5.5",
+        enabled: true,
+        temperature: 0.3
+      };
+  }
 }
 
 async function streamJudgedAnswer({
@@ -360,7 +417,7 @@ function createStreamResponse(
         } catch {
           controller.enqueue(
             encoder.encode(
-              "\n\nArya Mind stopped while streaming this response. Please try again."
+              "\n\nAria Mind stopped while streaming this response. Please try again."
             )
           );
         } finally {
@@ -431,7 +488,7 @@ function buildJudgePrompt(
     .join("\n\n---\n\n");
 
   return [
-    `Mode: ${mode === "pro" ? "Arya Mind Pro" : "Arya Mind Analyzer"}`,
+    `Mode: ${mode === "pro" ? "Aria Research" : "Aria Analyzer"}`,
     "",
     "Conversation context:",
     context || "No prior conversation.",

@@ -9,6 +9,7 @@ import { ModelRoutingDrawer } from "@/components/ModelRoutingDrawer";
 import { MessageList } from "@/components/MessageList";
 import { ModelPill } from "@/components/ModelPill";
 import { NeuralBackdrop } from "@/components/NeuralBackdrop";
+import { ResearchModelDialog } from "@/components/ResearchModelDialog";
 import { ShareLinkToast } from "@/components/ShareLinkToast";
 import { Sidebar } from "@/components/Sidebar";
 import { TempBanner } from "@/components/TempBanner";
@@ -16,7 +17,7 @@ import { TopBar } from "@/components/TopBar";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { sortThreads, useChatStore } from "@/store/useChatStore";
 import { useNotebookStore } from "@/store/useNotebookStore";
-import type { AionModelId, ChatAttachment } from "@/types/aion";
+import type { AionModelId, AionResearchModelId, ChatAttachment } from "@/types/aion";
 
 const debugEnabled = process.env.NEXT_PUBLIC_AION_DEBUG === "true";
 const MAX_ATTACHMENTS = 5;
@@ -47,6 +48,8 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [routingOpen, setRoutingOpen] = useState(false);
+  const [researchOpen, setResearchOpen] = useState(false);
+  const [researchModel, setResearchModel] = useState<AionResearchModelId>("gpt-5.5");
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const rawThreads = useChatStore((state) => state.threads);
@@ -148,7 +151,10 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
     addChatToNotebook(notebookId, threadId);
   }
 
-  async function handleSubmit(event?: React.FormEvent) {
+  async function handleSubmit(
+    event?: React.FormEvent,
+    options: { selectedModel?: AionModelId; researchModel?: AionResearchModelId } = {}
+  ) {
     event?.preventDefault();
 
     const content = input.trim();
@@ -161,8 +167,28 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
     setInput("");
     setAttachments([]);
     setAttachmentError("");
-    await sendMessage(content, { debug: debugEnabled, attachments: outgoingAttachments });
+    await sendMessage(content, {
+      debug: debugEnabled,
+      attachments: outgoingAttachments,
+      selectedModel: options.selectedModel,
+      researchModel: options.researchModel ?? researchModel
+    });
     window.setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  function handleUseResearchModel() {
+    setSelectedModel("aion-mind-pro");
+    setResearchOpen(false);
+    window.setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  function handleRunResearch() {
+    setSelectedModel("aion-mind-pro");
+    setResearchOpen(false);
+    void handleSubmit(undefined, {
+      selectedModel: "aion-mind-pro",
+      researchModel
+    });
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -237,6 +263,7 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
       <ModelPill
         active={selectedModel}
         onChange={setSelectedModel}
+        onResearchClick={() => setResearchOpen(true)}
         onOpenRouting={() => setRoutingOpen(true)}
       />
       <MessageInput
@@ -347,6 +374,16 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
         open={routingOpen}
         initialTab={getRoutingTab(selectedModel)}
         onOpenChange={setRoutingOpen}
+      />
+      <ResearchModelDialog
+        open={researchOpen}
+        selectedModel={researchModel}
+        canSubmit={Boolean(input.trim() || attachments.length > 0)}
+        disabled={isLoading || isReadingFiles}
+        onOpenChange={setResearchOpen}
+        onModelChange={setResearchModel}
+        onUseModel={handleUseResearchModel}
+        onRunResearch={handleRunResearch}
       />
     </div>
   );
@@ -518,7 +555,7 @@ function buildImageAttachmentNote(file: File) {
     `[Attached image: ${file.name}]`,
     `Type: ${fileType}`,
     `Size: ${formatBytes(file.size)}`,
-    "This image was sent directly to Arya Mind vision. Use it to extract text, describe visible content, and answer the user's question."
+    "This image was sent directly to Aria Mind vision. Use it to extract text, describe visible content, and answer the user's question."
   ].join("\n");
 }
 

@@ -10,9 +10,11 @@ import {
 
 const ROUTING_CONFIG_PATH = path.join(process.cwd(), "data", "aion-routing.json");
 const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-pro";
-const DEFAULT_OPENAI_MODEL = "gpt-5.5";
+const DEFAULT_MIND_MODEL = "gpt-5.4-mini";
+const DEFAULT_RESEARCH_GPT_MODEL = "gpt-5.5";
 const DEFAULT_JUDGE_MODEL = "gpt-5.5";
 const DEFAULT_CLAUDE_OPUS_MODEL = "claude-opus-4-8";
+const DEFAULT_GEMINI_RESEARCH_MODEL = "gemini-3.1";
 
 export async function getAionRoutingPayload() {
   return {
@@ -45,9 +47,9 @@ export function getDefaultAionRoutingSettings(): AionRoutingSettings {
     aion: {
       primary: {
         id: "aion-primary",
-        label: "GPT-5.5",
+        label: "GPT-5.4 mini",
         provider: "openai",
-        model: DEFAULT_OPENAI_MODEL,
+        model: DEFAULT_MIND_MODEL,
         enabled: true,
         temperature: 0.35
       }
@@ -55,24 +57,40 @@ export function getDefaultAionRoutingSettings(): AionRoutingSettings {
     pro: {
       candidates: [
         {
-          id: "pro-openai",
+          id: "research-gpt-55",
           label: "GPT-5.5",
           provider: "openai",
-          model: DEFAULT_OPENAI_MODEL,
+          model: DEFAULT_RESEARCH_GPT_MODEL,
           enabled: true,
-          temperature: 0.32
+          temperature: 0.3
         },
         {
-          id: "pro-claude-opus",
-          label: "Claude Opus 4.8",
+          id: "research-opus-48",
+          label: "Opus-4.8",
           provider: "anthropic",
           model: DEFAULT_CLAUDE_OPUS_MODEL,
           enabled: true,
-          temperature: 0.32
+          temperature: 0.3
+        },
+        {
+          id: "research-deepseek",
+          label: "DeepSeek",
+          provider: "deepseek",
+          model: readEnv("DEEPSEEK_MODEL") || DEFAULT_DEEPSEEK_MODEL,
+          enabled: true,
+          temperature: 0.7
+        },
+        {
+          id: "research-gemini-31",
+          label: "Gemini-3.1",
+          provider: "gemini",
+          model: readEnv("GEMINI_RESEARCH_MODEL") || readEnv("GEMINI_MODEL") || DEFAULT_GEMINI_RESEARCH_MODEL,
+          enabled: true,
+          temperature: 0.35
         }
       ],
       judge: {
-        id: "pro-judge",
+        id: "research-judge",
         label: "GPT-5.5 Judge",
         provider: "openai",
         model: DEFAULT_JUDGE_MODEL,
@@ -83,8 +101,16 @@ export function getDefaultAionRoutingSettings(): AionRoutingSettings {
     analyzer: {
       candidates: [
         {
+          id: "analyzer-gpt-55",
+          label: "GPT-5.5",
+          provider: "openai",
+          model: readEnv("OPENAI_ADVANCED_MODEL") || readEnv("OPENAI_JUDGE_MODEL") || DEFAULT_RESEARCH_GPT_MODEL,
+          enabled: true,
+          temperature: 0.7
+        },
+        {
           id: "analyzer-claude-opus",
-          label: "Claude Opus",
+          label: "Opus-4.8",
           provider: "anthropic",
           model: readEnv("ANTHROPIC_OPUS_MODEL") || "claude-opus-4-8",
           enabled: true,
@@ -96,20 +122,20 @@ export function getDefaultAionRoutingSettings(): AionRoutingSettings {
           provider: "deepseek",
           model: readEnv("DEEPSEEK_MODEL") || DEFAULT_DEEPSEEK_MODEL,
           enabled: true,
-          temperature: 1
+          temperature: 0.7
         },
         {
-          id: "analyzer-gpt-55",
-          label: "GPT-5.5",
-          provider: "openai",
-          model: readEnv("OPENAI_ADVANCED_MODEL") || readEnv("OPENAI_JUDGE_MODEL") || DEFAULT_JUDGE_MODEL,
+          id: "analyzer-gemini-31",
+          label: "Gemini-3.1",
+          provider: "gemini",
+          model: readEnv("GEMINI_RESEARCH_MODEL") || readEnv("GEMINI_MODEL") || DEFAULT_GEMINI_RESEARCH_MODEL,
           enabled: true,
-          temperature: 1
+          temperature: 0.7
         }
       ],
       judge: {
         id: "analyzer-judge",
-        label: "Judge",
+        label: "Aria Analyzer Judge",
         provider: "openai",
         model: readEnv("OPENAI_JUDGE_MODEL") || DEFAULT_JUDGE_MODEL,
         enabled: true,
@@ -126,7 +152,8 @@ export function getAionProviderStatus(): AionProviderStatus[] {
       label: "OpenAI",
       apiKeyConfigured: Boolean(readEnv("OPENAI_API_KEY")),
       defaultModels: [
-        { label: "GPT-5.5", value: DEFAULT_OPENAI_MODEL },
+        { label: "GPT-5.4 mini", value: DEFAULT_MIND_MODEL },
+        { label: "GPT-5.5", value: DEFAULT_RESEARCH_GPT_MODEL },
         { label: "Base", value: readEnv("OPENAI_MODEL") },
         { label: "Advanced", value: readEnv("OPENAI_ADVANCED_MODEL") },
         { label: "Judge", value: readEnv("OPENAI_JUDGE_MODEL") || DEFAULT_JUDGE_MODEL },
@@ -159,7 +186,10 @@ export function getAionProviderStatus(): AionProviderStatus[] {
       id: "gemini",
       label: "Gemini",
       apiKeyConfigured: Boolean(readEnv("GEMINI_API_KEY")),
-      defaultModels: [{ label: "Primary", value: readEnv("GEMINI_MODEL") }]
+      defaultModels: [
+        { label: "Gemini-3.1", value: readEnv("GEMINI_RESEARCH_MODEL") || DEFAULT_GEMINI_RESEARCH_MODEL },
+        { label: "Primary", value: readEnv("GEMINI_MODEL") }
+      ]
     },
     {
       id: "grok",
@@ -182,31 +212,35 @@ function normalizeRoutingSettings(value: unknown): AionRoutingSettings {
     analyzer: normalizeRoute(asRecord(record.analyzer), defaults.analyzer)
   };
 
-  return applyRequiredAryaProRouting(settings, defaults);
+  return applyRequiredAriaResearchRouting(settings, defaults);
 }
 
-function applyRequiredAryaProRouting(
+function applyRequiredAriaResearchRouting(
   settings: AionRoutingSettings,
   defaults: AionRoutingSettings
 ): AionRoutingSettings {
-  const savedOpenAI = settings.pro.candidates.find((slot) => slot.id === "pro-openai");
-  const savedClaude = settings.pro.candidates.find((slot) =>
-    ["pro-claude", "pro-claude-opus"].includes(slot.id)
-  );
-
   return {
     aion: {
       primary: keepRuntimeToggles(settings.aion.primary, defaults.aion.primary)
     },
     pro: {
-      candidates: [
-        keepRuntimeToggles(savedOpenAI, defaults.pro.candidates[0]),
-        keepRuntimeToggles(savedClaude, defaults.pro.candidates[1])
-      ],
+      candidates: defaults.pro.candidates.map((slot) =>
+        keepRuntimeToggles(findResearchSlot(settings.pro.candidates, slot.id), slot)
+      ),
       judge: keepRuntimeToggles(settings.pro.judge, defaults.pro.judge)
     },
     analyzer: settings.analyzer
   };
+}
+
+function findResearchSlot(slots: AionRouteSlot[], id: string) {
+  const legacyIds: Record<string, string[]> = {
+    "research-gpt-55": ["pro-openai"],
+    "research-opus-48": ["pro-claude", "pro-claude-opus"]
+  };
+
+  return slots.find((slot) => slot.id === id) ??
+    slots.find((slot) => legacyIds[id]?.includes(slot.id));
 }
 
 function keepRuntimeToggles(

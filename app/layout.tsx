@@ -3,8 +3,8 @@ import { ModeProvider } from "@/components/ModeProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Arya Mind",
-  description: "Arya Mind AI dashboard",
+  title: "Aria Mind",
+  description: "Aria Mind AI dashboard",
   icons: {
     icon: [
       {

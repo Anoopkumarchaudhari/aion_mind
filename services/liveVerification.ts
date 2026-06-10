@@ -9,13 +9,13 @@ const VOLATILE_FACT_PATTERN =
   /\b(?:chief minister|prime minister|president|governor|mayor|minister|mp\b|mla\b|senator|ceo|cto|cfo|chair(?:man|woman|person)?|leader|head coach|captain|stock|share price|crypto|exchange rate|weather|forecast|score|fixture|schedule|election|result|law|rule|regulation|policy|deadline|release|version|model|knowledge cutoff|training date)\b/i;
 
 const POLITICAL_CM_PATTERN =
-  /\b(?:cm\s+of|(?:state|bihar|delhi|uttar pradesh|madhya pradesh|maharashtra|karnataka|tamil nadu|west bengal|punjab|rajasthan|gujarat|kerala|odisha|andhra pradesh|telangana|uttarakhand|jharkhand|haryana|assam|goa|manipur|tripura|sikkim|meghalaya|nagaland|mizoram|arunachal pradesh|chhattisgarh)\s+cm)\b/i;
+  /\b(?:cm\s+of|(?:state|bihar|delhi|uttar pradesh|madhya pradesh|maharashtra|karnataka|tamil nadu|west bengal|punjab|rajasthan|gujarat|kerala|odisha|andhra pradesh|telangana|uttarakhand|jharkhand|hariana|assam|goa|manipur|tripura|sikkim|meghalaya|nagaland|mizoram|arunachal pradesh|chhattisgarh)\s+cm)\b/i;
 
 const QUESTION_PATTERN =
   /\b(?:who|what|when|where|which|is|are|was|were|did|does|do|has|have|can you tell|give me|show me)\b/i;
 
 export const LIVE_VERIFICATION_SYSTEM_PROMPT = [
-  "You are Arya Mind with live verification enabled.",
+  "You are Aria Mind with live verification enabled.",
   "Before answering the user's latest request, use web search to verify current or changeable facts.",
   "Answer only from sources found during live verification.",
   "Include exact dates when they matter.",

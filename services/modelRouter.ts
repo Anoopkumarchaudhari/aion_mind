@@ -3,7 +3,7 @@ import { loadAionRoutingSettings } from "@/services/aionRoutingConfig";
 import { callOpenAIWithWebSearch } from "@/providers/openaiProvider";
 import { getTimeoutMs } from "@/providers/providerUtils";
 import { getAionGreetingAnswer } from "@/services/aionGreeting";
-import { getAionModelLabel } from "@/types/aion";
+import { getAionModelLabel, type AionResearchModelId } from "@/types/aion";
 import type { ChatMessage, DebugDiagnostic } from "@/types/aion";
 import {
   judgeResponsesWithConfiguredModel,
@@ -16,19 +16,23 @@ import {
 } from "@/services/liveVerification";
 import type { ModelRouteRequest, ModelRouteResult, ProviderResponse } from "@/services/types";
 import type { ChatAttachment } from "@/types/aion";
+import type { AionRouteSettings, AionRouteSlot } from "@/types/aionRouting";
 
 const WEB_SEARCH_INTENT_PATTERN =
   /\b(?:web search|search the web|google|look up|browse|internet|online|sources?|citations?|cite|research)\b/i;
 
 const BASE_SYSTEM_PROMPT =
-  "You are Arya Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+  "You are Aria Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
 
 const PRO_SYSTEM_PROMPT =
-  "You are Arya Mind Pro. Produce a careful answer with strong reasoning, practical judgment, and concise structure. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+  "You are Aria Research. Produce a focused deep-dive answer using the selected research engine. Be accurate, structured, and practical. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+
+const DEFAULT_RESEARCH_MODEL: AionResearchModelId = "gpt-5.5";
 
 export async function routeAionRequest({
   message,
   selectedModel,
+  researchModel,
   history,
   attachments = [],
   debug
@@ -55,14 +59,6 @@ export async function routeAionRequest({
     );
   }
 
-  if (liveSearchResponse && selectedModel !== "aion-mind-pro") {
-    return toRouteResult(
-      selectedModel,
-      liveSearchResponse.content ?? "",
-      debug ? [liveSearchResponse] : undefined
-    );
-  }
-
   const routedMessages = liveSearchResponse?.content
     ? withLiveSearchContext(messages, liveSearchResponse.content)
     : messages;
@@ -83,53 +79,27 @@ export async function routeAionRequest({
   }
 
   if (selectedModel === "aion-mind-pro") {
-    const responses = await Promise.all(
-      routing.pro.candidates.map((slot) =>
-        callConfiguredModel(slot, {
-          messages: routedMessages,
-          attachments,
-          systemPrompt: PRO_SYSTEM_PROMPT
-        })
-      )
-    );
-
-    const successfulResponses = responses.filter(hasUsableContent);
-
-    if (successfulResponses.length === 0) {
-      return toRouteResult(
-        selectedModel,
-        getUnavailableAnswer(selectedModel, responses),
-        debug ? [...(liveSearchResponse ? [liveSearchResponse] : []), ...responses] : undefined
-      );
-    }
-
-    const judge = await judgeResponsesWithConfiguredModel({
-      userMessage: message,
-      history,
-      responses: successfulResponses,
-      mode: "pro",
-      judge: routing.pro.judge
+    const response = await callConfiguredModel(getResearchSlot(routing.pro, researchModel ?? DEFAULT_RESEARCH_MODEL), {
+      messages: routedMessages,
+      attachments,
+      systemPrompt: PRO_SYSTEM_PROMPT
     });
 
     return toRouteResult(
       selectedModel,
-      judge?.content ?? pickFallbackAnswer(successfulResponses),
-      debug
-        ? [
-            ...(liveSearchResponse ? [liveSearchResponse] : []),
-            ...responses,
-            ...(judge ? [judge] : [])
-          ]
-        : undefined
+      response.ok && response.content ? response.content : getUnavailableAnswer(selectedModel, [response]),
+      debug ? [...(liveSearchResponse ? [liveSearchResponse] : []), response] : undefined
     );
   }
 
-  const analyzerResult = await runAionAnalyzer(messages, message, history, attachments);
+  const analyzerResult = await runAionAnalyzer(routedMessages, message, history, attachments);
 
   return toRouteResult(
     selectedModel,
     analyzerResult.answer,
-    debug ? analyzerResult.diagnostics : undefined
+    debug
+      ? [...(liveSearchResponse ? [liveSearchResponse] : []), ...analyzerResult.diagnostics]
+      : undefined
   );
 }
 
@@ -161,7 +131,7 @@ function needsModelWebSearch(
   attachments: ChatAttachment[]
 ) {
   if (selectedModel === "aion-mind-analyzer") {
-    return needsLiveVerification(message, attachments);
+    return true;
   }
 
   const normalized = message.replace(/\s+/g, " ").trim();
@@ -227,6 +197,71 @@ function toDebugDiagnostic(response: ProviderResponse): DebugDiagnostic {
     latencyMs: response.latencyMs,
     error: response.error
   };
+}
+
+function getResearchSlot(route: AionRouteSettings, model: AionResearchModelId): AionRouteSlot {
+  const slotId = getResearchSlotId(model);
+  const matched = route.candidates.find((slot) => slot.id === slotId);
+
+  if (matched) {
+    return matched;
+  }
+
+  return getFallbackResearchSlot(model);
+}
+
+function getResearchSlotId(model: AionResearchModelId) {
+  switch (model) {
+    case "gpt-5.5":
+      return "research-gpt-55";
+    case "opus-4.8":
+      return "research-opus-48";
+    case "deepseek":
+      return "research-deepseek";
+    case "gemini-3.1":
+      return "research-gemini-31";
+  }
+}
+
+function getFallbackResearchSlot(model: AionResearchModelId): AionRouteSlot {
+  switch (model) {
+    case "opus-4.8":
+      return {
+        id: "research-opus-48",
+        label: "Opus-4.8",
+        provider: "anthropic",
+        model: process.env.ANTHROPIC_OPUS_MODEL || "claude-opus-4-8",
+        enabled: true,
+        temperature: 0.3
+      };
+    case "deepseek":
+      return {
+        id: "research-deepseek",
+        label: "DeepSeek",
+        provider: "deepseek",
+        model: process.env.DEEPSEEK_MODEL || "deepseek-v4-pro",
+        enabled: true,
+        temperature: 0.7
+      };
+    case "gemini-3.1":
+      return {
+        id: "research-gemini-31",
+        label: "Gemini-3.1",
+        provider: "gemini",
+        model: process.env.GEMINI_RESEARCH_MODEL || process.env.GEMINI_MODEL || "gemini-3.1",
+        enabled: true,
+        temperature: 0.35
+      };
+    case "gpt-5.5":
+      return {
+        id: "research-gpt-55",
+        label: "GPT-5.5",
+        provider: "openai",
+        model: process.env.OPENAI_ADVANCED_MODEL || process.env.OPENAI_JUDGE_MODEL || "gpt-5.5",
+        enabled: true,
+        temperature: 0.3
+      };
+  }
 }
 
 function hasUsableContent(response: ProviderResponse) {

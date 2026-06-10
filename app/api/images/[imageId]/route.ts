@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { readGeneratedImageFile } from "@/services/generatedImageFiles";
 import { getGeneratedImage } from "@/services/serverMemory";
 
 export const runtime = "nodejs";
@@ -14,7 +15,17 @@ export async function GET(_request: Request, context: RouteContext) {
   const image = getGeneratedImage(imageId);
 
   if (!image) {
-    return NextResponse.json({ error: "Image not found" }, { status: 404 });
+    const storedFile = readGeneratedImageFile(imageId);
+
+    if (!storedFile) {
+      return NextResponse.json({ error: "Image not found" }, { status: 404 });
+    }
+
+    return toImageResponse(
+      storedFile.bytes,
+      storedFile.mimeType,
+      `aria-mind-image.${storedFile.extension}`
+    );
   }
 
   if (image.sourceUrl && !image.base64) {
@@ -25,16 +36,36 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Image data is unavailable" }, { status: 404 });
   }
 
-  const bytes = Buffer.from(image.base64, "base64");
-  const filename = `${toImageFilename(image.prompt)}.png`;
+  return toImageResponse(
+    Buffer.from(image.base64, "base64"),
+    image.mimeType,
+    `${toImageFilename(image.prompt)}.${getImageExtension(image.mimeType)}`
+  );
+}
 
-  return new Response(bytes, {
+function toImageResponse(bytes: Buffer, mimeType: string, filename: string) {
+  const body = new Uint8Array(bytes);
+
+  return new Response(body, {
     headers: {
       "Cache-Control": "private, max-age=86400",
       "Content-Disposition": `inline; filename="${filename}"`,
-      "Content-Type": image.mimeType
+      "Content-Type": mimeType
     }
   });
+}
+
+function getImageExtension(mimeType: string) {
+  switch (mimeType.toLowerCase()) {
+    case "image/jpeg":
+    case "image/jpg":
+      return "jpg";
+    case "image/webp":
+      return "webp";
+    case "image/png":
+    default:
+      return "png";
+  }
 }
 
 function toImageFilename(prompt: string) {
@@ -44,5 +75,5 @@ function toImageFilename(prompt: string) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
 
-  return slug || "arya-mind-image";
+  return slug || "aria-mind-image";
 }

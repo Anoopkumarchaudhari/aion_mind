@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildRelevantMemoryContext, mergeMemoryIntoMessage } from "@/services/aionMemory";
 import { getCurrentUser } from "@/services/auth";
-import { isAionModelId } from "@/types/aion";
+import { isAionModelId, isAionResearchModelId } from "@/types/aion";
 import type { ChatAttachment, ChatMessage } from "@/types/aion";
 import { routeAionStream } from "@/services/streamRouter";
 
@@ -26,6 +26,7 @@ const SUPPORTED_IMAGE_TYPES = new Set([
 type RawChatBody = {
   message?: unknown;
   selectedModel?: unknown;
+  researchModel?: unknown;
   model?: unknown;
   history?: unknown;
   attachments?: unknown;
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
   return routeAionStream({
     message: withAttachmentContext(messageWithMemory, validation.attachments),
     selectedModel: validation.selectedModel,
+    researchModel: validation.researchModel,
     history: validation.history,
     attachments: validation.attachments,
     debug
@@ -84,6 +86,7 @@ function validateRequestBody(body: RawChatBody):
       ok: true;
       message: string;
       selectedModel: NonNullable<RawChatBody["selectedModel"]> & ReturnType<typeof normalizeModel>;
+      researchModel?: NonNullable<RawChatBody["researchModel"]> & ReturnType<typeof normalizeResearchModel>;
       history: ChatMessage[];
       attachments: ChatAttachment[];
       ephemeral: boolean;
@@ -92,6 +95,7 @@ function validateRequestBody(body: RawChatBody):
   | { ok: false; error: string } {
   const message = typeof body.message === "string" ? body.message.trim() : "";
   const model = normalizeModel(body.selectedModel ?? body.model);
+  const researchModel = normalizeResearchModel(body.researchModel);
   const attachments = normalizeAttachments(body.attachments);
 
   if (!attachments) {
@@ -122,6 +126,7 @@ function validateRequestBody(body: RawChatBody):
     ok: true,
     message: message || "Please review the attached file(s).",
     selectedModel: model,
+    researchModel: model === "aion-mind-pro" ? researchModel ?? "gpt-5.5" : undefined,
     history,
     attachments,
     ephemeral,
@@ -131,6 +136,10 @@ function validateRequestBody(body: RawChatBody):
 
 function normalizeModel(value: unknown) {
   return isAionModelId(value) ? value : null;
+}
+
+function normalizeResearchModel(value: unknown) {
+  return isAionResearchModelId(value) ? value : null;
 }
 
 function normalizeHistory(value: unknown): ChatMessage[] | null {

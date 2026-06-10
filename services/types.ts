@@ -1,4 +1,10 @@
-import type { AionModelId, ChatAttachment, ChatMessage, DebugDiagnostic } from "@/types/aion";
+import type {
+  AionModelId,
+  AionResearchModelId,
+  ChatAttachment,
+  ChatMessage,
+  DebugDiagnostic
+} from "@/types/aion";
 
 export type ProviderName =
   | "openai"
@@ -44,6 +50,7 @@ export type ProviderStreamResponse = {
 export type ModelRouteRequest = {
   message: string;
   selectedModel: AionModelId;
+  researchModel?: AionResearchModelId;
   history: ChatMessage[];
   attachments?: ChatAttachment[];
   debug: boolean;

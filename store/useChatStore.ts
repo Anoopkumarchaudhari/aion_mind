@@ -1,7 +1,13 @@
 "use client";
 
 import { create } from "zustand";
-import type { AionModelId, ChatAttachment, DebugDiagnostic, MessageAttachment } from "@/types/aion";
+import type {
+  AionModelId,
+  AionResearchModelId,
+  ChatAttachment,
+  DebugDiagnostic,
+  MessageAttachment
+} from "@/types/aion";
 
 export type UiMessage = {
   id: string;
@@ -35,6 +41,8 @@ export type ChatToast = {
 type SendMessageOptions = {
   debug: boolean;
   attachments?: ChatAttachment[];
+  selectedModel?: AionModelId;
+  researchModel?: AionResearchModelId;
 };
 
 type ChatState = {
@@ -243,7 +251,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
   },
 
-  async sendMessage(content, { debug, attachments = [] }) {
+  async sendMessage(content, { debug, attachments = [], selectedModel: modelOverride, researchModel }) {
     const trimmed = content.trim();
     const state = get();
     const messageText = trimmed || (attachments.length > 0 ? "Please review the attached file(s)." : "");
@@ -271,7 +279,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return;
     }
 
-    const selectedModel = state.selectedModel;
+    const selectedModel = modelOverride ?? state.selectedModel;
     const assistantMessage: UiMessage = {
       id: createId("message"),
       role: "assistant",
@@ -320,6 +328,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         body: JSON.stringify({
           message: messageText,
           selectedModel,
+          researchModel: selectedModel === "aion-mind-pro" ? researchModel : undefined,
           history: toModelHistory(targetThread.messages),
           attachments: toModelAttachments(attachments),
           debug,
@@ -333,7 +342,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       if (!response.body) {
-        throw new Error("Arya Mind did not return a response stream.");
+        throw new Error("Aria Mind did not return a response stream.");
       }
 
       const diagnostics = debug ? readResponseDiagnostics(response) : undefined;
@@ -398,7 +407,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           tempMode,
           threadId: targetThreadId,
           messageId: assistantMessage.id,
-          content: "Arya Mind did not return a response."
+          content: "Aria Mind did not return a response."
         });
       }
     } catch (error) {
@@ -414,7 +423,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }
 
       const message =
-        error instanceof Error ? error.message : "Arya Mind could not process that request.";
+        error instanceof Error ? error.message : "Aria Mind could not process that request.";
       replaceAssistantContent({
         set,
         get,
@@ -1021,7 +1030,7 @@ function updateAssistantMessage({
 }
 
 async function readErrorMessage(response: Response) {
-  const fallback = "Arya Mind could not process that request.";
+  const fallback = "Aria Mind could not process that request.";
 
   try {
     const contentType = response.headers.get("content-type") ?? "";

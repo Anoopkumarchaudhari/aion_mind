@@ -9,19 +9,18 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
-  Copy,
   Film,
   HelpCircle,
+  History,
   Image as ImageIcon,
   Keyboard,
   LogOut,
-  MoreVertical,
   NotebookTabs,
-  Palette,
   Pin,
   Plus,
   Search,
-  Settings
+  Settings,
+  Volume2
 } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
 import { ChatRowMenu } from "@/components/ChatRowMenu";
@@ -78,7 +77,6 @@ export function Sidebar({
   isCollapsed,
   tempMode,
   notebooks,
-  notebookItems = [],
   onClose,
   onToggleCollapsed,
   onNewChat,
@@ -90,12 +88,6 @@ export function Sidebar({
   onCreateNotebook,
   onDeleteThread,
   onOpenSearch,
-  onCreateNotebookDialog,
-  onSelectNotebook,
-  onRenameNotebook,
-  onChangeNotebookEmoji,
-  onDuplicateNotebook,
-  onDeleteNotebook,
   onOpenShortcuts
 }: SidebarProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -104,10 +96,6 @@ export function Sidebar({
   const [account, setAccount] = useState({ name: ACCOUNT_NAME, plan: ACCOUNT_PLAN });
   const pinnedThreads = useMemo(() => threads.filter((thread) => thread.pinned), [threads]);
   const recentThreads = useMemo(() => threads.filter((thread) => !thread.pinned), [threads]);
-  const recentNotebooks = useMemo(
-    () => [...notebookItems].sort((left, right) => right.updatedAt - left.updatedAt).slice(0, 5),
-    [notebookItems]
-  );
 
   useEffect(() => {
     const visited = Number(window.localStorage.getItem(VIDEO_VISIT_KEY) || "0");
@@ -135,7 +123,7 @@ export function Sidebar({
   }
 
   async function handleSignOut() {
-    if (!window.confirm("Sign out of Arya Mind on this device?")) {
+    if (!window.confirm("Sign out of Aria Mind on this device?")) {
       return;
     }
 
@@ -164,7 +152,7 @@ export function Sidebar({
         <div className="brand-row">
           <AionLogo size={28} />
           <div className="brand-copy">
-            <p className="brand-name">Arya Mind</p>
+            <p className="brand-name">Aria Mind</p>
             <p className="brand-status">AI dashboard</p>
           </div>
           <button
@@ -178,65 +166,57 @@ export function Sidebar({
           </button>
         </div>
 
-        <div className="sidebar-actions">
-          <button className="sidebar-action is-primary" type="button" onClick={onNewChat} title="New chat">
-            <Plus size={17} />
-            <span className="sidebar-action-label">New chat</span>
-          </button>
-          <button className="sidebar-action" type="button" onClick={onOpenSearch} title="Search chats">
-            <Search size={17} />
-            <span className="sidebar-action-label">Search chats</span>
-            <kbd className="sidebar-kbd">⌘K</kbd>
-          </button>
-          <Link className="sidebar-action" href="/images" onClick={onClose} title="Images">
-            <ImageIcon size={17} />
-            <span className="sidebar-action-label">Images</span>
-          </Link>
-          <Link className="sidebar-action" href="/videos" onClick={markVideosVisited} title="Videos">
-            <Film size={17} />
-            <span className="sidebar-action-label">Videos</span>
-            {showVideoNew ? <span className="new-pill">New</span> : null}
-          </Link>
-          <Link className="sidebar-action" href="/library" onClick={onClose} title="Library">
-            <BookOpen size={17} />
-            <span className="sidebar-action-label">Library</span>
-          </Link>
-        </div>
-
-        <div className="history-section">
-          <div className="history-group notebook-group">
-            <div className="sidebar-section-label">Notebooks</div>
-            <button className="notebook-new-row" type="button" onClick={onCreateNotebookDialog} title="New notebook">
-              <Plus size={14} />
-              <span>New notebook</span>
+        <nav className="sidebar-actions" aria-label="Primary navigation">
+          <div className="sidebar-action-group">
+            <button className="sidebar-action" type="button" onClick={onOpenSearch} title="Search chat">
+              <Search size={17} />
+              <span className="sidebar-action-label">Search chat</span>
+              <kbd className="sidebar-kbd">Ctrl K</kbd>
             </button>
-            {recentNotebooks.map((notebook) => (
-              <div className="notebook-row" key={notebook.id}>
-                <button className="notebook-link" type="button" onClick={() => onSelectNotebook?.(notebook.id)}>
-                  <span className="notebook-emoji" style={{ backgroundColor: notebook.color }}>
-                    {notebook.emoji}
-                  </span>
-                  <span className="history-title-text">{notebook.title}</span>
-                </button>
-                <NotebookMenu
-                  notebook={notebook}
-                  onRenameNotebook={onRenameNotebook}
-                  onChangeNotebookEmoji={onChangeNotebookEmoji}
-                  onDuplicateNotebook={onDuplicateNotebook}
-                  onDeleteNotebook={onDeleteNotebook}
-                />
-              </div>
-            ))}
-            {notebookItems.length > 5 ? (
-              <Link className="show-more-row" href="/notebooks" onClick={onClose}>
-                Show all notebooks
-              </Link>
-            ) : null}
+            <button className="sidebar-action is-primary" type="button" onClick={onNewChat} title="New chat">
+              <Plus size={17} />
+              <span className="sidebar-action-label">New chat</span>
+            </button>
+            <button className="sidebar-action" type="button" onClick={onOpenSearch} title="Chat history">
+              <History size={17} />
+              <span className="sidebar-action-label">Chat history</span>
+            </button>
           </div>
 
+          <div className="sidebar-action-group">
+            <div className="sidebar-section-label">Generative AI</div>
+            <Link className="sidebar-action" href="/images" onClick={onClose} title="Image">
+              <ImageIcon size={17} />
+              <span className="sidebar-action-label">Image</span>
+            </Link>
+            <Link className="sidebar-action" href="/videos" onClick={markVideosVisited} title="Video">
+              <Film size={17} />
+              <span className="sidebar-action-label">Video</span>
+              {showVideoNew ? <span className="new-pill">New</span> : null}
+            </Link>
+            <button className="sidebar-action" type="button" disabled title="Audio coming soon">
+              <Volume2 size={17} />
+              <span className="sidebar-action-label">Audio</span>
+              <span className="new-pill">Soon</span>
+            </button>
+          </div>
+
+          <div className="sidebar-action-group">
+            <Link className="sidebar-action" href="/library" onClick={onClose} title="Library">
+              <BookOpen size={17} />
+              <span className="sidebar-action-label">Library</span>
+            </Link>
+            <Link className="sidebar-action" href="/notebooks" onClick={onClose} title="Notebook">
+              <NotebookTabs size={17} />
+              <span className="sidebar-action-label">Notebook</span>
+            </Link>
+          </div>
+        </nav>
+
+        <div className="history-section">
           {pinnedThreads.length > 0 ? (
             <ThreadSection
-              label="Pinned"
+              label="Chat history"
               threads={pinnedThreads}
               activeThreadId={activeThreadId}
               tempMode={tempMode}
@@ -260,7 +240,7 @@ export function Sidebar({
           ) : null}
 
           <ThreadSection
-            label="Recents"
+            label="Recent chat"
             threads={recentThreads}
             activeThreadId={activeThreadId}
             tempMode={tempMode}
@@ -327,78 +307,6 @@ export function Sidebar({
         </DropdownMenu.Root>
       </aside>
     </>
-  );
-}
-
-type NotebookMenuProps = {
-  notebook: Notebook;
-  onRenameNotebook?: (id: string, title: string) => void;
-  onChangeNotebookEmoji?: (id: string, emoji: string) => void;
-  onDuplicateNotebook?: (id: string) => void;
-  onDeleteNotebook?: (id: string) => void;
-};
-
-function NotebookMenu({
-  notebook,
-  onRenameNotebook,
-  onChangeNotebookEmoji,
-  onDuplicateNotebook,
-  onDeleteNotebook
-}: NotebookMenuProps) {
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <button className="history-menu-trigger is-visible" type="button" aria-label={`Notebook actions for ${notebook.title}`}>
-          <MoreVertical size={14} />
-        </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content className="chat-menu-content" side="right" align="start" sideOffset={12}>
-          <DropdownMenu.Item
-            className="chat-menu-item"
-            onSelect={() => {
-              const title = window.prompt("Rename notebook", notebook.title)?.trim();
-
-              if (title) {
-                onRenameNotebook?.(notebook.id, title);
-              }
-            }}
-          >
-            <NotebookTabs size={16} />
-            Rename
-          </DropdownMenu.Item>
-          <DropdownMenu.Item
-            className="chat-menu-item"
-            onSelect={() => {
-              const emoji = window.prompt("Notebook emoji", notebook.emoji)?.trim();
-
-              if (emoji) {
-                onChangeNotebookEmoji?.(notebook.id, emoji);
-              }
-            }}
-          >
-            <Palette size={16} />
-            Change emoji
-          </DropdownMenu.Item>
-          <DropdownMenu.Item className="chat-menu-item" onSelect={() => onDuplicateNotebook?.(notebook.id)}>
-            <Copy size={16} />
-            Duplicate
-          </DropdownMenu.Item>
-          <div className="chat-menu-separator" />
-          <DropdownMenu.Item
-            className="chat-menu-item is-danger"
-            onSelect={() => {
-              if (window.confirm(`Delete "${notebook.title}"?`)) {
-                onDeleteNotebook?.(notebook.id);
-              }
-            }}
-          >
-            <MoreVertical size={16} />
-            Delete
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
   );
 }
 
@@ -526,10 +434,10 @@ function ThreadSection({
 function getDisplayModelLabel(model: AionModelId) {
   switch (model) {
     case "aion-mind":
-      return "Arya Mind";
+      return "Aria Mind";
     case "aion-mind-pro":
-      return "Arya Mind Pro";
+      return "Aria Research";
     case "aion-mind-analyzer":
-      return "Arya Mind Analyser";
+      return "Aria Analyzer";
   }
 }

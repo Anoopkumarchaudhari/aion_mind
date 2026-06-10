@@ -6,6 +6,15 @@ export const AION_MODELS = [
 
 export type AionModelId = (typeof AION_MODELS)[number];
 
+export const AION_RESEARCH_MODELS = [
+  "gpt-5.5",
+  "opus-4.8",
+  "deepseek",
+  "gemini-3.1"
+] as const;
+
+export type AionResearchModelId = (typeof AION_RESEARCH_MODELS)[number];
+
 export type ChatRole = "user" | "assistant";
 
 export type ChatMessage = {
@@ -50,14 +59,34 @@ export type ChatApiResponse = {
 export function getAionModelLabel(model: AionModelId) {
   switch (model) {
     case "aion-mind":
-      return "Arya Mind";
+      return "Aria Mind";
     case "aion-mind-pro":
-      return "Arya Mind Pro";
+      return "Aria Research";
     case "aion-mind-analyzer":
-      return "Arya Mind Analyzer";
+      return "Aria Analyzer";
   }
 }
 
 export function isAionModelId(value: unknown): value is AionModelId {
   return typeof value === "string" && AION_MODELS.includes(value as AionModelId);
+}
+
+export function getAionResearchModelLabel(model: AionResearchModelId) {
+  switch (model) {
+    case "gpt-5.5":
+      return "GPT-5.5";
+    case "opus-4.8":
+      return "Opus-4.8";
+    case "deepseek":
+      return "DeepSeek";
+    case "gemini-3.1":
+      return "Gemini-3.1";
+  }
+}
+
+export function isAionResearchModelId(value: unknown): value is AionResearchModelId {
+  return (
+    typeof value === "string" &&
+    AION_RESEARCH_MODELS.includes(value as AionResearchModelId)
+  );
 }

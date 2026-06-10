@@ -29,9 +29,9 @@ type ModelRoutingDrawerProps = {
 };
 
 const ROUTING_TABS: Array<{ id: RoutingTab; label: string }> = [
-  { id: "aion", label: "Arya" },
-  { id: "pro", label: "Pro" },
-  { id: "analyzer", label: "Analyser" }
+  { id: "aion", label: "Aria Mind" },
+  { id: "pro", label: "Aria Research" },
+  { id: "analyzer", label: "Aria Analyzer" }
 ];
 
 export function ModelRoutingDrawer({
@@ -70,7 +70,7 @@ export function ModelRoutingDrawer({
   }, [onOpenChange, open]);
 
   const activeRouteLabel = useMemo(
-    () => ROUTING_TABS.find((tab) => tab.id === activeTab)?.label ?? "Arya",
+    () => ROUTING_TABS.find((tab) => tab.id === activeTab)?.label ?? "Aria Mind",
     [activeTab]
   );
 
@@ -325,7 +325,9 @@ function RoutePanel({
 
   return (
     <div className="routing-slot-stack">
-      <div className="routing-group-title">Candidates</div>
+      <div className="routing-group-title">
+        {activeTab === "pro" ? "Research engines" : "Candidate models"}
+      </div>
       {route.candidates.map((slot, index) => (
         <SlotEditor
           key={slot.id}
@@ -335,12 +337,16 @@ function RoutePanel({
         />
       ))}
 
-      <div className="routing-group-title">Judge</div>
-      <SlotEditor
-        slot={route.judge}
-        providers={providers}
-        onChange={(patch) => onUpdateJudge(activeTab, patch)}
-      />
+      {activeTab === "analyzer" ? (
+        <>
+          <div className="routing-group-title">Judge</div>
+          <SlotEditor
+            slot={route.judge}
+            providers={providers}
+            onChange={(patch) => onUpdateJudge(activeTab, patch)}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

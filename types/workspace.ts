@@ -57,16 +57,32 @@ export type Notebook = {
 
 export type VideoStyle = "cinematic" | "animated" | "realistic" | "abstract";
 
+export type VideoProvider = "runware";
+
+export type VideoGenerationMode = "text" | "image";
+
+export type VideoModelKey = "default" | "pro";
+
 export type VideoJobStatus = "queued" | "processing" | "succeeded" | "failed";
 
 export type VideoJob = {
   id: string;
+  provider?: VideoProvider;
+  mode?: VideoGenerationMode;
+  modelKey?: VideoModelKey;
+  model?: string;
+  taskUUID?: string;
   prompt: string;
   style: VideoStyle;
   duration: number;
+  resolution?: string;
   status: VideoJobStatus;
   outputUrl?: string;
   thumbnailUrl?: string;
+  inputImageUrl?: string;
+  progress?: number;
+  cost?: number;
+  error?: string;
   notes?: string;
   createdAt: number;
   updatedAt: number;

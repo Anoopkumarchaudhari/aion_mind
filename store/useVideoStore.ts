@@ -2,12 +2,21 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { VideoJob, VideoJobStatus, VideoStyle } from "@/types/workspace";
+import type {
+  VideoGenerationMode,
+  VideoJob,
+  VideoJobStatus,
+  VideoModelKey,
+  VideoStyle
+} from "@/types/workspace";
 
 type CreateVideoInput = {
   prompt: string;
   style: VideoStyle;
   duration: number;
+  mode?: VideoGenerationMode;
+  modelKey?: VideoModelKey;
+  inputImageData?: string;
 };
 
 type VideoState = {
@@ -38,14 +47,24 @@ export const useVideoStore = create<VideoState>()(
         const timestamp = Date.now();
         const job: VideoJob = {
           id: data.jobId,
-          prompt: input.prompt,
-          style: input.style,
-          duration: input.duration,
+          provider: data.provider,
+          mode: data.mode ?? input.mode ?? "text",
+          modelKey: data.modelKey ?? input.modelKey ?? "default",
+          model: data.model,
+          taskUUID: data.taskUUID,
+          prompt: data.prompt ?? input.prompt,
+          style: data.style ?? input.style,
+          duration: data.duration ?? input.duration,
+          resolution: data.resolution,
           status: normalizeStatus(data.status),
           outputUrl: data.outputUrl,
           thumbnailUrl: data.thumbnailUrl,
+          inputImageUrl: data.inputImageUrl,
+          progress: data.progress,
+          cost: data.cost,
+          error: data.error,
           createdAt: data.createdAt ?? timestamp,
-          updatedAt: timestamp
+          updatedAt: data.updatedAt ?? timestamp
         };
 
         set((state) => ({ jobs: [job, ...state.jobs.filter((item) => item.id !== job.id)] }));

@@ -50,7 +50,7 @@ function SettingsPanel({ tab }: { tab: SettingsTab }) {
         </label>
         <label className="field-label">
           Workspace
-          <input className="field-input" defaultValue="Arya workspace" />
+          <input className="field-input" defaultValue="Aria workspace" />
         </label>
         <button className="primary-button" type="button">Save profile</button>
       </div>
@@ -97,7 +97,7 @@ function SettingsPanel({ tab }: { tab: SettingsTab }) {
           className="danger-button"
           type="button"
           onClick={() => {
-            if (window.confirm("Clear local Arya Mind data in this browser?")) {
+            if (window.confirm("Clear local Aria Mind data in this browser?")) {
               Object.keys(window.localStorage)
                 .filter((key) => key.startsWith("aion-mind"))
                 .forEach((key) => window.localStorage.removeItem(key));
@@ -114,7 +114,7 @@ function SettingsPanel({ tab }: { tab: SettingsTab }) {
   if (tab === "billing") {
     return (
       <div className="settings-card">
-        <h3>Arya Mind Pro</h3>
+        <h3>Aria Mind</h3>
         <p className="muted-copy">Your workspace is currently on the Pro tier.</p>
         <button className="ghost-button" type="button">Download invoice summary</button>
       </div>

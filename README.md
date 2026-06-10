@@ -1,12 +1,12 @@
-# Arya Mind
+# Aria Mind
 
-Arya Mind is a clean AI chat dashboard with branded model choices only:
+Aria Mind is a clean AI chat dashboard with branded model choices only:
 
-- Arya Mind
-- Arya Mind Pro
-- Arya Mind Analyzer
+- Aria Mind
+- Aria Research
+- Aria Analyzer
 
-Real provider and model names stay server-side. The UI only shows Arya Mind branding unless you explicitly enable local debug mode.
+Real provider and model names stay server-side. The UI only shows Aria Mind branding unless you explicitly enable local debug mode.
 
 ## Login and PostgreSQL chat sync
 
@@ -34,7 +34,7 @@ If the split values are complete, they are used before `DATABASE_URL`. The app a
 
 ## Workspace memory and retrieval
 
-Arya Mind does not store user data inside Gemini, GPT, Claude, Grok, or any other LLM model. Instead, signed-in chats are saved in your PostgreSQL database, and the server searches prior saved messages before each new provider request. Relevant snippets are injected as hidden context, so any configured provider can answer with the right workspace memory when it is useful.
+Aria Mind does not store user data inside Gemini, GPT, Claude, Grok, or any other LLM model. Instead, signed-in chats are saved in your PostgreSQL database, and the server searches prior saved messages before each new provider request. Relevant snippets are injected as hidden context, so any configured provider can answer with the right workspace memory when it is useful.
 
 Temporary chats are excluded from memory retrieval.
 
@@ -85,7 +85,7 @@ Copy-Item .env.example .env.local
 
 ```env
 OPENAI_API_KEY=
-OPENAI_MODEL=
+OPENAI_MODEL=gpt-5.4-mini
 OPENAI_ADVANCED_MODEL=
 OPENAI_JUDGE_MODEL=gpt-5.5
 OPENAI_LIVE_MODEL=gpt-5.5
@@ -101,6 +101,7 @@ DEEPSEEK_MODEL=deepseek-v4-pro
 
 GEMINI_API_KEY=
 GEMINI_MODEL=
+GEMINI_RESEARCH_MODEL=gemini-3.1
 GEMINI_FALLBACK_MODELS=
 
 GROK_API_KEY=
@@ -109,6 +110,8 @@ GROK_MODEL=
 RUNWARE_API_KEY=
 RUNWARE_IMAGE_MODEL_DEFAULT=runware:100@1
 RUNWARE_IMAGE_MODEL_PRO=runware:400@1
+RUNWARE_VIDEO_MODEL_DEFAULT=prunaai:p-video@0
+RUNWARE_VIDEO_MODEL_PRO=klingai:kling-video@3-pro
 
 AION_PROVIDER_TIMEOUT_MS=25000
 AION_PROVIDER_MAX_RETRIES=2
@@ -117,35 +120,42 @@ AION_PROVIDER_RETRY_MAX_MS=8000
 AION_LIVE_VERIFICATION_TIMEOUT_MS=35000
 AION_IMAGE_TIMEOUT_MS=60000
 RUNWARE_IMAGE_TIMEOUT_MS=60000
+RUNWARE_VIDEO_TIMEOUT_MS=60000
+RUNWARE_VIDEO_STATUS_TIMEOUT_MS=30000
 ```
 
 Where each key goes:
 
-- `GEMINI_API_KEY` and `GEMINI_MODEL`: required for the default Arya Mind tab and also used as the Gemini candidate for Analyzer.
+- `OPENAI_MODEL`: default fast model for Aria Mind. The recommended default is `gpt-5.4-mini`.
 - `GEMINI_FALLBACK_MODELS`: optional comma-separated Gemini model IDs to try if the primary Gemini model is quota-blocked or unavailable.
-- `OPENAI_API_KEY`: key used by the GPT candidate in Pro/Analyzer and by the Analyzer judge.
-- `OPENAI_MODEL`: base GPT model ID for Pro/Analyzer.
-- `OPENAI_ADVANCED_MODEL`: optional advanced GPT model ID for Analyzer.
-- `OPENAI_JUDGE_MODEL`: OpenAI model ID used by the Analyzer judge. The app defaults to `gpt-5.5`.
+- `GEMINI_API_KEY` and `GEMINI_MODEL`: used when Gemini is selected in Aria Research or participates in Aria Analyzer.
+- `GEMINI_RESEARCH_MODEL`: Gemini model ID used for the Research and Analyzer Gemini slot. Defaults to `gemini-3.1`.
+- `OPENAI_API_KEY`: key used by Aria Mind, the GPT-5.5 Research/Analyzer slot, live search, and the Analyzer judge.
+- `OPENAI_ADVANCED_MODEL`: optional GPT model ID for the GPT-5.5 Research/Analyzer slot.
+- `OPENAI_JUDGE_MODEL`: OpenAI model ID used by the Aria Analyzer judge. The app defaults to `gpt-5.5`.
 - `OPENAI_LIVE_MODEL`: optional OpenAI model ID used for live web verification of current facts. Defaults to `OPENAI_JUDGE_MODEL`, then `gpt-5.5`.
 - `OPENAI_IMAGE_MODEL`: OpenAI image model used by the Images page `OpenAI / Default` option. Defaults to `gpt-image-1`.
 - `OPENAI_IMAGE_MODEL_PRO`: optional OpenAI image model used by the Images page `OpenAI / Pro` option. Falls back to `OPENAI_IMAGE_MODEL`.
-- `RUNWARE_API_KEY`: key used by the Images page when `Runware` is selected.
+- `RUNWARE_API_KEY`: key used by the Images and Videos pages when `Runware` is selected.
 - `RUNWARE_IMAGE_MODEL_DEFAULT`: Runware model used by `Runware / FLUX Schnell`. Defaults to `runware:100@1`.
 - `RUNWARE_IMAGE_MODEL_PRO`: Runware model used by `Runware / Pro`. Defaults to `runware:400@1`.
-- `ANTHROPIC_API_KEY`: key used by Arya Mind Pro and Analyzer.
-- `ANTHROPIC_MODEL`: Claude model ID used by Pro/Analyzer.
-- `ANTHROPIC_OPUS_MODEL`: optional Opus model ID for the Analyzer pipeline.
-- `DEEPSEEK_API_KEY` and `DEEPSEEK_MODEL`: optional DeepSeek candidate for Analyzer. The recommended Analyzer default is `deepseek-v4-pro`.
-- `GROK_API_KEY` and `GROK_MODEL`: optional Grok candidate for Analyzer.
+- `RUNWARE_VIDEO_MODEL_DEFAULT`: Runware video model used by the Videos page `Default` option. Defaults to `prunaai:p-video@0`.
+- `RUNWARE_VIDEO_MODEL_PRO`: Runware video model used by the Videos page `Pro` option. Defaults to `klingai:kling-video@3-pro`.
+- `ANTHROPIC_API_KEY`: key used by the Opus-4.8 Research/Analyzer slot.
+- `ANTHROPIC_MODEL`: optional Claude model ID.
+- `ANTHROPIC_OPUS_MODEL`: optional Opus model ID for Research and Analyzer.
+- `DEEPSEEK_API_KEY` and `DEEPSEEK_MODEL`: key and model used by the DeepSeek Research/Analyzer slot. The recommended default is `deepseek-v4-pro`.
+- `GROK_API_KEY` and `GROK_MODEL`: optional Grok routing values if enabled in Model Routing.
 
-Missing provider keys are skipped gracefully. At least one configured provider is needed for a useful response, and OpenAI is used for the Analyzer judge step. If the judge is unavailable, Arya Mind falls back to a successful candidate response.
+Missing provider keys are skipped gracefully. At least one configured provider is needed for a useful response, and OpenAI is used for the Analyzer judge step. If the judge is unavailable, Aria Mind falls back to a successful candidate response.
 
 Provider calls retry transient failures and HTTP 429 rate limits with exponential backoff. The default is two retries, starting around one second and capped at eight seconds. If you are hitting daily quota, retries will still fail until the provider resets or the quota is raised.
 
-The Images page uses the same `OPENAI_API_KEY` to generate prompt-based images. Generated image bytes are kept in server memory and exposed through `/api/images/:imageId`, so saved Library entries stay small.
+The Images page uses the same `OPENAI_API_KEY` to generate prompt-based images. Generated image bytes are exposed through `/api/images/:imageId` and saved locally under `data/generated-images/` when base64 image data is available, so new Library image URLs survive dev-server restarts.
 
-Current or changeable factual questions, such as office holders, prices, scores, weather, elections, releases, regulations, or recent news, are routed through OpenAI live web verification before the model answers. If live search cannot return verifiable sources, Arya Mind tells the user it could not verify instead of falling back to a guessed model-memory answer.
+The Videos page uses `RUNWARE_API_KEY` for text-to-video and image-to-video. The app starts a Runware `videoInference` job, stores the Runware task UUID in server memory, and polls `/api/videos/:jobId/status` until the generated MP4 URL is ready.
+
+Current or changeable factual questions, such as office holders, prices, scores, weather, elections, releases, regulations, or recent news, are routed through OpenAI live web verification before the model answers. If live search cannot return verifiable sources, Aria Mind tells the user it could not verify instead of falling back to a guessed model-memory answer.
 
 4. Run locally:
 
@@ -170,16 +180,18 @@ AION_DEBUG=true
 NEXT_PUBLIC_AION_DEBUG=true
 ```
 
-Leave both as `false` for normal use so users only see Arya Mind brand names.
+Leave both as `false` for normal use so users only see Aria Mind brand names.
 
-## Analyzer Workflow
+## Aria Tiers
 
-`Arya Mind Analyzer` sends the user request to Claude Opus, DeepSeek, and GPT-5.5 in parallel, shows each candidate answer, then asks the OpenAI-backed judge to evaluate correctness, completeness, clarity, confidence, safety, and usefulness. The final section is labeled `Judge answer`.
+- `Aria Mind` uses `gpt-5.4-mini` for fast everyday answers and adds live-search context when the request needs current facts.
+- `Aria Research` opens a model picker. The user chooses GPT-5.5, Opus-4.8, DeepSeek, or Gemini-3.1, then that one engine handles the research response.
+- `Aria Analyzer` sends the user request to GPT-5.5, Opus-4.8, DeepSeek, and Gemini-3.1 candidates with live-search context, then the GPT-5.5 `Aria Analyzer` judge synthesizes one final answer.
 
 The judge system prompt lives in `services/aionAnalyzer.ts`.
 
 ## Model routing GUI
 
-Use the slider button beside the `Arya / Pro / Analyser` selector to open Model Routing. The drawer lets signed-in users choose provider, model ID, enabled state, and temperature for each Arya, Pro, Analyzer, and judge slot.
+Use the slider button beside the `Aria Mind / Aria Research / Aria Analyzer` selector to open Model Routing. The drawer lets signed-in users choose provider, model ID, enabled state, and temperature for each Mind, Research, Analyzer, and judge slot.
 
 API keys still live in `.env`. Saved routing choices are stored locally in `data/aion-routing.json`, which is ignored by git.

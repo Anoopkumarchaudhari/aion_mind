@@ -13,3 +13,4 @@ dev-server*.log
 tsconfig.tsbuildinfo
 .DS_Store
 data/aion-routing.json
+data/generated-images/

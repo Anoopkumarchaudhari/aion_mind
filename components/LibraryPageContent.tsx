@@ -144,10 +144,25 @@ function LibraryMenu({
 
 function Preview({ item }: { item: LibraryItem }) {
   if (item.url && (item.type === "image" || item.type === "video")) {
-    return <img className="artifact-thumb" src={item.url} alt="" />;
+    return <MediaPreview item={item} />;
   }
 
   return <p>{(item.content || item.url || "Saved item").split("\n").slice(0, 3).join("\n").slice(0, 220)}</p>;
+}
+
+function MediaPreview({ item }: { item: LibraryItem }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!item.url || hasError) {
+    return (
+      <div className="artifact-thumb artifact-thumb-missing">
+        {item.type === "video" ? <Video size={18} /> : <Image size={18} />}
+        <span>{item.type === "video" ? "Video unavailable" : "Image unavailable"}</span>
+      </div>
+    );
+  }
+
+  return <img className="artifact-thumb" src={item.url} alt="" onError={() => setHasError(true)} />;
 }
 
 function getIcon(type: LibraryItemType) {

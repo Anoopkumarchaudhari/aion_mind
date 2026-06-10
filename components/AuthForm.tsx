@@ -81,7 +81,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const title = isSignup ? "Create your account" : "Welcome back";
   const subtitle = isSignup
     ? "Free to start - no card required."
-    : "Sign in to continue your Arya Mind workspace.";
+    : "Sign in to continue your Aria Mind workspace.";
   const sideTransition = { duration: 0.42, ease: "easeInOut" as const };
 
   return (
@@ -108,7 +108,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           <div className="auth-showcase-brand">
             <AionLogo size={30} decorative />
             <div>
-              <strong>Arya Mind</strong>
+              <strong>Aria Mind</strong>
               <span>JB Crownstone </span>
             </div>
           </div>

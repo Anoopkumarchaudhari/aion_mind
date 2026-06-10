@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
-import { getVideoJob } from "@/services/serverMemory";
+import { ProviderHttpError } from "@/providers/providerUtils";
+import { getCurrentUser } from "@/services/auth";
+import { getVideoJob, patchVideoJob } from "@/services/serverMemory";
+import {
+  getRunwareVideoErrorMessage,
+  pollRunwareVideo
+} from "@/services/runwareVideo";
+import type { VideoJob } from "@/types/workspace";
+
+export const runtime = "nodejs";
 
 type RouteContext = {
   params: Promise<{
@@ -8,6 +17,12 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
+  }
+
   const { jobId } = await context.params;
   const job = getVideoJob(jobId);
 
@@ -15,5 +30,38 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Video job not found" }, { status: 404 });
   }
 
-  return NextResponse.json(job);
+  if (job.status === "succeeded" || job.status === "failed" || !job.taskUUID) {
+    return NextResponse.json(job);
+  }
+
+  try {
+    const result = await pollRunwareVideo(job.taskUUID);
+    const patch: Partial<VideoJob> = {
+      status: result.status,
+      progress: result.progress,
+      error: result.status === "failed" ? result.error : undefined
+    };
+
+    if (result.videoUrl) {
+      patch.outputUrl = result.videoUrl;
+    }
+
+    if (result.cost !== undefined) {
+      patch.cost = result.cost;
+    }
+
+    const next = patchVideoJob(job.id, patch) ?? job;
+    return NextResponse.json(next);
+  } catch (error) {
+    const message = getRunwareVideoErrorMessage(error);
+    const shouldFail =
+      error instanceof ProviderHttpError && [400, 401, 403, 404].includes(error.status);
+    const next =
+      patchVideoJob(job.id, {
+        status: shouldFail ? "failed" : "processing",
+        error: message
+      }) ?? job;
+
+    return NextResponse.json(next);
+  }
 }

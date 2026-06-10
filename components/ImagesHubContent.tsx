@@ -347,7 +347,7 @@ function getImageFilename(image: GeneratedImage) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
 
-  return `${slug || "arya-mind-image"}.png`;
+  return `${slug || "aria-mind-image"}.png`;
 }
 
 function getLibraryContent(image: GeneratedImage) {

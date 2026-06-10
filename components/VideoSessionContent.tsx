@@ -54,13 +54,23 @@ export function VideoSessionContent({ videoId }: VideoSessionContentProps) {
   const currentJob = job;
 
   async function spawnVariant(suffix: string) {
-    const id = await createJob({
-      prompt: `${currentJob.prompt} ${suffix}`,
-      style: currentJob.style,
-      duration: currentJob.duration
-    });
+    try {
+      const id = await createJob({
+        prompt: `${currentJob.prompt} ${suffix}`,
+        style: currentJob.style,
+        duration: currentJob.duration,
+        mode: currentJob.mode ?? "text",
+        modelKey: currentJob.modelKey ?? "default",
+        inputImageData:
+          currentJob.mode === "image" && currentJob.inputImageUrl?.startsWith("data:image/")
+            ? currentJob.inputImageUrl
+            : undefined
+      });
 
-    window.location.href = `/videos/${id}`;
+      window.location.href = `/videos/${id}`;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not start video generation");
+    }
   }
 
   return (
@@ -71,7 +81,7 @@ export function VideoSessionContent({ videoId }: VideoSessionContentProps) {
             <video controls poster={currentJob.thumbnailUrl} src={currentJob.outputUrl} />
           ) : (
             <div className="video-processing" style={{ backgroundImage: currentJob.thumbnailUrl ? `url("${currentJob.thumbnailUrl}")` : undefined }}>
-              <span>{currentJob.status === "failed" ? "Generation failed" : "Generating video..."}</span>
+              <span>{currentJob.status === "failed" ? currentJob.error || "Generation failed" : currentJob.error || "Generating video..."}</span>
             </div>
           )}
           <div className="video-player-actions">
@@ -89,8 +99,8 @@ export function VideoSessionContent({ videoId }: VideoSessionContentProps) {
                   addLibraryItem({
                     type: "video",
                     title: currentJob.prompt.slice(0, 64) || "Generated video",
-                    url: currentJob.thumbnailUrl || currentJob.outputUrl,
-                    content: currentJob.prompt
+                    url: currentJob.outputUrl,
+                    content: `${currentJob.prompt}\n\nModel: ${currentJob.model || currentJob.modelKey || "runware"}`
                   });
                   toast.success("Video saved to Library");
                 }}
@@ -104,7 +114,10 @@ export function VideoSessionContent({ videoId }: VideoSessionContentProps) {
           <article className="detail-panel">
             <p className="eyebrow">Prompt</p>
             <h2>{currentJob.prompt}</h2>
-            <p>{currentJob.style} - {currentJob.duration}s - {currentJob.status}</p>
+            <p>
+              {currentJob.mode ?? "text"} - {currentJob.modelKey ?? "default"} - {currentJob.style} - {currentJob.duration}s - {currentJob.status}
+            </p>
+            {currentJob.model ? <p className="muted-copy">{currentJob.model}</p> : null}
             <div className="action-row">
               <button className="ghost-button" type="button" onClick={() => spawnVariant("with tighter pacing")}>
                 <RefreshCcw size={15} />

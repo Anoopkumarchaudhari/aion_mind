@@ -8,13 +8,5 @@
    - Environments: .env
 
  ✓ Starting...
- ✓ Ready in 5.1s
- ✓ Compiled /middleware in 385ms (115 modules)
- ○ Compiling /login ...
- ✓ Compiled /login in 4.7s (1648 modules)
- GET /login 200 in 5849ms
- ○ Compiling /images ...
- ✓ Compiled /images in 2.8s (1738 modules)
- GET /images 200 in 3633ms
- GET /images 200 in 189ms
- GET /images 200 in 208ms
+ ✓ Ready in 6.2s
+[?25h
