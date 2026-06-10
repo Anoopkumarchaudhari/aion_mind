@@ -7,11 +7,13 @@ import type {
   VideoJob,
   VideoJobStatus,
   VideoModelKey,
+  VideoProvider,
   VideoStyle
 } from "@/types/workspace";
 
 type CreateVideoInput = {
   prompt: string;
+  provider?: VideoProvider;
   style: VideoStyle;
   duration: number;
   mode?: VideoGenerationMode;

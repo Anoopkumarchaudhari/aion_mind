@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { AppFrame } from "@/components/AppFrame";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import { useVideoStore } from "@/store/useVideoStore";
-import type { VideoJob } from "@/types/workspace";
+import type { VideoJob, VideoProvider } from "@/types/workspace";
 
 type VideoSessionContentProps = {
   videoId: string;
@@ -57,6 +57,7 @@ export function VideoSessionContent({ videoId }: VideoSessionContentProps) {
     try {
       const id = await createJob({
         prompt: `${currentJob.prompt} ${suffix}`,
+        provider: currentJob.provider ?? "runware",
         style: currentJob.style,
         duration: currentJob.duration,
         mode: currentJob.mode ?? "text",
@@ -115,7 +116,7 @@ export function VideoSessionContent({ videoId }: VideoSessionContentProps) {
             <p className="eyebrow">Prompt</p>
             <h2>{currentJob.prompt}</h2>
             <p>
-              {currentJob.mode ?? "text"} - {currentJob.modelKey ?? "default"} - {currentJob.style} - {currentJob.duration}s - {currentJob.status}
+              {getVideoProviderLabel(currentJob.provider)} - {currentJob.mode ?? "text"} - {getVideoModelLabel(currentJob)} - {currentJob.style} - {currentJob.duration}s - {currentJob.status}
             </p>
             {currentJob.model ? <p className="muted-copy">{currentJob.model}</p> : null}
             <div className="action-row">
@@ -146,4 +147,28 @@ export function VideoSessionContent({ videoId }: VideoSessionContentProps) {
       </section>
     </AppFrame>
   );
+}
+
+function getVideoProviderLabel(provider: VideoProvider | undefined) {
+  return provider === "google" ? "Google Veo" : "Runware";
+}
+
+function getVideoModelLabel(job: VideoJob) {
+  if (job.model) {
+    return job.model;
+  }
+
+  if (job.provider === "google") {
+    switch (job.modelKey) {
+      case "lite":
+        return "veo-3.1-fast-generate-preview (lite)";
+      case "pro":
+        return "veo-3.1-generate-preview";
+      case "default":
+      default:
+        return "veo-3.1-fast-generate-preview";
+    }
+  }
+
+  return job.modelKey === "pro" ? "klingai:kling-video@3-pro" : "prunaai:p-video@0";
 }

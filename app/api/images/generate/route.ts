@@ -19,9 +19,12 @@ export const runtime = "nodejs";
 
 const OPENAI_IMAGE_ENDPOINT = "https://api.openai.com/v1/images/generations";
 const RUNWARE_IMAGE_ENDPOINT = "https://api.runware.ai/v1";
+const GEMINI_IMAGE_ENDPOINT_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_OPENAI_IMAGE_MODEL = "gpt-image-1";
 const DEFAULT_RUNWARE_IMAGE_MODEL = "runware:100@1";
 const DEFAULT_RUNWARE_PRO_IMAGE_MODEL = "runware:400@1";
+const DEFAULT_GEMINI_IMAGE_MODEL = "gemini-3.1-flash-image";
+const DEFAULT_GEMINI_PRO_IMAGE_MODEL = "gemini-3-pro-image";
 const MAX_IMAGE_PROMPT_LENGTH = 32000;
 const OPENAI_IMAGE_SIZES = {
   square: "1024x1024",
@@ -74,6 +77,27 @@ type RunwareImageResponse =
       message?: string;
     };
 
+type GeminiImageResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+        inlineData?: {
+          mimeType?: string;
+          data?: string;
+        };
+        inline_data?: {
+          mime_type?: string;
+          data?: string;
+        };
+      }>;
+    };
+  }>;
+  error?: {
+    message?: string;
+  };
+};
+
 type GenerateImageInput = {
   prompt: string;
   provider: ImageProvider;
@@ -110,8 +134,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const image =
-      input.provider === "runware" ? await generateRunwareImage(input) : await generateOpenAIImage(input);
+    const image = await generateImage(input);
 
     return NextResponse.json({ image: saveGeneratedImage(image) }, { status: 201 });
   } catch (error) {
@@ -119,6 +142,17 @@ export async function POST(request: Request) {
     const message = getImageErrorMessage(error);
 
     return NextResponse.json({ error: message }, { status });
+  }
+}
+
+async function generateImage(input: GenerateImageInput): Promise<StoredGeneratedImage> {
+  switch (input.provider) {
+    case "google":
+      return generateGeminiImage(input);
+    case "runware":
+      return generateRunwareImage(input);
+    case "openai":
+      return generateOpenAIImage(input);
   }
 }
 
@@ -245,8 +279,75 @@ async function generateRunwareImage(input: GenerateImageInput): Promise<StoredGe
   };
 }
 
+async function generateGeminiImage(input: GenerateImageInput): Promise<StoredGeneratedImage> {
+  const apiKey = process.env.GEMINI_API_KEY ?? "";
+
+  if (!apiKey) {
+    throw new Error("Missing GEMINI_API_KEY.");
+  }
+
+  const model = getGeminiImageModel(input.modelKey);
+  const timeoutMs = getTimeoutMs(process.env.GEMINI_IMAGE_TIMEOUT_MS, 90000);
+  const data = await fetchJsonWithTimeout<GeminiImageResponse>(
+    `${GEMINI_IMAGE_ENDPOINT_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: buildGeminiImagePrompt(input) }]
+          }
+        ],
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"]
+        }
+      })
+    },
+    timeoutMs
+  );
+
+  const parts = data.candidates?.flatMap((candidate) => candidate.content?.parts ?? []) ?? [];
+  const imagePart = parts.find((part) => Boolean(part.inlineData?.data || part.inline_data?.data));
+  const base64 = cleanString(imagePart?.inlineData?.data) || cleanString(imagePart?.inline_data?.data);
+  const mimeType =
+    cleanString(imagePart?.inlineData?.mimeType) ||
+    cleanString(imagePart?.inline_data?.mime_type) ||
+    "image/png";
+  const revisedPrompt = parts
+    .map((part) => cleanString(part.text))
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+
+  if (!base64) {
+    throw new Error(data.error?.message || "Google Nano Banana image generation returned no image.");
+  }
+
+  const id = crypto.randomUUID();
+
+  return {
+    id,
+    provider: "google",
+    modelKey: input.modelKey,
+    prompt: input.prompt,
+    model,
+    aspectRatio: input.aspectRatio,
+    size: `${getGeminiAspectRatio(input.aspectRatio)} ${getGeminiImageSize(input.quality)}`,
+    quality: input.quality,
+    url: `/api/images/${id}`,
+    revisedPrompt: revisedPrompt || undefined,
+    mimeType,
+    base64,
+    createdAt: Date.now()
+  };
+}
+
 function normalizeProvider(value: unknown): ImageProvider {
-  return value === "runware" || value === "openai" ? value : "openai";
+  return value === "runware" || value === "openai" || value === "google" ? value : "openai";
 }
 
 function normalizeModelKey(value: unknown): ImageModelKey {
@@ -292,6 +393,58 @@ function getRunwareImageModel(modelKey: ImageModelKey) {
     process.env.RUNWARE_IMAGE_MODEL?.trim() ||
     DEFAULT_RUNWARE_IMAGE_MODEL
   );
+}
+
+function getGeminiImageModel(modelKey: ImageModelKey) {
+  const geminiModels = parseModelList(process.env.GEMINI_IMAGE_MODEL);
+
+  if (modelKey === "pro") {
+    return (
+      process.env.GEMINI_IMAGE_MODEL_PRO?.trim() ||
+      geminiModels[1] ||
+      geminiModels[0] ||
+      DEFAULT_GEMINI_PRO_IMAGE_MODEL
+    );
+  }
+
+  return (
+    process.env.GEMINI_IMAGE_MODEL_DEFAULT?.trim() ||
+    geminiModels[0] ||
+    DEFAULT_GEMINI_IMAGE_MODEL
+  );
+}
+
+function buildGeminiImagePrompt(input: GenerateImageInput) {
+  return [
+    input.prompt,
+    "",
+    `Aspect ratio: ${getGeminiAspectRatio(input.aspectRatio)}.`,
+    `Output quality target: ${getGeminiImageSize(input.quality)}.`
+  ].join("\n");
+}
+
+function getGeminiAspectRatio(aspectRatio: ImageAspectRatio) {
+  switch (aspectRatio) {
+    case "portrait":
+      return "9:16";
+    case "landscape":
+      return "16:9";
+    case "square":
+      return "1:1";
+  }
+}
+
+function getGeminiImageSize(quality: ImageQuality) {
+  switch (quality) {
+    case "low":
+      return "0.5K";
+    case "medium":
+      return "1K";
+    case "high":
+      return "2K";
+    case "auto":
+      return "1K";
+  }
 }
 
 function getRunwareOutputQuality(quality: ImageQuality) {

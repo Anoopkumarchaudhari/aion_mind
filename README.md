@@ -103,6 +103,11 @@ GEMINI_API_KEY=
 GEMINI_MODEL=
 GEMINI_RESEARCH_MODEL=gemini-3.1
 GEMINI_FALLBACK_MODELS=
+GEMINI_IMAGE_MODEL_DEFAULT=gemini-3.1-flash-image
+GEMINI_IMAGE_MODEL_PRO=gemini-3-pro-image
+GEMINI_VIDEO_MODEL_LITE=veo-3.1-fast-generate-preview
+GEMINI_VIDEO_MODEL_FAST=veo-3.1-fast-generate-preview
+GEMINI_VIDEO_MODEL_PRO=veo-3.1-generate-preview
 
 GROK_API_KEY=
 GROK_MODEL=
@@ -117,8 +122,13 @@ AION_PROVIDER_TIMEOUT_MS=25000
 AION_PROVIDER_MAX_RETRIES=2
 AION_PROVIDER_RETRY_BASE_MS=1000
 AION_PROVIDER_RETRY_MAX_MS=8000
+AION_PROMPT_ENHANCE_TIMEOUT_MS=12000
 AION_LIVE_VERIFICATION_TIMEOUT_MS=35000
 AION_IMAGE_TIMEOUT_MS=60000
+GEMINI_IMAGE_TIMEOUT_MS=90000
+GEMINI_VIDEO_TIMEOUT_MS=60000
+GEMINI_VIDEO_STATUS_TIMEOUT_MS=45000
+GEMINI_VIDEO_DOWNLOAD_TIMEOUT_MS=90000
 RUNWARE_IMAGE_TIMEOUT_MS=60000
 RUNWARE_VIDEO_TIMEOUT_MS=60000
 RUNWARE_VIDEO_STATUS_TIMEOUT_MS=30000
@@ -130,17 +140,23 @@ Where each key goes:
 - `GEMINI_FALLBACK_MODELS`: optional comma-separated Gemini model IDs to try if the primary Gemini model is quota-blocked or unavailable.
 - `GEMINI_API_KEY` and `GEMINI_MODEL`: used when Gemini is selected in Aria Research or participates in Aria Analyzer.
 - `GEMINI_RESEARCH_MODEL`: Gemini model ID used for the Research and Analyzer Gemini slot. Defaults to `gemini-3.1`.
+- `GEMINI_IMAGE_MODEL_DEFAULT`: Google image model used by the Images page `Google / Nano Banana 2` option. Defaults to `gemini-3.1-flash-image`.
+- `GEMINI_IMAGE_MODEL_PRO`: optional Google image model used by the Images page `Google / Nano Banana Pro` option. Defaults to `gemini-3-pro-image`.
+- `GEMINI_VIDEO_MODEL_LITE`: Google Veo model used by the Videos page `Google Veo / Veo 3.1 Lite` option. Defaults to `veo-3.1-fast-generate-preview`.
+- `GEMINI_VIDEO_MODEL_FAST`: Google Veo model used by the Videos page `Google Veo / Veo 3.1 Fast` option. Defaults to `veo-3.1-fast-generate-preview`.
+- `GEMINI_VIDEO_MODEL_PRO`: Google Veo model used by the Videos page `Google Veo / Veo 3.1 Standard` option. Defaults to `veo-3.1-generate-preview`.
 - `OPENAI_API_KEY`: key used by Aria Mind, the GPT-5.5 Research/Analyzer slot, live search, and the Analyzer judge.
 - `OPENAI_ADVANCED_MODEL`: optional GPT model ID for the GPT-5.5 Research/Analyzer slot.
 - `OPENAI_JUDGE_MODEL`: OpenAI model ID used by the Aria Analyzer judge. The app defaults to `gpt-5.5`.
 - `OPENAI_LIVE_MODEL`: optional OpenAI model ID used for live web verification of current facts. Defaults to `OPENAI_JUDGE_MODEL`, then `gpt-5.5`.
-- `OPENAI_IMAGE_MODEL`: OpenAI image model used by the Images page `OpenAI / Default` option. Defaults to `gpt-image-1`.
-- `OPENAI_IMAGE_MODEL_PRO`: optional OpenAI image model used by the Images page `OpenAI / Pro` option. Falls back to `OPENAI_IMAGE_MODEL`.
+- `AION_PROMPT_ENHANCE_TIMEOUT_MS`: optional timeout for the chat composer prompt enhancer. Defaults to 12000 ms.
+- `OPENAI_IMAGE_MODEL`: OpenAI image model used by the Images page `OpenAI / gpt-image-1` option. Defaults to `gpt-image-1`.
+- `OPENAI_IMAGE_MODEL_PRO`: optional OpenAI image model used by the Images page `OpenAI / gpt-image-1 (OPENAI_IMAGE_MODEL_PRO)` option. Falls back to `OPENAI_IMAGE_MODEL`.
 - `RUNWARE_API_KEY`: key used by the Images and Videos pages when `Runware` is selected.
 - `RUNWARE_IMAGE_MODEL_DEFAULT`: Runware model used by `Runware / FLUX Schnell`. Defaults to `runware:100@1`.
-- `RUNWARE_IMAGE_MODEL_PRO`: Runware model used by `Runware / Pro`. Defaults to `runware:400@1`.
-- `RUNWARE_VIDEO_MODEL_DEFAULT`: Runware video model used by the Videos page `Default` option. Defaults to `prunaai:p-video@0`.
-- `RUNWARE_VIDEO_MODEL_PRO`: Runware video model used by the Videos page `Pro` option. Defaults to `klingai:kling-video@3-pro`.
+- `RUNWARE_IMAGE_MODEL_PRO`: Runware model used by `Runware / runware:400@1`. Defaults to `runware:400@1`.
+- `RUNWARE_VIDEO_MODEL_DEFAULT`: Runware video model used by the Videos page `prunaai:p-video@0` option. Defaults to `prunaai:p-video@0`.
+- `RUNWARE_VIDEO_MODEL_PRO`: Runware video model used by the Videos page `klingai:kling-video@3-pro` option. Defaults to `klingai:kling-video@3-pro`.
 - `ANTHROPIC_API_KEY`: key used by the Opus-4.8 Research/Analyzer slot.
 - `ANTHROPIC_MODEL`: optional Claude model ID.
 - `ANTHROPIC_OPUS_MODEL`: optional Opus model ID for Research and Analyzer.
@@ -151,9 +167,9 @@ Missing provider keys are skipped gracefully. At least one configured provider i
 
 Provider calls retry transient failures and HTTP 429 rate limits with exponential backoff. The default is two retries, starting around one second and capped at eight seconds. If you are hitting daily quota, retries will still fail until the provider resets or the quota is raised.
 
-The Images page uses the same `OPENAI_API_KEY` to generate prompt-based images. Generated image bytes are exposed through `/api/images/:imageId` and saved locally under `data/generated-images/` when base64 image data is available, so new Library image URLs survive dev-server restarts.
+The Images page can generate prompt-based images through OpenAI, Runware, or Google Nano Banana. Generated image bytes are exposed through `/api/images/:imageId` and saved locally under `data/generated-images/` when base64 image data is available, so new Library image URLs survive dev-server restarts.
 
-The Videos page uses `RUNWARE_API_KEY` for text-to-video and image-to-video. The app starts a Runware `videoInference` job, stores the Runware task UUID in server memory, and polls `/api/videos/:jobId/status` until the generated MP4 URL is ready.
+The Videos page supports Runware and Google Veo for text-to-video and image-to-video. The app starts a provider job, stores the provider task/operation ID in server memory, and polls `/api/videos/:jobId/status` until the generated MP4 URL is ready.
 
 Current or changeable factual questions, such as office holders, prices, scores, weather, elections, releases, regulations, or recent news, are routed through OpenAI live web verification before the model answers. If live search cannot return verifiable sources, Aria Mind tells the user it could not verify instead of falling back to a guessed model-memory answer.
 

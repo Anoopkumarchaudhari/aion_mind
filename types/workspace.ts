@@ -14,7 +14,7 @@ export type LibraryItem = {
 
 export type ImageAspectRatio = "square" | "portrait" | "landscape";
 
-export type ImageProvider = "openai" | "runware";
+export type ImageProvider = "openai" | "runware" | "google";
 
 export type ImageModelKey = "default" | "pro";
 
@@ -57,11 +57,11 @@ export type Notebook = {
 
 export type VideoStyle = "cinematic" | "animated" | "realistic" | "abstract";
 
-export type VideoProvider = "runware";
+export type VideoProvider = "runware" | "google";
 
 export type VideoGenerationMode = "text" | "image";
 
-export type VideoModelKey = "default" | "pro";
+export type VideoModelKey = "lite" | "default" | "pro";
 
 export type VideoJobStatus = "queued" | "processing" | "succeeded" | "failed";
 

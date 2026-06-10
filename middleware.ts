@@ -7,7 +7,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
 
-  if (isPublicAsset(pathname) || pathname.startsWith("/api/auth")) {
+  if (isPublicAsset(pathname) || pathname.startsWith("/api/auth") || pathname === "/api/image-sidebar") {
     return NextResponse.next();
   }
 

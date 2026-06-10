@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { AnimatePresence, motion } from "framer-motion";
@@ -14,9 +15,11 @@ import {
   History,
   Image as ImageIcon,
   Keyboard,
+  Languages,
   LogOut,
   NotebookTabs,
   Pin,
+  Podcast,
   Plus,
   Search,
   Settings,
@@ -90,17 +93,27 @@ export function Sidebar({
   onOpenSearch,
   onOpenShortcuts
 }: SidebarProps) {
+  const pathname = usePathname() ?? "/";
+  const router = useRouter();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [showVideoNew, setShowVideoNew] = useState(false);
   const [account, setAccount] = useState({ name: ACCOUNT_NAME, plan: ACCOUNT_PLAN });
   const pinnedThreads = useMemo(() => threads.filter((thread) => thread.pinned), [threads]);
   const recentThreads = useMemo(() => threads.filter((thread) => !thread.pinned), [threads]);
+  const isChatRoute = pathname === "/" || pathname.startsWith("/chat/");
+  const displayedActiveThreadId = isChatRoute ? activeThreadId : "";
 
   useEffect(() => {
     const visited = Number(window.localStorage.getItem(VIDEO_VISIT_KEY) || "0");
     setShowVideoNew(!visited || Date.now() - visited < NEW_PILL_MS);
   }, []);
+
+  useEffect(() => {
+    ["/images", "/videos", "/podcast", "/translate", "/library", "/notebooks"].forEach((route) =>
+      router.prefetch(route)
+    );
+  }, [router]);
 
   useEffect(() => {
     void fetch("/api/auth/me")
@@ -185,11 +198,23 @@ export function Sidebar({
 
           <div className="sidebar-action-group">
             <div className="sidebar-section-label">Generative AI</div>
-            <Link className="sidebar-action" href="/images" onClick={onClose} title="Image">
+            <Link
+              className={clsx("sidebar-action", isActiveRoute(pathname, "/images") && "is-active")}
+              href="/images"
+              aria-current={isActiveRoute(pathname, "/images") ? "page" : undefined}
+              onClick={onClose}
+              title="Image"
+            >
               <ImageIcon size={17} />
               <span className="sidebar-action-label">Image</span>
             </Link>
-            <Link className="sidebar-action" href="/videos" onClick={markVideosVisited} title="Video">
+            <Link
+              className={clsx("sidebar-action", isActiveRoute(pathname, "/videos") && "is-active")}
+              href="/videos"
+              aria-current={isActiveRoute(pathname, "/videos") ? "page" : undefined}
+              onClick={markVideosVisited}
+              title="Video"
+            >
               <Film size={17} />
               <span className="sidebar-action-label">Video</span>
               {showVideoNew ? <span className="new-pill">New</span> : null}
@@ -199,14 +224,46 @@ export function Sidebar({
               <span className="sidebar-action-label">Audio</span>
               <span className="new-pill">Soon</span>
             </button>
+            <Link
+              className={clsx("sidebar-action", isActiveRoute(pathname, "/podcast") && "is-active")}
+              href="/podcast"
+              aria-current={isActiveRoute(pathname, "/podcast") ? "page" : undefined}
+              onClick={onClose}
+              title="Podcast"
+            >
+              <Podcast size={17} />
+              <span className="sidebar-action-label">Podcast</span>
+            </Link>
+            <Link
+              className={clsx("sidebar-action", isActiveRoute(pathname, "/translate") && "is-active")}
+              href="/translate"
+              aria-current={isActiveRoute(pathname, "/translate") ? "page" : undefined}
+              onClick={onClose}
+              title="Translate"
+            >
+              <Languages size={17} />
+              <span className="sidebar-action-label">Translate</span>
+            </Link>
           </div>
 
           <div className="sidebar-action-group">
-            <Link className="sidebar-action" href="/library" onClick={onClose} title="Library">
+            <Link
+              className={clsx("sidebar-action", isActiveRoute(pathname, "/library") && "is-active")}
+              href="/library"
+              aria-current={isActiveRoute(pathname, "/library") ? "page" : undefined}
+              onClick={onClose}
+              title="Library"
+            >
               <BookOpen size={17} />
               <span className="sidebar-action-label">Library</span>
             </Link>
-            <Link className="sidebar-action" href="/notebooks" onClick={onClose} title="Notebook">
+            <Link
+              className={clsx("sidebar-action", isActiveRoute(pathname, "/notebooks") && "is-active")}
+              href="/notebooks"
+              aria-current={isActiveRoute(pathname, "/notebooks") ? "page" : undefined}
+              onClick={onClose}
+              title="Notebook"
+            >
               <NotebookTabs size={17} />
               <span className="sidebar-action-label">Notebook</span>
             </Link>
@@ -218,7 +275,7 @@ export function Sidebar({
             <ThreadSection
               label="Chat history"
               threads={pinnedThreads}
-              activeThreadId={activeThreadId}
+              activeThreadId={displayedActiveThreadId}
               tempMode={tempMode}
               notebooks={notebooks}
               openMenuId={openMenuId}
@@ -242,7 +299,7 @@ export function Sidebar({
           <ThreadSection
             label="Recent chat"
             threads={recentThreads}
-            activeThreadId={activeThreadId}
+            activeThreadId={displayedActiveThreadId}
             tempMode={tempMode}
             notebooks={notebooks}
             openMenuId={openMenuId}
@@ -308,6 +365,10 @@ export function Sidebar({
       </aside>
     </>
   );
+}
+
+function isActiveRoute(pathname: string, route: string) {
+  return pathname === route || pathname.startsWith(`${route}/`);
 }
 
 type ThreadSectionProps = {

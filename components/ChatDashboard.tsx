@@ -50,6 +50,9 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
   const [routingOpen, setRoutingOpen] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
   const [researchModel, setResearchModel] = useState<AionResearchModelId>("gpt-5.5");
+  const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
+  const [promptEnhanceError, setPromptEnhanceError] = useState("");
+  const [promptEnhanceUndo, setPromptEnhanceUndo] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   const rawThreads = useChatStore((state) => state.threads);
@@ -134,6 +137,8 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
 
     if (!alreadyOnDefaultEmpty || nextThreadId !== activeThreadId) {
       setInput("");
+      setPromptEnhanceError("");
+      setPromptEnhanceUndo(null);
     }
 
     setSidebarOpen(false);
@@ -167,6 +172,8 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
     setInput("");
     setAttachments([]);
     setAttachmentError("");
+    setPromptEnhanceError("");
+    setPromptEnhanceUndo(null);
     await sendMessage(content, {
       debug: debugEnabled,
       attachments: outgoingAttachments,
@@ -198,8 +205,82 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
     }
   }
 
+  function handleInputChange(value: string) {
+    setInput(value);
+    setPromptEnhanceError("");
+    setPromptEnhanceUndo(null);
+  }
+
   function handlePromptSelect(prompt: string) {
     setInput(prompt);
+    setPromptEnhanceError("");
+    setPromptEnhanceUndo(null);
+    window.setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  async function handleEnhancePrompt() {
+    const draft = input.trim();
+
+    if (!draft || isLoading || isReadingFiles || isEnhancingPrompt) {
+      return;
+    }
+
+    const previousPrompt = input;
+    setPromptEnhanceError("");
+    setPromptEnhanceUndo(null);
+    setIsEnhancingPrompt(true);
+
+    try {
+      const response = await fetch("/api/prompt/enhance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          prompt: draft,
+          selectedModel,
+          researchModel: selectedModel === "aion-mind-pro" ? researchModel : undefined,
+          attachments: attachments.map((attachment) => ({
+            name: attachment.name,
+            type: attachment.type,
+            size: attachment.size,
+            kind: attachment.kind
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(await readPromptEnhanceError(response));
+      }
+
+      const payload = (await response.json()) as { enhancedPrompt?: unknown };
+      const enhancedPrompt =
+        typeof payload.enhancedPrompt === "string" ? payload.enhancedPrompt.trim() : "";
+
+      if (!enhancedPrompt) {
+        throw new Error("Prompt enhancer returned an empty prompt.");
+      }
+
+      setInput(enhancedPrompt);
+      setPromptEnhanceUndo(previousPrompt);
+    } catch (error) {
+      setPromptEnhanceError(
+        error instanceof Error ? error.message : "Prompt enhancer could not process that request."
+      );
+    } finally {
+      setIsEnhancingPrompt(false);
+      window.setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }
+
+  function handleUndoPromptEnhance() {
+    if (promptEnhanceUndo === null) {
+      return;
+    }
+
+    setInput(promptEnhanceUndo);
+    setPromptEnhanceUndo(null);
+    setPromptEnhanceError("");
     window.setTimeout(() => inputRef.current?.focus(), 0);
   }
 
@@ -272,12 +353,17 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
         tempMode={tempMode}
         attachments={attachments}
         isReadingFiles={isReadingFiles}
+        isEnhancingPrompt={isEnhancingPrompt}
         attachmentError={attachmentError}
+        promptEnhanceError={promptEnhanceError}
+        canUndoPromptEnhance={promptEnhanceUndo !== null}
         inputRef={inputRef}
-        onChange={setInput}
+        onChange={handleInputChange}
         onSubmit={handleSubmit}
         onStop={stopGeneration}
         onKeyDown={handleKeyDown}
+        onEnhancePrompt={handleEnhancePrompt}
+        onUndoPromptEnhance={handleUndoPromptEnhance}
         onAttachFiles={(files) => void handleAttachFiles(files)}
         onRemoveAttachment={(id) =>
           setAttachments((current) => current.filter((attachment) => attachment.id !== id))
@@ -399,6 +485,25 @@ function getRoutingTab(model: AionModelId) {
   }
 
   return "aion";
+}
+
+async function readPromptEnhanceError(response: Response) {
+  try {
+    const contentType = response.headers.get("content-type") ?? "";
+
+    if (contentType.includes("application/json")) {
+      const payload = (await response.json()) as { error?: unknown };
+
+      if (typeof payload.error === "string" && payload.error.trim()) {
+        return payload.error.trim();
+      }
+    }
+
+    const text = await response.text();
+    return text.trim() || "Prompt enhancer could not process that request.";
+  } catch {
+    return "Prompt enhancer could not process that request.";
+  }
 }
 
 const SUPPORTED_TEXT_EXTENSIONS = new Set([

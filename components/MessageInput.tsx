@@ -3,7 +3,18 @@
 import clsx from "clsx";
 import type { ClipboardEvent, DragEvent, FormEvent, KeyboardEvent, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, FileText, Image as ImageIcon, Mic, Paperclip, Plus, Square, X } from "lucide-react";
+import {
+  ArrowUp,
+  FileText,
+  Image as ImageIcon,
+  Loader2,
+  Mic,
+  Paperclip,
+  Plus,
+  Sparkles,
+  Square,
+  X
+} from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import TextareaAutosize from "react-textarea-autosize";
 import type { ChatAttachment } from "@/types/aion";
@@ -14,12 +25,17 @@ type MessageInputProps = {
   tempMode: boolean;
   attachments: ChatAttachment[];
   isReadingFiles: boolean;
+  isEnhancingPrompt: boolean;
   attachmentError?: string;
+  promptEnhanceError?: string;
+  canUndoPromptEnhance?: boolean;
   inputRef: RefObject<HTMLTextAreaElement | null>;
   onChange: (value: string) => void;
   onSubmit: (event?: FormEvent) => void;
   onStop: () => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  onEnhancePrompt: () => void;
+  onUndoPromptEnhance?: () => void;
   onAttachFiles: (files: File[]) => void;
   onRemoveAttachment: (id: string) => void;
 };
@@ -65,12 +81,17 @@ export function MessageInput({
   tempMode,
   attachments,
   isReadingFiles,
+  isEnhancingPrompt,
   attachmentError,
+  promptEnhanceError,
+  canUndoPromptEnhance,
   inputRef,
   onChange,
   onSubmit,
   onStop,
   onKeyDown,
+  onEnhancePrompt,
+  onUndoPromptEnhance,
   onAttachFiles,
   onRemoveAttachment
 }: MessageInputProps) {
@@ -81,7 +102,9 @@ export function MessageInput({
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const voiceBaseTextRef = useRef("");
   const canSend = value.trim().length > 0 || attachments.length > 0;
-  const composerError = attachmentError ?? voiceError;
+  const canEnhancePrompt =
+    value.trim().length > 0 && !disabled && !isReadingFiles && !isEnhancingPrompt;
+  const composerError = attachmentError || promptEnhanceError || voiceError;
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -313,6 +336,16 @@ export function MessageInput({
             aria-label="Message"
           />
           <button
+            className={clsx("input-plus", !canEnhancePrompt && "is-disabled")}
+            type="button"
+            onClick={onEnhancePrompt}
+            disabled={!canEnhancePrompt}
+            aria-label={isEnhancingPrompt ? "Enhancing prompt" : "Enhance prompt"}
+            title={isEnhancingPrompt ? "Enhancing prompt" : "Enhance prompt"}
+          >
+            {isEnhancingPrompt ? <Loader2 className="spin" size={17} /> : <Sparkles size={17} />}
+          </button>
+          <button
             className={clsx("input-plus", (disabled || isReadingFiles) && "is-disabled")}
             type="button"
             onClick={toggleVoiceInput}
@@ -368,6 +401,14 @@ export function MessageInput({
         </div>
       </div>
       {composerError ? <p className="composer-error">{composerError}</p> : null}
+      {canUndoPromptEnhance && !composerError ? (
+        <p className="composer-notice">
+          <span>Prompt enhanced.</span>
+          <button type="button" onClick={onUndoPromptEnhance}>
+            Undo
+          </button>
+        </p>
+      ) : null}
       <p className="composer-disclaimer">
         {tempMode
           ? "Temporary chat. Nothing here will be saved or used to train models."

@@ -3,6 +3,10 @@ import { ProviderHttpError } from "@/providers/providerUtils";
 import { getCurrentUser } from "@/services/auth";
 import { getVideoJob, patchVideoJob } from "@/services/serverMemory";
 import {
+  getGoogleVideoErrorMessage,
+  pollGoogleVideo
+} from "@/services/googleVideo";
+import {
   getRunwareVideoErrorMessage,
   pollRunwareVideo
 } from "@/services/runwareVideo";
@@ -35,7 +39,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   try {
-    const result = await pollRunwareVideo(job.taskUUID);
+    const result = job.provider === "google" ? await pollGoogleVideo(job.taskUUID) : await pollRunwareVideo(job.taskUUID);
     const patch: Partial<VideoJob> = {
       status: result.status,
       progress: result.progress,
@@ -53,7 +57,7 @@ export async function GET(_request: Request, context: RouteContext) {
     const next = patchVideoJob(job.id, patch) ?? job;
     return NextResponse.json(next);
   } catch (error) {
-    const message = getRunwareVideoErrorMessage(error);
+    const message = job.provider === "google" ? getGoogleVideoErrorMessage(error) : getRunwareVideoErrorMessage(error);
     const shouldFail =
       error instanceof ProviderHttpError && [400, 401, 403, 404].includes(error.status);
     const next =

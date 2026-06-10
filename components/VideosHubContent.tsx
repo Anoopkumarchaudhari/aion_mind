@@ -3,31 +3,52 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { Film, ImagePlus, Loader2, Type, X } from "lucide-react";
+import { Film, ImagePlus, Loader2, X } from "lucide-react";
 import { AppFrame } from "@/components/AppFrame";
 import { useVideoStore } from "@/store/useVideoStore";
 import type {
   VideoGenerationMode,
   VideoJob,
   VideoModelKey,
+  VideoProvider,
   VideoStyle
 } from "@/types/workspace";
 
-const styles: VideoStyle[] = ["cinematic", "animated", "realistic", "abstract"];
-const durations = [5, 10];
+const styles: Array<{ value: VideoStyle; label: string }> = [
+  { value: "cinematic", label: "Cinematic" },
+  { value: "animated", label: "Animated" },
+  { value: "realistic", label: "Realistic" },
+  { value: "abstract", label: "Abstract" }
+];
+const providerDurations: Record<VideoProvider, number[]> = {
+  runware: [5, 10],
+  google: [4, 6, 8]
+};
+const providers: Array<{ value: VideoProvider; label: string }> = [
+  { value: "runware", label: "Runware" },
+  { value: "google", label: "Google Veo" }
+];
 const modes: Array<{ value: VideoGenerationMode; label: string }> = [
   { value: "text", label: "Text" },
   { value: "image", label: "Image" }
 ];
-const modelKeys: Array<{ value: VideoModelKey; label: string }> = [
-  { value: "default", label: "Default" },
-  { value: "pro", label: "Pro" }
-];
+const providerModels: Record<VideoProvider, Array<{ value: VideoModelKey; label: string }>> = {
+  runware: [
+    { value: "default", label: "prunaai:p-video@0" },
+    { value: "pro", label: "klingai:kling-video@3-pro" }
+  ],
+  google: [
+    { value: "lite", label: "veo-3.1-fast-generate-preview (lite)" },
+    { value: "default", label: "veo-3.1-fast-generate-preview" },
+    { value: "pro", label: "veo-3.1-generate-preview" }
+  ]
+};
 const MAX_INPUT_IMAGE_BYTES = 8 * 1024 * 1024;
 
 export function VideosHubContent() {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
+  const [provider, setProvider] = useState<VideoProvider>("runware");
   const [style, setStyle] = useState<VideoStyle>("cinematic");
   const [duration, setDuration] = useState(5);
   const [mode, setMode] = useState<VideoGenerationMode>("text");
@@ -40,6 +61,8 @@ export function VideosHubContent() {
   const createJob = useVideoStore((state) => state.createJob);
   const updateJob = useVideoStore((state) => state.updateJob);
   const sortedJobs = useMemo(() => [...jobs].sort((left, right) => right.createdAt - left.createdAt), [jobs]);
+  const modelOptions = providerModels[provider];
+  const durationOptions = providerDurations[provider];
   const canGenerate = prompt.trim().length >= 2 && !isGenerating && (mode === "text" || Boolean(inputImageData));
 
   async function handleSubmit(event: React.FormEvent) {
@@ -59,6 +82,7 @@ export function VideosHubContent() {
     try {
       const id = await createJob({
         prompt,
+        provider,
         style,
         duration,
         mode,
@@ -121,41 +145,76 @@ export function VideosHubContent() {
               onChange={(event) => setPrompt(event.target.value)}
               placeholder="A cinematic tracking shot through a rain-glossed neon market at night..."
             />
-            <div className="video-option-grid">
-              <div className="video-option-group">
-                <p className="eyebrow">Input</p>
-                <div className="chip-row">
+            <div className="media-select-grid video-option-grid">
+              <label className="media-select-field">
+                <span>Provider</span>
+                <select
+                  value={provider}
+                  onChange={(event) => {
+                    const nextProvider = event.target.value as VideoProvider;
+                    setProvider(nextProvider);
+                    setModelKey("default");
+                    setDuration(providerDurations[nextProvider][0] ?? 5);
+                    setError("");
+                  }}
+                >
+                  {providers.map((item) => (
+                    <option value={item.value} key={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="media-select-field">
+                <span>Sub model</span>
+                <select value={modelKey} onChange={(event) => setModelKey(event.target.value as VideoModelKey)}>
+                  {modelOptions.map((item) => (
+                    <option value={item.value} key={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="media-select-field">
+                <span>Input</span>
+                <select
+                  value={mode}
+                  onChange={(event) => {
+                    setMode(event.target.value as VideoGenerationMode);
+                    setError("");
+                  }}
+                >
                   {modes.map((item) => (
-                    <button
-                      className={item.value === mode ? "is-active" : ""}
-                      type="button"
-                      key={item.value}
-                      onClick={() => {
-                        setMode(item.value);
-                        setError("");
-                      }}
-                    >
-                      {item.value === "text" ? <Type size={14} /> : <ImagePlus size={14} />}
+                    <option value={item.value} key={item.value}>
                       {item.label}
-                    </button>
+                    </option>
                   ))}
-                </div>
-              </div>
-              <div className="video-option-group">
-                <p className="eyebrow">Model</p>
-                <div className="chip-row">
-                  {modelKeys.map((item) => (
-                    <button
-                      className={item.value === modelKey ? "is-active" : ""}
-                      type="button"
-                      key={item.value}
-                      onClick={() => setModelKey(item.value)}
-                    >
+                </select>
+              </label>
+
+              <label className="media-select-field">
+                <span>Style</span>
+                <select value={style} onChange={(event) => setStyle(event.target.value as VideoStyle)}>
+                  {styles.map((item) => (
+                    <option value={item.value} key={item.value}>
                       {item.label}
-                    </button>
+                    </option>
                   ))}
-                </div>
-              </div>
+                </select>
+              </label>
+
+              <label className="media-select-field">
+                <span>Duration</span>
+                <select value={duration} onChange={(event) => setDuration(Number(event.target.value))}>
+                  {durationOptions.map((item) => (
+                    <option value={item} key={item}>
+                      {item}s
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
             {mode === "image" ? (
               <div className="video-upload-panel">
@@ -179,30 +238,6 @@ export function VideosHubContent() {
                 )}
               </div>
             ) : null}
-            <div className="chip-row">
-              {styles.map((item) => (
-                <button
-                  className={item === style ? "is-active" : ""}
-                  type="button"
-                  key={item}
-                  onClick={() => setStyle(item)}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-            <div className="chip-row">
-              {durations.map((item) => (
-                <button
-                  className={item === duration ? "is-active" : ""}
-                  type="button"
-                  key={item}
-                  onClick={() => setDuration(item)}
-                >
-                  {item}s
-                </button>
-              ))}
-            </div>
             {error ? <p className="form-error">{error}</p> : null}
             <button className="primary-button full" type="submit" disabled={!canGenerate}>
               {isGenerating ? <Loader2 className="spin" size={16} /> : null}
@@ -239,7 +274,7 @@ function VideoCard({ job }: { job: VideoJob }) {
       {job.thumbnailUrl ? <img className="artifact-thumb" src={job.thumbnailUrl} alt="" /> : <div className="video-placeholder" />}
       <div className="artifact-card-body">
         <h3>{job.prompt.slice(0, 72)}</h3>
-        <p>{job.mode ?? "text"} - {job.modelKey ?? "default"} - {job.duration}s - {job.status}</p>
+        <p>{getVideoProviderLabel(job.provider)} - {job.mode ?? "text"} - {getVideoModelLabel(job)} - {job.duration}s - {job.status}</p>
       </div>
       <div className="artifact-meta">
         <span />
@@ -247,6 +282,30 @@ function VideoCard({ job }: { job: VideoJob }) {
       </div>
     </a>
   );
+}
+
+function getVideoProviderLabel(provider: VideoProvider | undefined) {
+  return provider === "google" ? "Google Veo" : "Runware";
+}
+
+function getVideoModelLabel(job: VideoJob) {
+  if (job.model) {
+    return job.model;
+  }
+
+  if (job.provider === "google") {
+    switch (job.modelKey) {
+      case "lite":
+        return "veo-3.1-fast-generate-preview (lite)";
+      case "pro":
+        return "veo-3.1-generate-preview";
+      case "default":
+      default:
+        return "veo-3.1-fast-generate-preview";
+    }
+  }
+
+  return job.modelKey === "pro" ? "klingai:kling-video@3-pro" : "prunaai:p-video@0";
 }
 
 async function pollVideo(id: string, updateJob: (id: string, patch: Partial<VideoJob>) => void) {
