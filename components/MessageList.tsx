@@ -26,14 +26,21 @@ export function MessageList({
     isLoading &&
     (!lastMessage ||
       lastMessage.role === "user" ||
-      (lastMessage.role === "assistant" && !lastMessage.content.trim()));
+      (lastMessage.role === "assistant" &&
+        !lastMessage.content.trim() &&
+        !lastMessage.workLog?.length &&
+        !lastMessage.webSearchActivity));
 
   return (
     <div className="chat-scroll" ref={scrollRef}>
       <div className="conversation">
         <div className="message-list">
           {messages.map((message, index) =>
-            isLoading && message.role === "assistant" && !message.content.trim() ? null : (
+            isLoading &&
+            message.role === "assistant" &&
+            !message.content.trim() &&
+            !message.workLog?.length &&
+            !message.webSearchActivity ? null : (
               <MessageBubble
                 key={message.id}
                 message={message}

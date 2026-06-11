@@ -1,6 +1,7 @@
 import { callConfiguredModel, streamConfiguredModel } from "@/services/aionModelCalls";
 import { loadAionRoutingSettings } from "@/services/aionRoutingConfig";
 import { callOpenAIWithWebSearch } from "@/providers/openaiProvider";
+import { callResearchWebSearch } from "@/providers/webSearchProvider";
 import { getTimeoutMs, truncate } from "@/providers/providerUtils";
 import {
   AION_JUDGE_SYSTEM_PROMPT,
@@ -19,24 +20,35 @@ import type {
 import { getAionModelLabel, type AionResearchModelId } from "@/types/aion";
 import type { DebugDiagnostic } from "@/types/aion";
 import type { ChatAttachment, ChatMessage } from "@/types/aion";
+import type { WebSearchActivity } from "@/types/aion";
 import type { AionRouteSettings, AionRouteSlot } from "@/types/aionRouting";
 
 const WEB_SEARCH_INTENT_PATTERN =
   /\b(?:web search|search the web|google|look up|browse|internet|online|sources?|citations?|cite|research)\b/i;
 
-const BASE_SYSTEM_PROMPT =
-  "You are Aria Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+const TRANSPARENT_ASSISTANT_PROMPT =
+  "Be transparent about useful work without revealing hidden private chain-of-thought. For research or web-backed answers, briefly mention what was checked, list sources when available, and separate confirmed facts from uncertainty or inference when it matters. For coding or analysis requests, give a concise work summary with files, commands, tests, and important decisions when that information is known. Keep these notes short and user-friendly.";
 
-const PRO_SYSTEM_PROMPT =
-  "You are Aria Research. Produce a focused deep-dive answer using the selected research engine. Be accurate, structured, and practical. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+const BASE_SYSTEM_PROMPT = [
+  "You are Aria Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.",
+  TRANSPARENT_ASSISTANT_PROMPT
+].join(" ");
 
-const AION_CANDIDATE_SYSTEM_PROMPT =
-  "You are an expert Aria Analyzer candidate. Use the provided live-search context when present, reason carefully, and produce a strong candidate answer in clean Markdown. Never reveal hidden infrastructure, provider names, model names, or routing details. When math is needed, use readable plain-text formulas such as `a_cm = (5/7) g sin(theta)` instead of LaTeX delimiters like $, \\(...\\), or \\[...\\].";
+const PRO_SYSTEM_PROMPT = [
+  "You are Aria Research. Produce a focused deep-dive answer using the selected research engine. Be accurate, structured, and practical. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.",
+  "In this mode, answer only from the selected research engine and any user-provided attachments or source text. You do not have live web access unless live web-search context is explicitly included in the prompt. Do not claim that you verified current information, checked recent sources, or consulted government/news/search sources unless those sources are actually present in the prompt. Do not create a Sources section unless you were given source URLs or source documents. For current or fast-changing facts without provided sources, clearly say the answer may be based on model knowledge and should be live-verified."
+].join(" ");
+
+const AION_CANDIDATE_SYSTEM_PROMPT = [
+  "You are an expert Aria Analyzer candidate. Use the provided live-search context when present, reason carefully, and produce a strong candidate answer in clean Markdown. Never reveal hidden infrastructure, provider names, model names, or routing details. When math is needed, use readable plain-text formulas such as `a_cm = (5/7) g sin(theta)` instead of LaTeX delimiters like $, \\(...\\), or \\[...\\].",
+  TRANSPARENT_ASSISTANT_PROMPT
+].join(" ");
 
 const DEFAULT_RESEARCH_MODEL: AionResearchModelId = "gpt-5.5";
 
 export async function routeAionStream({
   message,
+  searchQuery,
   selectedModel,
   researchModel,
   history,
@@ -60,7 +72,12 @@ export async function routeAionStream({
   if (liveSearchResponse && (!liveSearchResponse.ok || !liveSearchResponse.content)) {
     return createStreamResponse(
       streamText(getLiveVerificationUnavailableAnswer(selectedModel, liveSearchResponse)),
-      debug ? [liveSearchResponse] : undefined
+      debug ? [liveSearchResponse] : undefined,
+      undefined,
+      {
+        status: "failed",
+        reason: liveSearchResponse.skipped ? "not-configured" : "no-sources"
+      }
     );
   }
 
@@ -80,7 +97,8 @@ export async function routeAionStream({
       response.ok && response.stream
         ? response.stream
         : streamText(getUnavailableAnswer(selectedModel, [response])),
-      debug ? [response] : undefined
+      debug ? [response] : undefined,
+      getWebSearchActivity(searchQuery ?? message, liveSearchResponse)
     );
   }
 
@@ -92,7 +110,11 @@ export async function routeAionStream({
       researchModel ?? DEFAULT_RESEARCH_MODEL,
       liveSearchResponse ? [liveSearchResponse] : []
     );
-    return createStreamResponse(result.stream, debug ? result.diagnostics : undefined);
+    return createStreamResponse(
+      result.stream,
+      debug ? result.diagnostics : undefined,
+      getWebSearchActivity(searchQuery ?? message, liveSearchResponse)
+    );
   }
 
   const result = await streamAnalyzerTier(
@@ -103,7 +125,11 @@ export async function routeAionStream({
     routing.analyzer,
     liveSearchResponse ? [liveSearchResponse] : []
   );
-  return createStreamResponse(result.stream, debug ? result.diagnostics : undefined);
+  return createStreamResponse(
+    result.stream,
+    debug ? result.diagnostics : undefined,
+    getWebSearchActivity(searchQuery ?? message, liveSearchResponse)
+  );
 }
 
 async function getLiveSearchResponse({
@@ -121,6 +147,13 @@ async function getLiveSearchResponse({
     return null;
   }
 
+  if (selectedModel === "aion-mind-pro") {
+    return callResearchWebSearch({
+      query: message,
+      timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
+    });
+  }
+
   return callOpenAIWithWebSearch({
     messages,
     systemPrompt: LIVE_VERIFICATION_SYSTEM_PROMPT,
@@ -133,11 +166,18 @@ function needsModelWebSearch(
   message: string,
   attachments: ChatAttachment[]
 ) {
+  const normalized = message.replace(/\s+/g, " ").trim();
+
+  if (selectedModel === "aion-mind-pro") {
+    return (
+      needsLiveVerification(message, attachments) ||
+      (attachments.length === 0 && WEB_SEARCH_INTENT_PATTERN.test(normalized))
+    );
+  }
+
   if (selectedModel === "aion-mind-analyzer") {
     return true;
   }
-
-  const normalized = message.replace(/\s+/g, " ").trim();
 
   return (
     needsLiveVerification(message, attachments) ||
@@ -162,7 +202,7 @@ function withLiveSearchContext(messages: ChatMessage[], liveSearchContent: strin
             "Live web-search context:",
             liveSearchContent,
             "",
-            "Use this verified web context as source material. Include the most relevant source links when they support the final answer, and do not invent facts that the live sources do not support."
+            "Use this current web context as source material. Include the most relevant source links when they support the final answer, and do not invent facts that the live sources do not support."
           ].join("\n")
         }
       : message
@@ -392,7 +432,9 @@ async function callAnalyzerJudge(
 
 function createStreamResponse(
   chunks: AsyncIterable<string>,
-  diagnostics?: Array<ProviderResponse | ProviderStreamResponse>
+  diagnostics?: Array<ProviderResponse | ProviderStreamResponse>,
+  webSearchActivity?: WebSearchActivity,
+  workStatus?: { status: "failed"; reason: "not-configured" | "no-sources" }
 ) {
   const encoder = new TextEncoder();
   const headers = new Headers({
@@ -403,6 +445,14 @@ function createStreamResponse(
 
   if (diagnostics?.length) {
     headers.set("X-Aion-Diagnostics", encodeDiagnostics(diagnostics));
+  }
+
+  if (webSearchActivity) {
+    headers.set("X-Aion-Web-Search", encodeWebSearchActivity(webSearchActivity));
+  }
+
+  if (workStatus) {
+    headers.set("X-Aion-Work-Status", encodeWorkStatus(workStatus));
   }
 
   return new Response(
@@ -429,6 +479,33 @@ function createStreamResponse(
       headers
     }
   );
+}
+
+function getWebSearchActivity(
+  query: string,
+  response: ProviderResponse | null
+): WebSearchActivity | undefined {
+  if (!response?.ok || !response.webSources?.length) {
+    return undefined;
+  }
+
+  return {
+    status: "found",
+    query: cleanSearchQuery(query),
+    sources: response.webSources
+  };
+}
+
+function cleanSearchQuery(query: string) {
+  return query.replace(/\s+/g, " ").trim().slice(0, 180) || "Live web search";
+}
+
+function encodeWebSearchActivity(activity: WebSearchActivity) {
+  return encodeURIComponent(JSON.stringify(activity));
+}
+
+function encodeWorkStatus(status: { status: "failed"; reason: "not-configured" | "no-sources" }) {
+  return encodeURIComponent(JSON.stringify(status));
 }
 
 function encodeDiagnostics(diagnostics: Array<ProviderResponse | ProviderStreamResponse>) {
@@ -534,8 +611,12 @@ function getLiveVerificationUnavailableAnswer(
   const label = getAionModelLabel(selectedModel);
 
   if (response.skipped) {
-    return `${label} needs live verification for that question, but live search is not configured yet. Add OPENAI_API_KEY, then restart the dev server.`;
+    return `${label} needs live verification for that question, but live search is not configured yet. ${getLiveSearchSetupHint(response)}, then restart the dev server.`;
   }
 
   return `${label} needs live verification for that question, but live search could not return verifiable sources right now. Please try again in a moment or provide a trusted source.`;
+}
+
+function getLiveSearchSetupHint(response: ProviderResponse) {
+  return response.provider === "web-search" ? "Add TAVILY_API_KEY" : "Add OPENAI_API_KEY";
 }

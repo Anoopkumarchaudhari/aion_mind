@@ -3,13 +3,15 @@ import type {
   AionResearchModelId,
   ChatAttachment,
   ChatMessage,
-  DebugDiagnostic
+  DebugDiagnostic,
+  WebSearchSource
 } from "@/types/aion";
 
 export type ProviderName =
   | "openai"
   | "openai-live"
   | "openai-advanced"
+  | "web-search"
   | "anthropic"
   | "anthropic-opus"
   | "deepseek"
@@ -32,6 +34,7 @@ export type ProviderResponse = {
   model?: string;
   ok: boolean;
   content?: string;
+  webSources?: WebSearchSource[];
   error?: string;
   skipped?: boolean;
   latencyMs: number;
@@ -49,6 +52,7 @@ export type ProviderStreamResponse = {
 
 export type ModelRouteRequest = {
   message: string;
+  searchQuery?: string;
   selectedModel: AionModelId;
   researchModel?: AionResearchModelId;
   history: ChatMessage[];

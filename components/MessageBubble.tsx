@@ -1,12 +1,20 @@
 "use client";
 
 import clsx from "clsx";
-import { useState, type CSSProperties } from "react";
-import { Bookmark, CheckCircle2, Copy, RotateCcw, ThumbsDown, ThumbsUp, XCircle } from "lucide-react";
+import { useState } from "react";
+import {
+  Bookmark,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  RotateCcw,
+  Search,
+  ThumbsDown,
+  ThumbsUp,
+  XCircle
+} from "lucide-react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
-import SyntaxHighlighter from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { AionLogo } from "@/components/AionLogo";
@@ -15,7 +23,13 @@ import { useChatStore } from "@/store/useChatStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import type { UiMessage } from "@/store/useChatStore";
 import { getAionModelLabel } from "@/types/aion";
-import type { AionModelId, DebugDiagnostic, MessageAttachment } from "@/types/aion";
+import type {
+  AionModelId,
+  DebugDiagnostic,
+  MessageAttachment,
+  WebSearchActivity,
+  WorkLogItem
+} from "@/types/aion";
 
 type MessageBubbleProps = {
   message: UiMessage;
@@ -62,7 +76,7 @@ export function MessageBubble({
   const isConfigMessage = isAionConfigMessage(message.content);
   const modelLabel = getAionModelLabel(message.model ?? fallbackModel);
   const responderLabel = debugEnabled ? getResponderLabel(message.diagnostics) : "";
-  const displayModelLabel = responderLabel ? `${modelLabel} · ${responderLabel}` : modelLabel;
+  const displayModelLabel = responderLabel ? `${modelLabel} / ${responderLabel}` : modelLabel;
 
   return (
     <motion.div
@@ -71,9 +85,6 @@ export function MessageBubble({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <div className="ai-avatar" aria-hidden="true">
-        <AionLogo size={24} decorative />
-      </div>
       <div className="ai-message-body">
         <div className="ai-message-meta" aria-label={`Responded by ${displayModelLabel}`}>
           {displayModelLabel}
@@ -81,7 +92,11 @@ export function MessageBubble({
         {isConfigMessage ? (
           <ConfigAlert message={message.content} />
         ) : (
-          <MarkdownContent content={message.content} />
+          <>
+            {message.workLog?.length ? <WorkLogPanel items={message.workLog} title={modelLabel} /> : null}
+            {message.webSearchActivity ? <WebSearchActivityPanel activity={message.webSearchActivity} /> : null}
+            <MarkdownContent content={message.content} />
+          </>
         )}
         {isStreaming ? <span className="streaming-caret message-caret" aria-hidden="true" /> : null}
         {debugEnabled && message.diagnostics?.length ? (
@@ -148,12 +163,9 @@ export function LoadingBubble({ model }: { model: AionModelId }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <div className="ai-avatar" aria-hidden="true">
-        <AionLogo size={24} decorative />
-      </div>
       <div className="ai-message-body">
         <div className="typing">
-          <span>{getAionModelLabel(model)} is thinking</span>
+          <span>{getAionModelLabel(model)} is preparing a response</span>
           <span className="typing-dots" aria-hidden="true">
             <span />
             <span />
@@ -166,9 +178,79 @@ export function LoadingBubble({ model }: { model: AionModelId }) {
   );
 }
 
+function WorkLogPanel({ items, title }: { items: WorkLogItem[]; title: string }) {
+  const hasError = items.some((item) => item.status === "error");
+  const hasActive = items.some((item) => item.status === "active");
+  const statusLabel = hasError ? "Failed" : hasActive ? "In progress" : "Done";
+
+  return (
+    <details className="work-log-panel" open>
+      <summary>
+        <span className="work-log-brand">
+          <AionLogo size={18} decorative />
+          <span>{title}</span>
+        </span>
+        <span className={clsx("work-log-status", hasError && "is-error")}>{statusLabel}</span>
+      </summary>
+      <div className="work-log-list">
+        {items.map((item) => (
+          <div
+            className={clsx(
+              "work-log-item",
+              item.status === "active" && "is-active",
+              item.status === "error" && "is-error"
+            )}
+            key={item.id}
+          >
+            <span aria-hidden="true" />
+            <div className="work-log-copy">
+              <p>{item.label}</p>
+              {item.detail ? <small>{item.detail}</small> : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function WebSearchActivityPanel({ activity }: { activity: WebSearchActivity }) {
+  const sources = activity.sources ?? [];
+  const hasSources = sources.length > 0;
+
+  return (
+    <details className="web-search-activity" open>
+      <summary>
+        <span className="web-search-icon" aria-hidden="true">
+          {activity.status === "found" ? <CheckCircle2 size={15} /> : <Search size={15} />}
+        </span>
+        <span className="web-search-title">
+          {activity.status === "found" ? `Found ${sources.length} source${sources.length === 1 ? "" : "s"}` : "Searching the web"}
+        </span>
+        <span className="web-search-query">{activity.query}</span>
+      </summary>
+      <div className="web-search-results">
+        {hasSources ? (
+          sources.map((source) => (
+            <a className="web-search-result" href={source.url} target="_blank" rel="noreferrer" key={source.url}>
+              <span>{source.title}</span>
+              <ExternalLink size={12} aria-hidden="true" />
+            </a>
+          ))
+        ) : (
+          <>
+            <span className="web-search-placeholder">Finding current sources</span>
+            <span className="web-search-placeholder">Verifying details</span>
+          </>
+        )}
+      </div>
+    </details>
+  );
+}
+
 function MarkdownContent({ content }: { content: string }) {
   return (
-    <div className="markdown prose prose-invert prose-sm">
+    <div className="markdown markdown-output">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
@@ -177,14 +259,13 @@ function MarkdownContent({ content }: { content: string }) {
               {children}
             </a>
           ),
+          pre: ({ children }) => <>{children}</>,
           code: ({ className, children }) => {
             const match = /language-(\w+)/.exec(className || "");
             const value = String(children).replace(/\n$/, "");
 
-            if (match) {
-              return (
-                <CodeSnippetBlock code={value} language={match[1]} />
-              );
+            if (match || value.includes("\n")) {
+              return <CodeSnippetBlock code={value} language={match?.[1] ?? "text"} />;
             }
 
             return <code className={className}>{children}</code>;
@@ -227,23 +308,36 @@ function CodeSnippetBlock({
         onClick={() => void copySnippet()}
       >
         {copied ? <CheckCircle2 size={13} /> : <Copy size={13} />}
-        <span>{copied ? "Copied" : "Copy"}</span>
       </button>
-      <SyntaxHighlighter
-        language={language}
-        PreTag="div"
-        style={oneDark as Record<string, CSSProperties>}
-        customStyle={{
-          margin: 0,
-          borderRadius: 10,
-          background: "rgba(0, 0, 0, 0.4)",
-          fontSize: "0.86rem"
-        }}
-      >
-        {code}
-      </SyntaxHighlighter>
+      <div className="code-snippet-header">
+        <span>{formatLanguageLabel(language)}</span>
+      </div>
+      <pre className="code-snippet-body">
+        <code className={`language-${language}`}>{code}</code>
+      </pre>
     </div>
   );
+}
+
+function formatLanguageLabel(language: string) {
+  const normalized = language.trim().toLowerCase();
+
+  if (!normalized || normalized === "text") {
+    return "text";
+  }
+
+  const labels: Record<string, string> = {
+    bash: "bash",
+    js: "javascript",
+    jsx: "jsx",
+    ps1: "powershell",
+    py: "python",
+    sh: "shell",
+    ts: "typescript",
+    tsx: "tsx"
+  };
+
+  return labels[normalized] ?? normalized;
 }
 
 function DebugPanel({ diagnostics }: { diagnostics: DebugDiagnostic[] }) {

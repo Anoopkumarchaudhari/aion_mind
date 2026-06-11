@@ -6,7 +6,9 @@ import type {
   AionResearchModelId,
   ChatAttachment,
   DebugDiagnostic,
-  MessageAttachment
+  MessageAttachment,
+  WebSearchActivity,
+  WorkLogItem
 } from "@/types/aion";
 
 export type UiMessage = {
@@ -18,6 +20,8 @@ export type UiMessage = {
   attachments?: MessageAttachment[];
   attachmentContext?: string;
   diagnostics?: DebugDiagnostic[];
+  webSearchActivity?: WebSearchActivity;
+  workLog?: WorkLogItem[];
 };
 
 export type ChatThread = {
@@ -76,9 +80,23 @@ type ChatState = {
 const STORAGE_KEY = "aion-mind-chats";
 const TEMP_CHAT_ID = "aion-temp-chat";
 const DEFAULT_NOTEBOOKS = ["Research", "Ideas", "Tasks"];
+const STREAM_RENDER_INTERVAL_MS = 18;
+const STREAM_MIN_NATURAL_BREAK_INDEX = 5;
+const MAX_WORK_LOG_ITEMS = 4;
+const RESEARCH_STEP_DELAY_MS = 3000;
+const CLIENT_WEB_SEARCH_INTENT_PATTERN =
+  /\b(?:web search|search the web|google|look up|browse|internet|online|sources?|citations?|cite|research)\b/i;
+const CLIENT_LIVE_FACT_PATTERN =
+  /\b(?:current|currently|latest|today|tonight|now|recent|updated|live|breaking|this week|this month|this year|price|weather|forecast|score|schedule|election|result|law|rule|regulation|release|version|ceo|president|prime minister|chief minister|stock|crypto)\b/i;
+const CLIENT_POLITICAL_CM_PATTERN =
+  /\b(?:cm\s+of|(?:state|bihar|delhi|uttar pradesh|madhya pradesh|maharashtra|karnataka|tamil nadu|west bengal|punjab|rajasthan|gujarat|kerala|odisha|andhra pradesh|telangana|uttarakhand|jharkhand|haryana|assam|goa|manipur|tripura|sikkim|meghalaya|nagaland|mizoram|arunachal pradesh|chhattisgarh)\s+cm)\b/i;
+const CLIENT_QUESTION_PATTERN =
+  /\b(?:who|what|when|where|which|is|are|was|were|did|does|do|has|have|can you tell|give me|show me)\b/i;
 let undoTimer: ReturnType<typeof setTimeout> | null = null;
 let lastDeletedThread: ChatThread | null = null;
 let activeAbortController: AbortController | null = null;
+let activeStreamSmoother: AssistantStreamSmoother | null = null;
+let activeResearchWorkLogFlow: ResearchWorkLogFlow | null = null;
 let hydratePromise: Promise<void> | null = null;
 
 const initialThread = createThread("aion-mind");
@@ -280,14 +298,32 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
 
     const selectedModel = modelOverride ?? state.selectedModel;
+    const useResearchWorkLogFlow = shouldUseAriaResearchWorkFlow(
+      messageText,
+      selectedModel,
+      attachments
+    );
+    const shouldShowSearchActivity = shouldShowTemporaryWebSearchActivity(
+      messageText,
+      selectedModel,
+      attachments
+    );
     const assistantMessage: UiMessage = {
       id: createId("message"),
       role: "assistant",
       content: "",
       model: selectedModel,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      webSearchActivity: shouldShowSearchActivity && !useResearchWorkLogFlow
+        ? {
+            status: "searching",
+            query: makeSearchQueryLabel(messageText)
+          }
+        : undefined,
+      workLog: createInitialWorkLog(messageText, selectedModel, attachments)
     };
     const targetThreadId = targetThread.id;
+    let researchWorkLogFlow: ResearchWorkLogFlow | null = null;
 
     set({ isLoading: true });
     activeAbortController = new AbortController();
@@ -316,6 +352,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
       );
 
       set({ threads });
+    }
+
+    if (useResearchWorkLogFlow) {
+      researchWorkLogFlow = startAriaResearchWorkLogFlow({
+        set,
+        get,
+        tempMode,
+        threadId: targetThreadId,
+        messageId: assistantMessage.id,
+        query: makeResearchSearchQueryLabel(messageText)
+      });
+      activeResearchWorkLogFlow = researchWorkLogFlow;
     }
 
     try {
@@ -358,8 +406,52 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
       }
 
+      const webSearchActivity = readResponseWebSearchActivity(response, messageText);
+      const workStatus = readResponseWorkStatus(response);
+
+      if (webSearchActivity && !researchWorkLogFlow) {
+        setAssistantWebSearchActivity({
+          set,
+          get,
+          tempMode,
+          threadId: targetThreadId,
+          messageId: assistantMessage.id,
+          activity: webSearchActivity
+        });
+      }
+
+      if (researchWorkLogFlow) {
+        if (workStatus?.status === "failed") {
+          await researchWorkLogFlow.showFailure(workStatus.reason);
+        } else {
+          await researchWorkLogFlow.showPreparing(webSearchActivity);
+        }
+      } else {
+        setAssistantWorkLog({
+          set,
+          get,
+          tempMode,
+          threadId: targetThreadId,
+          messageId: assistantMessage.id,
+          workLog: createStreamingWorkLog({
+            hadWebSearch: Boolean(webSearchActivity),
+            attemptedWebSearch: shouldShowSearchActivity,
+            webSearchFailed: workStatus?.status === "failed",
+            hadAttachments: attachments.length > 0
+          })
+        });
+      }
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      const streamSmoother = createAssistantStreamSmoother({
+        set,
+        get,
+        tempMode,
+        threadId: targetThreadId,
+        messageId: assistantMessage.id
+      });
+      activeStreamSmoother = streamSmoother;
       let streamedContent = "";
 
       while (true) {
@@ -376,27 +468,49 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
 
         streamedContent += chunk;
-        appendAssistantChunk({
-          set,
-          get,
-          tempMode,
-          threadId: targetThreadId,
-          messageId: assistantMessage.id,
-          chunk
-        });
+        streamSmoother.push(chunk);
       }
 
       const finalChunk = decoder.decode();
 
       if (finalChunk) {
         streamedContent += finalChunk;
-        appendAssistantChunk({
+        streamSmoother.push(finalChunk);
+      }
+
+      await streamSmoother.finish();
+      activeStreamSmoother = null;
+      if (!researchWorkLogFlow) {
+        setAssistantWebSearchActivity({
           set,
           get,
           tempMode,
           threadId: targetThreadId,
           messageId: assistantMessage.id,
-          chunk: finalChunk
+          activity: undefined
+        });
+      }
+      if (researchWorkLogFlow) {
+        if (workStatus?.status !== "failed") {
+          researchWorkLogFlow.complete(Boolean(webSearchActivity));
+        }
+      } else {
+        setAssistantWorkLog({
+          set,
+          get,
+          tempMode,
+          threadId: targetThreadId,
+          messageId: assistantMessage.id,
+          workLog:
+            workStatus?.status === "failed"
+              ? createFailedWorkLog({
+                  reason: workStatus.reason,
+                  hadAttachments: attachments.length > 0
+                })
+              : createCompletedWorkLog({
+                  hadWebSearch: Boolean(webSearchActivity),
+                  hadAttachments: attachments.length > 0
+                })
         });
       }
 
@@ -411,6 +525,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
         });
       }
     } catch (error) {
+      activeStreamSmoother?.cancel();
+      activeStreamSmoother = null;
+      researchWorkLogFlow?.cancel();
+      activeResearchWorkLogFlow = null;
+
       if (isAbortError(error)) {
         removeEmptyAssistantMessage({
           set,
@@ -434,6 +553,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       });
     } finally {
       activeAbortController = null;
+      activeStreamSmoother = null;
+      activeResearchWorkLogFlow = null;
 
       if (!tempMode) {
         persistThreads(get().threads);
@@ -445,6 +566,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   stopGeneration() {
     activeAbortController?.abort();
+    activeStreamSmoother?.cancel();
+    activeResearchWorkLogFlow?.cancel();
   },
 
   async shareThread(threadId) {
@@ -798,18 +921,41 @@ function persistThreads(threads: ChatThread[]) {
   }
 
   const nextThreads = sortThreads(threads).slice(0, 24);
+  const persistableThreads = stripTransientMessageState(nextThreads);
 
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextThreads));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistableThreads));
   } catch {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stripAttachmentPreviews(nextThreads)));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stripAttachmentPreviews(persistableThreads)));
     } catch {
       // Local persistence is best effort; server sync below still keeps the thread when signed in.
     }
   }
 
-  void syncThreadsToServer(nextThreads);
+  void syncThreadsToServer(persistableThreads);
+}
+
+function stripTransientMessageState(threads: ChatThread[]) {
+  return threads.map((thread) => ({
+    ...thread,
+    messages: thread.messages.map(stripTransientMessageFields)
+  }));
+}
+
+function stripTransientMessageFields(message: UiMessage): UiMessage {
+  const webSearchActivity =
+    message.webSearchActivity?.status === "found" ? message.webSearchActivity : undefined;
+  const workLog =
+    message.workLog?.length && message.workLog.every((item) => item.status !== "active")
+      ? message.workLog
+      : undefined;
+
+  return {
+    ...message,
+    webSearchActivity,
+    workLog
+  };
 }
 
 function stripAttachmentPreviews(threads: ChatThread[]) {
@@ -879,6 +1025,312 @@ type StoreSetter = (
 
 type StoreGetter = () => ChatState;
 
+type AssistantStreamSmoother = {
+  push: (chunk: string) => void;
+  finish: () => Promise<void>;
+  cancel: () => void;
+};
+
+type ResearchWorkLogFlow = {
+  showPreparing: (activity?: WebSearchActivity) => Promise<void>;
+  showFailure: (reason: "not-configured" | "no-sources") => Promise<void>;
+  complete: (hadWebSearch: boolean) => void;
+  cancel: () => void;
+};
+
+type AriaResearchWorkLogPhase =
+  | "thinking"
+  | "read"
+  | "searching"
+  | "preparing"
+  | "done"
+  | "failed";
+
+function startAriaResearchWorkLogFlow({
+  set,
+  get,
+  tempMode,
+  threadId,
+  messageId,
+  query
+}: {
+  set: StoreSetter;
+  get: StoreGetter;
+  tempMode: boolean;
+  threadId: string;
+  messageId: string;
+  query: string;
+}): ResearchWorkLogFlow {
+  const startedAt = Date.now();
+  const timers: Array<ReturnType<typeof setTimeout>> = [];
+  let cancelled = false;
+  let readShown = false;
+  let searchShownAt: number | null = null;
+
+  function setWorkLog(workLog: WorkLogItem[]) {
+    if (cancelled) {
+      return;
+    }
+
+    setAssistantWorkLog({
+      set,
+      get,
+      tempMode,
+      threadId,
+      messageId,
+      workLog
+    });
+  }
+
+  function setSearchActivity(activity?: WebSearchActivity) {
+    if (cancelled) {
+      return;
+    }
+
+    setAssistantWebSearchActivity({
+      set,
+      get,
+      tempMode,
+      threadId,
+      messageId,
+      activity
+    });
+  }
+
+  function showReadStep() {
+    if (cancelled || readShown) {
+      return;
+    }
+
+    readShown = true;
+    setWorkLog(createAriaResearchWorkLog("read", query));
+  }
+
+  function showSearchStep() {
+    if (cancelled || searchShownAt !== null) {
+      return;
+    }
+
+    showReadStep();
+    searchShownAt = Date.now();
+    setWorkLog(createAriaResearchWorkLog("searching", query));
+    setSearchActivity({
+      status: "searching",
+      query
+    });
+  }
+
+  timers.push(setTimeout(showReadStep, RESEARCH_STEP_DELAY_MS));
+  timers.push(setTimeout(showSearchStep, RESEARCH_STEP_DELAY_MS * 2));
+
+  async function ensureSearchQueryWasVisible() {
+    await waitUntilTimestamp(startedAt + RESEARCH_STEP_DELAY_MS);
+    showReadStep();
+    await waitUntilTimestamp(startedAt + RESEARCH_STEP_DELAY_MS * 2);
+    showSearchStep();
+    await waitUntilTimestamp(startedAt + RESEARCH_STEP_DELAY_MS * 3);
+  }
+
+  return {
+    async showPreparing(activity) {
+      await ensureSearchQueryWasVisible();
+
+      if (cancelled) {
+        return;
+      }
+
+      if (activity) {
+        setSearchActivity(activity);
+      }
+
+      setWorkLog(createAriaResearchWorkLog("preparing", query));
+      await waitUntilTimestamp(startedAt + RESEARCH_STEP_DELAY_MS * 4);
+    },
+    async showFailure(reason) {
+      await ensureSearchQueryWasVisible();
+
+      if (cancelled) {
+        return;
+      }
+
+      setWorkLog(createAriaResearchWorkLog("failed", query, reason));
+    },
+    complete(hadWebSearch) {
+      if (cancelled) {
+        return;
+      }
+
+      setWorkLog(createAriaResearchWorkLog(hadWebSearch ? "done" : "failed", query));
+      clearResearchWorkLogTimers(timers);
+    },
+    cancel() {
+      cancelled = true;
+      clearResearchWorkLogTimers(timers);
+    }
+  };
+}
+
+function clearResearchWorkLogTimers(timers: Array<ReturnType<typeof setTimeout>>) {
+  while (timers.length > 0) {
+    const timer = timers.pop();
+
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
+function waitUntilTimestamp(timestamp: number) {
+  return waitForMs(timestamp - Date.now());
+}
+
+function waitForMs(ms: number) {
+  if (ms <= 0) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+function createAssistantStreamSmoother({
+  set,
+  get,
+  tempMode,
+  threadId,
+  messageId
+}: {
+  set: StoreSetter;
+  get: StoreGetter;
+  tempMode: boolean;
+  threadId: string;
+  messageId: string;
+}): AssistantStreamSmoother {
+  let buffer = "";
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let finishResolve: (() => void) | null = null;
+  let cancelled = false;
+
+  function resolveFinish() {
+    if (!finishResolve) {
+      return;
+    }
+
+    const resolve = finishResolve;
+    finishResolve = null;
+    resolve();
+  }
+
+  function scheduleFlush() {
+    if (cancelled || timer) {
+      return;
+    }
+
+    timer = setTimeout(flush, STREAM_RENDER_INTERVAL_MS);
+  }
+
+  function flush() {
+    timer = null;
+
+    if (cancelled) {
+      resolveFinish();
+      return;
+    }
+
+    if (buffer) {
+      const chunk = takeSmoothStreamChunk(buffer);
+      buffer = buffer.slice(chunk.length);
+      appendAssistantChunk({
+        set,
+        get,
+        tempMode,
+        threadId,
+        messageId,
+        chunk
+      });
+    }
+
+    if (buffer) {
+      scheduleFlush();
+      return;
+    }
+
+    resolveFinish();
+  }
+
+  return {
+    push(chunk) {
+      if (cancelled || !chunk) {
+        return;
+      }
+
+      buffer += chunk;
+      scheduleFlush();
+    },
+    finish() {
+      if (!buffer && !timer) {
+        return Promise.resolve();
+      }
+
+      return new Promise<void>((resolve) => {
+        finishResolve = resolve;
+        scheduleFlush();
+      });
+    },
+    cancel() {
+      cancelled = true;
+      buffer = "";
+
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+
+      resolveFinish();
+    }
+  };
+}
+
+function takeSmoothStreamChunk(buffer: string) {
+  const limit = Math.min(buffer.length, getSmoothStreamChunkLength(buffer.length));
+
+  if (buffer.length <= limit) {
+    return buffer;
+  }
+
+  const candidate = buffer.slice(0, limit);
+  const naturalBreakIndex = Math.max(
+    candidate.lastIndexOf("\n"),
+    candidate.lastIndexOf(" "),
+    candidate.lastIndexOf("\t")
+  );
+
+  if (naturalBreakIndex >= STREAM_MIN_NATURAL_BREAK_INDEX) {
+    return buffer.slice(0, naturalBreakIndex + 1);
+  }
+
+  return candidate;
+}
+
+function getSmoothStreamChunkLength(bufferLength: number) {
+  if (bufferLength > 1600) {
+    return 96;
+  }
+
+  if (bufferLength > 800) {
+    return 64;
+  }
+
+  if (bufferLength > 320) {
+    return 40;
+  }
+
+  if (bufferLength > 120) {
+    return 24;
+  }
+
+  return 10;
+}
+
 function appendAssistantChunk({
   set,
   tempMode,
@@ -921,8 +1373,279 @@ function replaceAssistantContent({
     tempMode,
     threadId,
     messageId,
-    update: (message) => ({ ...message, content })
+    update: (message) => ({ ...message, content, webSearchActivity: undefined, workLog: undefined })
   });
+}
+
+function setAssistantWebSearchActivity({
+  set,
+  tempMode,
+  threadId,
+  messageId,
+  activity
+}: {
+  set: StoreSetter;
+  get: StoreGetter;
+  tempMode: boolean;
+  threadId: string;
+  messageId: string;
+  activity?: WebSearchActivity;
+}) {
+  updateAssistantMessage({
+    set,
+    tempMode,
+    threadId,
+    messageId,
+    update: (message) => ({ ...message, webSearchActivity: activity })
+  });
+}
+
+function setAssistantWorkLog({
+  set,
+  tempMode,
+  threadId,
+  messageId,
+  workLog
+}: {
+  set: StoreSetter;
+  get: StoreGetter;
+  tempMode: boolean;
+  threadId: string;
+  messageId: string;
+  workLog?: WorkLogItem[];
+}) {
+  updateAssistantMessage({
+    set,
+    tempMode,
+    threadId,
+    messageId,
+    update: (message) => ({ ...message, workLog })
+  });
+}
+
+function createInitialWorkLog(
+  message: string,
+  selectedModel: AionModelId,
+  attachments: ChatAttachment[]
+): WorkLogItem[] {
+  if (shouldUseAriaResearchWorkFlow(message, selectedModel, attachments)) {
+    return createAriaResearchWorkLog("thinking", makeResearchSearchQueryLabel(message));
+  }
+
+  const items: WorkLogItem[] = [
+    {
+      id: "read-request",
+      label: "Read your request",
+      status: "done"
+    }
+  ];
+
+  if (attachments.length > 0) {
+    items.push({
+      id: "review-attachments",
+      label: `Reviewing ${attachments.length} attachment${attachments.length === 1 ? "" : "s"}`,
+      status: "active"
+    });
+  } else if (shouldShowTemporaryWebSearchActivity(message, selectedModel, attachments)) {
+    items.push({
+      id: "web-search",
+      label: "Checking current web context",
+      status: "active"
+    });
+  } else {
+    items.push({
+      id: "prepare-answer",
+      label: "Preparing a clear answer",
+      status: "active"
+    });
+  }
+
+  return items.slice(0, MAX_WORK_LOG_ITEMS);
+}
+
+function createAriaResearchWorkLog(
+  phase: AriaResearchWorkLogPhase,
+  query: string,
+  failureReason: "not-configured" | "no-sources" = "no-sources"
+): WorkLogItem[] {
+  const searchDetail = query ? `Query: ${query}` : undefined;
+
+  if (phase === "failed") {
+    return [
+      {
+        id: "research-thinking",
+        label: "Thinking",
+        status: "done"
+      },
+      {
+        id: "read-request",
+        label: "Read your request",
+        status: "done"
+      },
+      {
+        id: "web-search",
+        label:
+          failureReason === "not-configured"
+            ? "Live search is not configured"
+            : "Could not verify current web sources",
+        detail: searchDetail,
+        status: "error"
+      }
+    ];
+  }
+
+  const steps: WorkLogItem[] = [
+    {
+      id: "research-thinking",
+      label: "Thinking",
+      status: "done"
+    },
+    {
+      id: "read-request",
+      label: "Read your request",
+      status: "done"
+    },
+    {
+      id: "web-search",
+      label: "Searching the web",
+      detail: searchDetail,
+      status: "done"
+    },
+    {
+      id: "prepare-answer",
+      label: "Preparing final answer",
+      status: "done"
+    }
+  ];
+
+  const activeIndexByPhase: Record<Exclude<AriaResearchWorkLogPhase, "failed">, number> = {
+    thinking: 0,
+    read: 1,
+    searching: 2,
+    preparing: 3,
+    done: 4
+  };
+  const activeIndex = activeIndexByPhase[phase];
+
+  if (phase === "done") {
+    return steps;
+  }
+
+  return steps.slice(0, activeIndex + 1).map((item, index) => ({
+    ...item,
+    status: index === activeIndex ? "active" : "done"
+  }));
+}
+
+function createStreamingWorkLog({
+  hadWebSearch,
+  attemptedWebSearch = false,
+  webSearchFailed = false,
+  hadAttachments
+}: {
+  hadWebSearch: boolean;
+  attemptedWebSearch?: boolean;
+  webSearchFailed?: boolean;
+  hadAttachments: boolean;
+}): WorkLogItem[] {
+  const items: WorkLogItem[] = [
+    {
+      id: "read-request",
+      label: "Read your request",
+      status: "done"
+    }
+  ];
+
+  if (hadAttachments) {
+    items.push({
+      id: "review-attachments",
+      label: "Reviewed attachment context",
+      status: "done"
+    });
+  }
+
+  if (webSearchFailed) {
+    items.push({
+      id: "web-search",
+      label: "Could not verify current web sources",
+      status: "error"
+    });
+  } else if (hadWebSearch) {
+    items.push({
+      id: "web-search",
+      label: "Verified current web sources",
+      status: "done"
+    });
+  } else if (attemptedWebSearch) {
+    items.push({
+      id: "web-search",
+      label: "Checking current web context",
+      status: "active"
+    });
+  } else if (!hadAttachments) {
+    items.push({
+      id: "prepare-answer",
+      label: "Prepared response context",
+      status: "done"
+    });
+  }
+
+  if (!webSearchFailed) {
+    items.push({
+      id: "draft-answer",
+      label: "Drafting the answer",
+      status: "active"
+    });
+  }
+
+  return items.slice(0, MAX_WORK_LOG_ITEMS);
+}
+
+function createCompletedWorkLog({
+  hadWebSearch,
+  hadAttachments
+}: {
+  hadWebSearch: boolean;
+  hadAttachments: boolean;
+}): WorkLogItem[] {
+  return createStreamingWorkLog({ hadWebSearch, hadAttachments })
+    .map((item) => ({ ...item, status: "done" as const }))
+    .slice(0, MAX_WORK_LOG_ITEMS);
+}
+
+function createFailedWorkLog({
+  reason,
+  hadAttachments
+}: {
+  reason: "not-configured" | "no-sources";
+  hadAttachments: boolean;
+}): WorkLogItem[] {
+  const items: WorkLogItem[] = [
+    {
+      id: "read-request",
+      label: "Read your request",
+      status: "done"
+    }
+  ];
+
+  if (hadAttachments) {
+    items.push({
+      id: "review-attachments",
+      label: "Reviewed attachment context",
+      status: "done"
+    });
+  }
+
+  items.push({
+    id: "web-search",
+    label:
+      reason === "not-configured"
+        ? "Live search is not configured"
+        : "Could not verify current web sources",
+    status: "error"
+  });
+
+  return items.slice(0, MAX_WORK_LOG_ITEMS);
 }
 
 function removeEmptyAssistantMessage({
@@ -1091,6 +1814,162 @@ function readResponseDiagnostics(response: Response): DebugDiagnostic[] | undefi
   } catch {
     return undefined;
   }
+}
+
+function readResponseWebSearchActivity(
+  response: Response,
+  fallbackQuery: string
+): WebSearchActivity | undefined {
+  const header = response.headers.get("x-aion-web-search");
+
+  if (!header) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(decodeURIComponent(header)) as unknown;
+
+    if (!parsed || typeof parsed !== "object") {
+      return undefined;
+    }
+
+    const activity = parsed as Record<string, unknown>;
+    const sources = Array.isArray(activity.sources)
+      ? activity.sources.flatMap((source) => {
+          if (!source || typeof source !== "object") {
+            return [];
+          }
+
+          const candidate = source as Record<string, unknown>;
+
+          if (typeof candidate.title !== "string" || typeof candidate.url !== "string") {
+            return [];
+          }
+
+          return [
+            {
+              title: candidate.title.slice(0, 140),
+              url: candidate.url
+            }
+          ];
+        })
+      : [];
+
+    if (sources.length === 0) {
+      return undefined;
+    }
+
+    return {
+      status: "found",
+      query:
+        typeof activity.query === "string" && activity.query.trim()
+          ? makeSearchQueryLabel(activity.query)
+          : makeSearchQueryLabel(fallbackQuery),
+      sources: sources.slice(0, 6)
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+function readResponseWorkStatus(response: Response):
+  | {
+      status: "failed";
+      reason: "not-configured" | "no-sources";
+    }
+  | undefined {
+  const header = response.headers.get("x-aion-work-status");
+
+  if (!header) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(decodeURIComponent(header)) as unknown;
+
+    if (!parsed || typeof parsed !== "object") {
+      return undefined;
+    }
+
+    const value = parsed as Record<string, unknown>;
+
+    if (
+      value.status === "failed" &&
+      (value.reason === "not-configured" || value.reason === "no-sources")
+    ) {
+      return {
+        status: value.status,
+        reason: value.reason
+      };
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+}
+
+function shouldShowTemporaryWebSearchActivity(
+  message: string,
+  selectedModel: AionModelId,
+  attachments: ChatAttachment[]
+) {
+  if (selectedModel === "aion-mind-analyzer") {
+    return true;
+  }
+
+  if (attachments.length > 0) {
+    return false;
+  }
+
+  const normalized = message.replace(/\s+/g, " ").trim();
+
+  if (!normalized) {
+    return false;
+  }
+
+  if (selectedModel === "aion-mind-pro") {
+    return (
+      CLIENT_WEB_SEARCH_INTENT_PATTERN.test(normalized) ||
+      shouldClientUseLiveFactSearch(normalized)
+    );
+  }
+
+  return CLIENT_WEB_SEARCH_INTENT_PATTERN.test(normalized) || CLIENT_LIVE_FACT_PATTERN.test(normalized);
+}
+
+function shouldClientUseLiveFactSearch(normalized: string) {
+  const asksQuestion = CLIENT_QUESTION_PATTERN.test(normalized) || normalized.endsWith("?");
+  const hasLiveFactHint =
+    CLIENT_LIVE_FACT_PATTERN.test(normalized) || CLIENT_POLITICAL_CM_PATTERN.test(normalized);
+
+  return asksQuestion && hasLiveFactHint;
+}
+
+function shouldUseAriaResearchWorkFlow(
+  message: string,
+  selectedModel: AionModelId,
+  attachments: ChatAttachment[]
+) {
+  return selectedModel === "aion-mind-pro" && shouldShowTemporaryWebSearchActivity(message, selectedModel, attachments);
+}
+
+function makeSearchQueryLabel(value: string) {
+  return value.replace(/\s+/g, " ").trim().slice(0, 160) || "Live web search";
+}
+
+function makeResearchSearchQueryLabel(value: string) {
+  const suffix = ` current as of ${new Date().toISOString().slice(0, 10)}`;
+  const maxLength = 380;
+  const cleanValue = value
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const maxBaseLength = maxLength - suffix.length;
+  const baseQuery = cleanValue.slice(0, Math.max(0, maxBaseLength)).trim();
+
+  return baseQuery ? `${baseQuery}${suffix}` : "Live web search";
 }
 
 function isAbortError(error: unknown) {

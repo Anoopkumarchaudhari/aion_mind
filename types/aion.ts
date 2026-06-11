@@ -50,6 +50,24 @@ export type DebugDiagnostic = {
   error?: string;
 };
 
+export type WebSearchSource = {
+  title: string;
+  url: string;
+};
+
+export type WebSearchActivity = {
+  status: "searching" | "found";
+  query: string;
+  sources?: WebSearchSource[];
+};
+
+export type WorkLogItem = {
+  id: string;
+  label: string;
+  detail?: string;
+  status: "active" | "done" | "error";
+};
+
 export type ChatApiResponse = {
   answer: string;
   selectedModel: AionModelId;

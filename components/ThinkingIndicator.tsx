@@ -5,9 +5,9 @@ import { AionLogo } from "@/components/AionLogo";
 import type { AionModelId } from "@/types/aion";
 
 const LABELS: Record<AionModelId, string> = {
-  "aion-mind": "Aria Mind is thinking",
-  "aion-mind-pro": "Aria Research is thinking",
-  "aion-mind-analyzer": "Aria Analyzer is thinking"
+  "aion-mind": "Preparing your answer",
+  "aion-mind-pro": "Starting research pass",
+  "aion-mind-analyzer": "Starting analysis pass"
 };
 
 export function ThinkingIndicator({ model }: { model: AionModelId }) {

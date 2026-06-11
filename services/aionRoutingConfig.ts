@@ -47,7 +47,7 @@ export function getDefaultAionRoutingSettings(): AionRoutingSettings {
     aion: {
       primary: {
         id: "aion-primary",
-        label: "GPT-5.4 mini",
+        label: "GPT-5.4 mini instant",
         provider: "openai",
         model: DEFAULT_MIND_MODEL,
         enabled: true,
@@ -152,7 +152,7 @@ export function getAionProviderStatus(): AionProviderStatus[] {
       label: "OpenAI",
       apiKeyConfigured: Boolean(readEnv("OPENAI_API_KEY")),
       defaultModels: [
-        { label: "GPT-5.4 mini", value: DEFAULT_MIND_MODEL },
+        { label: "GPT-5.4 mini instant", value: DEFAULT_MIND_MODEL },
         { label: "GPT-5.5", value: DEFAULT_RESEARCH_GPT_MODEL },
         { label: "Base", value: readEnv("OPENAI_MODEL") },
         { label: "Advanced", value: readEnv("OPENAI_ADVANCED_MODEL") },

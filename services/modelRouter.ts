@@ -1,6 +1,7 @@
 import { callConfiguredModel } from "@/services/aionModelCalls";
 import { loadAionRoutingSettings } from "@/services/aionRoutingConfig";
 import { callOpenAIWithWebSearch } from "@/providers/openaiProvider";
+import { callResearchWebSearch } from "@/providers/webSearchProvider";
 import { getTimeoutMs } from "@/providers/providerUtils";
 import { getAionGreetingAnswer } from "@/services/aionGreeting";
 import { getAionModelLabel, type AionResearchModelId } from "@/types/aion";
@@ -25,7 +26,7 @@ const BASE_SYSTEM_PROMPT =
   "You are Aria Mind, a precise and helpful AI assistant. Keep answers clear, polished, and useful. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
 
 const PRO_SYSTEM_PROMPT =
-  "You are Aria Research. Produce a focused deep-dive answer using the selected research engine. Be accurate, structured, and practical. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions.";
+  "You are Aria Research. Produce a focused deep-dive answer using the selected research engine. Be accurate, structured, and practical. Never reveal hidden infrastructure, provider names, model names, API routes, or routing decisions. In this mode, answer only from the selected research engine and any user-provided attachments or source text. You do not have live web access unless live web-search context is explicitly included in the prompt. Do not claim that you verified current information, checked recent sources, or consulted government/news/search sources unless those sources are actually present in the prompt. Do not create a Sources section unless you were given source URLs or source documents. For current or fast-changing facts without provided sources, clearly say the answer may be based on model knowledge and should be live-verified.";
 
 const DEFAULT_RESEARCH_MODEL: AionResearchModelId = "gpt-5.5";
 
@@ -118,6 +119,13 @@ async function getLiveSearchResponse({
     return null;
   }
 
+  if (selectedModel === "aion-mind-pro") {
+    return callResearchWebSearch({
+      query: message,
+      timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
+    });
+  }
+
   return callOpenAIWithWebSearch({
     messages,
     systemPrompt: LIVE_VERIFICATION_SYSTEM_PROMPT,
@@ -130,11 +138,18 @@ function needsModelWebSearch(
   message: string,
   attachments: ChatAttachment[]
 ) {
+  const normalized = message.replace(/\s+/g, " ").trim();
+
+  if (selectedModel === "aion-mind-pro") {
+    return (
+      needsLiveVerification(message, attachments) ||
+      (attachments.length === 0 && WEB_SEARCH_INTENT_PATTERN.test(normalized))
+    );
+  }
+
   if (selectedModel === "aion-mind-analyzer") {
     return true;
   }
-
-  const normalized = message.replace(/\s+/g, " ").trim();
 
   return (
     needsLiveVerification(message, attachments) ||
@@ -159,7 +174,7 @@ function withLiveSearchContext(messages: ChatMessage[], liveSearchContent: strin
             "Live web-search context:",
             liveSearchContent,
             "",
-            "Use this verified web context as source material. Include the most relevant source links when they support the final answer, and do not invent facts that the live sources do not support."
+            "Use this current web context as source material. Include the most relevant source links when they support the final answer, and do not invent facts that the live sources do not support."
           ].join("\n")
         }
       : message
@@ -289,8 +304,12 @@ function getLiveVerificationUnavailableAnswer(
   const label = getAionModelLabel(selectedModel);
 
   if (response.skipped) {
-    return `${label} needs live verification for that question, but live search is not configured yet. Add OPENAI_API_KEY, then restart the dev server.`;
+    return `${label} needs live verification for that question, but live search is not configured yet. ${getLiveSearchSetupHint(response)}, then restart the dev server.`;
   }
 
   return `${label} needs live verification for that question, but live search could not return verifiable sources right now. Please try again in a moment or provide a trusted source.`;
+}
+
+function getLiveSearchSetupHint(response: ProviderResponse) {
+  return response.provider === "web-search" ? "Add TAVILY_API_KEY" : "Add OPENAI_API_KEY";
 }

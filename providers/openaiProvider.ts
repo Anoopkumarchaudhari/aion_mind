@@ -1,4 +1,5 @@
 import type { ChatAttachment, ChatMessage } from "@/types/aion";
+import type { WebSearchSource } from "@/types/aion";
 import type {
   ProviderCallOptions,
   ProviderName,
@@ -248,7 +249,7 @@ export async function callOpenAIWithWebSearch(
           model,
           input: buildLiveVerificationInput(options.messages, options.systemPrompt),
           tools: [{ type: "web_search", external_web_access: true }],
-          tool_choice: "auto",
+          tool_choice: "required",
           include: ["web_search_call.action.sources"],
           ...getOpenAITemperaturePayload(model, options.temperature ?? 0.2)
         })
@@ -272,6 +273,7 @@ export async function callOpenAIWithWebSearch(
       model,
       ok: true,
       content: appendVerifiedSources(content, sources),
+      webSources: toWebSearchSources(sources),
       latencyMs: Date.now() - startedAt
     };
   } catch (error) {
@@ -445,6 +447,21 @@ function appendVerifiedSources(content: string, sources: OpenAIWebSource[]) {
     .join("\n");
 
   return `${content.trim()}\n\nSources:\n${sourceLines}`;
+}
+
+function toWebSearchSources(sources: OpenAIWebSource[]): WebSearchSource[] {
+  return sources.flatMap((source) => {
+    if (!source.url) {
+      return [];
+    }
+
+    return [
+      {
+        title: source.title?.trim() || getSourceLabel(source.url),
+        url: source.url
+      }
+    ];
+  });
 }
 
 function getSourceLabel(url: string) {

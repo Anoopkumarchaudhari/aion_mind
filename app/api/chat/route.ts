@@ -73,6 +73,7 @@ export async function POST(request: Request) {
 
   return routeAionStream({
     message: withAttachmentContext(messageWithMemory, validation.attachments),
+    searchQuery: validation.message,
     selectedModel: validation.selectedModel,
     researchModel: validation.researchModel,
     history: validation.history,

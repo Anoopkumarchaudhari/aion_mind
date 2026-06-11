@@ -92,6 +92,10 @@ OPENAI_LIVE_MODEL=gpt-5.5
 OPENAI_IMAGE_MODEL=gpt-image-1
 OPENAI_IMAGE_MODEL_PRO=gpt-image-1
 
+TAVILY_API_KEY=
+TAVILY_SEARCH_DEPTH=basic
+TAVILY_MAX_RESULTS=6
+
 ANTHROPIC_API_KEY=
 ANTHROPIC_MODEL=
 ANTHROPIC_OPUS_MODEL=
@@ -136,7 +140,7 @@ RUNWARE_VIDEO_STATUS_TIMEOUT_MS=30000
 
 Where each key goes:
 
-- `OPENAI_MODEL`: default fast model for Aria Mind. The recommended default is `gpt-5.4-mini`.
+- `OPENAI_MODEL`: default instant model for Aria Mind. The recommended default is `gpt-5.4-mini`.
 - `GEMINI_FALLBACK_MODELS`: optional comma-separated Gemini model IDs to try if the primary Gemini model is quota-blocked or unavailable.
 - `GEMINI_API_KEY` and `GEMINI_MODEL`: used when Gemini is selected in Aria Research or participates in Aria Analyzer.
 - `GEMINI_RESEARCH_MODEL`: Gemini model ID used for the Research and Analyzer Gemini slot. Defaults to `gemini-3.1`.
@@ -145,10 +149,13 @@ Where each key goes:
 - `GEMINI_VIDEO_MODEL_LITE`: Google Veo model used by the Videos page `Google Veo / Veo 3.1 Lite` option. Defaults to `veo-3.1-fast-generate-preview`.
 - `GEMINI_VIDEO_MODEL_FAST`: Google Veo model used by the Videos page `Google Veo / Veo 3.1 Fast` option. Defaults to `veo-3.1-fast-generate-preview`.
 - `GEMINI_VIDEO_MODEL_PRO`: Google Veo model used by the Videos page `Google Veo / Veo 3.1 Standard` option. Defaults to `veo-3.1-generate-preview`.
-- `OPENAI_API_KEY`: key used by Aria Mind, the GPT-5.5 Research/Analyzer slot, live search, and the Analyzer judge.
+- `OPENAI_API_KEY`: key used by Aria Mind, the GPT-5.5 Research/Analyzer slot, OpenAI live verification, and the Analyzer judge.
 - `OPENAI_ADVANCED_MODEL`: optional GPT model ID for the GPT-5.5 Research/Analyzer slot.
 - `OPENAI_JUDGE_MODEL`: OpenAI model ID used by the Aria Analyzer judge. The app defaults to `gpt-5.5`.
-- `OPENAI_LIVE_MODEL`: optional OpenAI model ID used for live web verification of current facts. Defaults to `OPENAI_JUDGE_MODEL`, then `gpt-5.5`.
+- `OPENAI_LIVE_MODEL`: optional OpenAI model ID used for Aria Mind/Analyzer live web verification of current facts. Defaults to `OPENAI_JUDGE_MODEL`, then `gpt-5.5`.
+- `TAVILY_API_KEY`: search-only key used by Aria Research to find current web pages before the selected research engine writes the answer.
+- `TAVILY_SEARCH_DEPTH`: optional Tavily search depth. Defaults to `basic`.
+- `TAVILY_MAX_RESULTS`: optional maximum Tavily results to pass into the selected research engine. Defaults to `6`.
 - `AION_PROMPT_ENHANCE_TIMEOUT_MS`: optional timeout for the chat composer prompt enhancer. Defaults to 12000 ms.
 - `OPENAI_IMAGE_MODEL`: OpenAI image model used by the Images page `OpenAI / gpt-image-1` option. Defaults to `gpt-image-1`.
 - `OPENAI_IMAGE_MODEL_PRO`: optional OpenAI image model used by the Images page `OpenAI / gpt-image-1 (OPENAI_IMAGE_MODEL_PRO)` option. Falls back to `OPENAI_IMAGE_MODEL`.
@@ -171,7 +178,7 @@ The Images page can generate prompt-based images through OpenAI, Runware, or Goo
 
 The Videos page supports Runware and Google Veo for text-to-video and image-to-video. The app starts a provider job, stores the provider task/operation ID in server memory, and polls `/api/videos/:jobId/status` until the generated MP4 URL is ready.
 
-Current or changeable factual questions, such as office holders, prices, scores, weather, elections, releases, regulations, or recent news, are routed through OpenAI live web verification before the model answers. If live search cannot return verifiable sources, Aria Mind tells the user it could not verify instead of falling back to a guessed model-memory answer.
+Current or changeable factual questions, such as office holders, prices, scores, weather, elections, releases, regulations, or recent news, use live web context before the model answers. Aria Research uses Tavily as a search-only tool, then passes the source snippets into the selected research engine, such as DeepSeek or Opus-4.8, for the final answer. If live search cannot return verifiable sources in the live-enabled tiers, Aria Mind tells the user it could not verify instead of falling back to a guessed model-memory answer.
 
 4. Run locally:
 
@@ -200,8 +207,8 @@ Leave both as `false` for normal use so users only see Aria Mind brand names.
 
 ## Aria Tiers
 
-- `Aria Mind` uses `gpt-5.4-mini` for fast everyday answers and adds live-search context when the request needs current facts.
-- `Aria Research` opens a model picker. The user chooses GPT-5.5, Opus-4.8, DeepSeek, or Gemini-3.1, then that one engine handles the research response.
+- `Aria Mind` uses the `gpt-5.4-mini` instant route for fast everyday answers and adds live-search context when the request needs current facts.
+- `Aria Research` opens a model picker. The user chooses GPT-5.5, Opus-4.8, DeepSeek, or Gemini-3.1. For current facts, Tavily finds pages first, then only the selected engine writes the research response from those sources.
 - `Aria Analyzer` sends the user request to GPT-5.5, Opus-4.8, DeepSeek, and Gemini-3.1 candidates with live-search context, then the GPT-5.5 `Aria Analyzer` judge synthesizes one final answer.
 
 The judge system prompt lives in `services/aionAnalyzer.ts`.
