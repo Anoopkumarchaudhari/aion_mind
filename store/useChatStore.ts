@@ -1914,10 +1914,6 @@ function shouldShowTemporaryWebSearchActivity(
   selectedModel: AionModelId,
   attachments: ChatAttachment[]
 ) {
-  if (selectedModel === "aion-mind-analyzer") {
-    return true;
-  }
-
   if (attachments.length > 0) {
     return false;
   }
@@ -1928,7 +1924,7 @@ function shouldShowTemporaryWebSearchActivity(
     return false;
   }
 
-  if (selectedModel === "aion-mind-pro") {
+  if (selectedModel === "aion-mind-pro" || selectedModel === "aion-mind-analyzer") {
     return (
       CLIENT_WEB_SEARCH_INTENT_PATTERN.test(normalized) ||
       shouldClientUseLiveFactSearch(normalized)
@@ -1951,7 +1947,10 @@ function shouldUseAriaResearchWorkFlow(
   selectedModel: AionModelId,
   attachments: ChatAttachment[]
 ) {
-  return selectedModel === "aion-mind-pro" && shouldShowTemporaryWebSearchActivity(message, selectedModel, attachments);
+  return (
+    (selectedModel === "aion-mind-pro" || selectedModel === "aion-mind-analyzer") &&
+    shouldShowTemporaryWebSearchActivity(message, selectedModel, attachments)
+  );
 }
 
 function makeSearchQueryLabel(value: string) {

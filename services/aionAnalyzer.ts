@@ -66,9 +66,10 @@ export async function runAionAnalyzer(
     mode: "analyzer",
     judge: routing.analyzer.judge
   });
+  const judgeAnswer = judge?.content ?? pickFallbackAnswer(successfulResponses);
 
   return {
-    answer: judge?.content ?? pickFallbackAnswer(successfulResponses),
+    answer: buildAnalyzerComparisonAnswer(candidateResults, judgeAnswer),
     diagnostics: judge ? [...responses, judge] : responses
   };
 }
@@ -126,17 +127,17 @@ export function buildAnalyzerComparisonAnswer(
   const candidateSections = candidates.map((candidate) => {
     const answer = candidate.response.ok
       ? candidate.response.content?.trim() || "No answer returned."
-      : `No answer returned. ${candidate.response.error ?? "The request failed."}`;
+      : "No answer returned from this model.";
 
     return [`### ${candidate.label}`, "", normalizeDisplayedAnswer(answer)].join("\n");
   });
 
   return [
-    "## Candidate answers",
+    "## All model answers",
     "",
     ...candidateSections,
     "---",
-    "## Judge answer",
+    "## Final answer powered by Aria Analyzer",
     "",
     normalizeDisplayedAnswer(judgeAnswer)
   ].join("\n\n");

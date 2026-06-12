@@ -166,7 +166,7 @@ export function Sidebar({
           <AionLogo size={28} />
           <div className="brand-copy">
             <p className="brand-name">Aria Mind</p>
-            <p className="brand-status">AI dashboard</p>
+            <p className="brand-status">By JB Crownstone</p>
           </div>
           <button
             className="square-icon"

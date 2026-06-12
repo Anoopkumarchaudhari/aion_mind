@@ -5,6 +5,7 @@ import { callResearchWebSearch } from "@/providers/webSearchProvider";
 import { getTimeoutMs, truncate } from "@/providers/providerUtils";
 import {
   AION_JUDGE_SYSTEM_PROMPT,
+  buildAnalyzerComparisonAnswer,
   pickFallbackAnswer
 } from "@/services/aionAnalyzer";
 import { getAionGreetingAnswer } from "@/services/aionGreeting";
@@ -147,7 +148,7 @@ async function getLiveSearchResponse({
     return null;
   }
 
-  if (selectedModel === "aion-mind-pro") {
+  if (selectedModel === "aion-mind-pro" || selectedModel === "aion-mind-analyzer") {
     return callResearchWebSearch({
       query: message,
       timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
@@ -168,15 +169,11 @@ function needsModelWebSearch(
 ) {
   const normalized = message.replace(/\s+/g, " ").trim();
 
-  if (selectedModel === "aion-mind-pro") {
+  if (selectedModel === "aion-mind-pro" || selectedModel === "aion-mind-analyzer") {
     return (
       needsLiveVerification(message, attachments) ||
       (attachments.length === 0 && WEB_SEARCH_INTENT_PATTERN.test(normalized))
     );
-  }
-
-  if (selectedModel === "aion-mind-analyzer") {
-    return true;
   }
 
   return (
@@ -277,9 +274,10 @@ async function streamAnalyzerTier(
 
   const judge = await callAnalyzerJudge(userMessage, history, successfulResponses, route.judge);
   const judgeAnswer = judge?.content ?? pickFallbackAnswer(successfulResponses);
+  const comparisonAnswer = buildAnalyzerComparisonAnswer(candidateResults, judgeAnswer);
 
   return {
-    stream: streamText(judgeAnswer),
+    stream: streamText(comparisonAnswer),
     diagnostics: judge ? [...preDiagnostics, ...responses, judge] : [...preDiagnostics, ...responses]
   };
 }

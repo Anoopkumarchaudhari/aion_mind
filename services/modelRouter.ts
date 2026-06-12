@@ -119,7 +119,7 @@ async function getLiveSearchResponse({
     return null;
   }
 
-  if (selectedModel === "aion-mind-pro") {
+  if (selectedModel === "aion-mind-pro" || selectedModel === "aion-mind-analyzer") {
     return callResearchWebSearch({
       query: message,
       timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
@@ -140,15 +140,11 @@ function needsModelWebSearch(
 ) {
   const normalized = message.replace(/\s+/g, " ").trim();
 
-  if (selectedModel === "aion-mind-pro") {
+  if (selectedModel === "aion-mind-pro" || selectedModel === "aion-mind-analyzer") {
     return (
       needsLiveVerification(message, attachments) ||
       (attachments.length === 0 && WEB_SEARCH_INTENT_PATTERN.test(normalized))
     );
-  }
-
-  if (selectedModel === "aion-mind-analyzer") {
-    return true;
   }
 
   return (

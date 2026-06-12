@@ -259,6 +259,32 @@ function MarkdownContent({ content }: { content: string }) {
               {children}
             </a>
           ),
+          h3: ({ children }) => {
+            const modelTone = getModelHeadingTone(getPlainText(children));
+
+            if (modelTone) {
+              return (
+                <h3 className={clsx("model-answer-heading", `is-${modelTone}`)}>
+                  <span className="model-answer-chip">{children}</span>
+                </h3>
+              );
+            }
+
+            return <h3>{children}</h3>;
+          },
+          h2: ({ children }) => {
+            const modelTone = getModelHeadingTone(getPlainText(children));
+
+            if (modelTone) {
+              return (
+                <h2 className={clsx("model-answer-heading", `is-${modelTone}`)}>
+                  <span className="model-answer-chip">{children}</span>
+                </h2>
+              );
+            }
+
+            return <h2>{children}</h2>;
+          },
           pre: ({ children }) => <>{children}</>,
           code: ({ className, children }) => {
             const match = /language-(\w+)/.exec(className || "");
@@ -276,6 +302,53 @@ function MarkdownContent({ content }: { content: string }) {
       </ReactMarkdown>
     </div>
   );
+}
+
+function getPlainText(value: unknown): string {
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(getPlainText).join("");
+  }
+
+  if (value && typeof value === "object" && "props" in value) {
+    const props = (value as { props?: { children?: unknown } }).props;
+    return getPlainText(props?.children);
+  }
+
+  return "";
+}
+
+function getModelHeadingTone(value: string) {
+  const normalized = value.toLowerCase();
+
+  if (/\b(gpt|openai)\b/.test(normalized)) {
+    return "gpt";
+  }
+
+  if (/\b(claude|opus|anthropic)\b/.test(normalized)) {
+    return "opus";
+  }
+
+  if (/\bdeepseek\b/.test(normalized)) {
+    return "deepseek";
+  }
+
+  if (/\bgemini\b/.test(normalized)) {
+    return "gemini";
+  }
+
+  if (/\bgrok\b/.test(normalized)) {
+    return "grok";
+  }
+
+  if (/\baria analyzer\b/.test(normalized)) {
+    return "analyzer";
+  }
+
+  return null;
 }
 
 function CodeSnippetBlock({
