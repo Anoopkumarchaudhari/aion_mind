@@ -437,6 +437,12 @@
   color: #ffffff;
 }
 
+.auth-switch-disabled {
+  color: rgba(158, 232, 255, 0.48);
+  cursor: not-allowed;
+  font-weight: 800;
+}
+
 @keyframes authMindBreathe {
   0%,
   100% {

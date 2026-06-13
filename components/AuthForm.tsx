@@ -12,6 +12,9 @@ type AuthFormProps = {
   mode: "login" | "signup";
 };
 
+const ACCOUNT_CREATION_DISABLED = true;
+const ACCOUNT_CREATION_DISABLED_MESSAGE = "New account creation is temporarily disabled.";
+
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -22,12 +25,20 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSwitchingMode, setIsSwitchingMode] = useState(false);
   const isSignup = mode === "signup";
+  const isSignupDisabled = isSignup && ACCOUNT_CREATION_DISABLED;
+  const isCreateAccountLinkDisabled = !isSignup && ACCOUNT_CREATION_DISABLED;
   const passwordScore = getPasswordScore(password);
   const switchHref = isSignup ? "/login" : "/signup";
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+
+    if (isSignupDisabled) {
+      setError(ACCOUNT_CREATION_DISABLED_MESSAGE);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -66,6 +77,11 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     event.preventDefault();
 
+    if (isCreateAccountLinkDisabled) {
+      setError(ACCOUNT_CREATION_DISABLED_MESSAGE);
+      return;
+    }
+
     if (isSwitchingMode) {
       return;
     }
@@ -80,7 +96,9 @@ export function AuthForm({ mode }: AuthFormProps) {
 
   const title = isSignup ? "Create your account" : "Welcome back";
   const subtitle = isSignup
-    ? "Free to start - no card required."
+    ? isSignupDisabled
+      ? ACCOUNT_CREATION_DISABLED_MESSAGE
+      : "Free to start - no card required."
     : "Sign in to continue your Aria Mind workspace.";
   const sideTransition = { duration: 0.42, ease: "easeInOut" as const };
 
@@ -214,17 +232,31 @@ export function AuthForm({ mode }: AuthFormProps) {
                 </div>
               ) : null}
               {error ? <p className="auth-error">{error}</p> : null}
-              <button className="auth-submit" type="submit" disabled={isSubmitting}>
-                <span>{isSubmitting ? "Please wait..." : isSignup ? "Create account" : "Sign in"}</span>
+              <button className="auth-submit" type="submit" disabled={isSubmitting || isSignupDisabled}>
+                <span>
+                  {isSignupDisabled
+                    ? "Account creation disabled"
+                    : isSubmitting
+                      ? "Please wait..."
+                      : isSignup
+                        ? "Create account"
+                        : "Sign in"}
+                </span>
                 <ArrowRight aria-hidden="true" size={18} />
               </button>
             </form>
 
             <p className="auth-switch">
               {isSignup ? "Already have an account?" : "Need an account?"}{" "}
-              <Link href={switchHref} onClick={handleModeSwitch} aria-disabled={isSwitchingMode}>
-                {isSignup ? "Sign in" : "Create account"}
-              </Link>
+              {isCreateAccountLinkDisabled ? (
+                <span className="auth-switch-disabled" aria-disabled="true" title={ACCOUNT_CREATION_DISABLED_MESSAGE}>
+                  Create account
+                </span>
+              ) : (
+                <Link href={switchHref} onClick={handleModeSwitch} aria-disabled={isSwitchingMode}>
+                  {isSignup ? "Sign in" : "Create account"}
+                </Link>
+              )}
             </p>
           </motion.div>
         </motion.div>
