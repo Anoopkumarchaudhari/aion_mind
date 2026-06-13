@@ -2305,6 +2305,11 @@ select:focus-visible,
   outline-offset: 3px;
 }
 
+.auth-form input:focus-visible,
+.composer-textarea:focus-visible {
+  outline: none;
+}
+
 .page-toolbar {
   display: flex;
   align-items: flex-end;
