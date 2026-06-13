@@ -8,14 +8,16 @@ import {
   CreditCard,
   Database,
   KeyRound,
-  LogOut,
   RefreshCw,
   Route,
   Settings2,
   ShieldCheck,
+  UserCheck,
+  UserX,
   Users,
   Wallet
 } from "lucide-react";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { AppFrame } from "@/components/AppFrame";
 import { ModelRoutingDrawer } from "@/components/ModelRoutingDrawer";
 import {
@@ -99,8 +101,14 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
     }
   }
 
-  async function revokeSessions(userId: string, label: string) {
-    if (!window.confirm(`Revoke active sessions for ${label}?`)) {
+  async function toggleUserStatus(user: AdminOverview["users"][number]) {
+    const nextIsActive = !user.isActive;
+    const nextStatusLabel = nextIsActive ? "active" : "inactive";
+    const confirmation = nextIsActive
+      ? `Set ${user.email} active?`
+      : `Set ${user.email} inactive? This will end their active sessions.`;
+
+    if (!window.confirm(confirmation)) {
       return;
     }
 
@@ -108,26 +116,40 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/sessions`, {
-        method: "DELETE"
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(user.id)}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: nextIsActive })
       });
-      const data = (await response.json()) as { revoked?: number; error?: string };
+      const data = (await response.json()) as {
+        user?: { isActive: boolean };
+        revoked?: number;
+        error?: string;
+      };
 
       if (!response.ok) {
-        throw new Error(data.error || "Could not revoke sessions.");
+        throw new Error(data.error || "Could not update user status.");
       }
 
-      setMessage(`${data.revoked ?? 0} session${data.revoked === 1 ? "" : "s"} revoked.`);
+      const revoked = data.revoked ?? 0;
+      const sessionMessage = revoked ? ` ${revoked} session${revoked === 1 ? "" : "s"} ended.` : "";
+
+      setMessage(`${user.email} is now ${nextStatusLabel}.${sessionMessage}`);
       await refreshOverview();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not revoke sessions.");
+      setMessage(error instanceof Error ? error.message : "Could not update user status.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <AppFrame title="Admin">
+    <AppFrame
+      title="Admin"
+      sidebar={(sidebarProps) => (
+        <AdminSidebar {...sidebarProps} overview={overview} modelBalances={modelBalances} />
+      )}
+    >
       <section className="route-content admin-route">
         <motion.div
           className="page-toolbar admin-toolbar"
@@ -158,6 +180,7 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
         </motion.div>
 
         <motion.section
+          id="admin-overview"
           className="admin-stat-grid"
           aria-label="Admin overview"
           variants={scrollContainerVariants}
@@ -191,6 +214,7 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
           viewport={scrollRevealViewport}
         >
           <motion.section
+            id="admin-model-balances"
             className="admin-panel admin-panel-wide"
             aria-labelledby="admin-model-balances-heading"
             variants={scrollItemVariants}
@@ -281,6 +305,7 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
           </motion.section>
 
           <motion.section
+            id="admin-users"
             className="admin-panel admin-panel-wide"
             aria-labelledby="admin-users-heading"
             variants={scrollItemVariants}
@@ -299,6 +324,7 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                 <thead>
                   <tr>
                     <th>User</th>
+                    <th>Status</th>
                     <th>Joined</th>
                     <th>Chats</th>
                     <th>Messages</th>
@@ -309,14 +335,19 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                 <tbody>
                   {overview.users.length === 0 ? (
                     <tr>
-                      <td colSpan={6}>No user records available.</td>
+                      <td colSpan={7}>No user records available.</td>
                     </tr>
                   ) : (
                     overview.users.map((user) => (
-                      <tr key={user.id}>
+                      <tr className={user.isActive ? undefined : "is-inactive-user"} key={user.id}>
                         <td>
                           <strong>{user.name}</strong>
                           <span>{user.email}</span>
+                        </td>
+                        <td>
+                          <span className={`admin-status-pill ${user.isActive ? "is-active" : "is-inactive"}`}>
+                            {user.isActive ? "Active" : "Inactive"}
+                          </span>
                         </td>
                         <td>{formatDate(user.createdAt)}</td>
                         <td>{user.threadCount.toLocaleString("en-IN")}</td>
@@ -324,13 +355,21 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                         <td>{user.activeSessions.toLocaleString("en-IN")}</td>
                         <td>
                           <button
-                            className="ghost-button admin-table-action"
+                            className={`ghost-button admin-table-action ${
+                              user.isActive ? "is-danger-action" : "is-success-action"
+                            }`}
                             type="button"
-                            disabled={loading || user.isCurrentAdmin || user.activeSessions === 0}
-                            onClick={() => void revokeSessions(user.id, user.email)}
+                            disabled={loading || user.isCurrentAdmin}
+                            onClick={() => void toggleUserStatus(user)}
                           >
-                            <LogOut size={14} />
-                            Revoke
+                            {user.isCurrentAdmin ? (
+                              <ShieldCheck size={14} />
+                            ) : user.isActive ? (
+                              <UserX size={14} />
+                            ) : (
+                              <UserCheck size={14} />
+                            )}
+                            {user.isCurrentAdmin ? "Current" : user.isActive ? "Deactivate" : "Activate"}
                           </button>
                         </td>
                       </tr>
@@ -341,7 +380,12 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
             </div>
           </motion.section>
 
-          <motion.section className="admin-panel" aria-labelledby="admin-providers-heading" variants={scrollItemVariants}>
+          <motion.section
+            id="admin-providers"
+            className="admin-panel"
+            aria-labelledby="admin-providers-heading"
+            variants={scrollItemVariants}
+          >
             <div className="admin-panel-heading">
               <span className="admin-panel-icon">
                 <KeyRound size={17} />
@@ -366,7 +410,12 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
             </div>
           </motion.section>
 
-          <motion.section className="admin-panel" aria-labelledby="admin-routing-heading" variants={scrollItemVariants}>
+          <motion.section
+            id="admin-routing"
+            className="admin-panel"
+            aria-labelledby="admin-routing-heading"
+            variants={scrollItemVariants}
+          >
             <div className="admin-panel-heading">
               <span className="admin-panel-icon">
                 <Route size={17} />
@@ -390,7 +439,12 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
             </div>
           </motion.section>
 
-          <motion.section className="admin-panel" aria-labelledby="admin-config-heading" variants={scrollItemVariants}>
+          <motion.section
+            id="admin-config"
+            className="admin-panel"
+            aria-labelledby="admin-config-heading"
+            variants={scrollItemVariants}
+          >
             <div className="admin-panel-heading">
               <span className="admin-panel-icon">
                 <Database size={17} />
@@ -416,6 +470,7 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
           </motion.section>
 
           <motion.section
+            id="admin-billing"
             className="admin-panel admin-panel-wide"
             aria-labelledby="admin-billing-heading"
             variants={scrollItemVariants}

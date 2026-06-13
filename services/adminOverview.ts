@@ -1,6 +1,7 @@
 import { BILLING_PLANS, BILLING_TOP_UP_PACKS, FEATURE_CREDIT_RATES } from "@/services/billingCatalog";
 import { getAionRoutingPayload } from "@/services/aionRoutingConfig";
 import { getAdminAccessSummary, type AdminUser } from "@/services/adminAuth";
+import { AuthError } from "@/services/auth";
 import { getDatabaseConfigIssue, isDatabaseConfigured, query } from "@/services/db";
 import type { AionRouteSlot } from "@/types/aionRouting";
 
@@ -12,6 +13,7 @@ type AdminUserRow = {
   id: string;
   name: string;
   email: string;
+  is_active: boolean | string;
   created_at: string | number;
   thread_count: string | number;
   message_count: string | number;
@@ -31,6 +33,7 @@ export type AdminOverview = {
   };
   stats: {
     users: number | null;
+    activeUsers: number | null;
     activeSessions: number | null;
     chatThreads: number | null;
     chatMessages: number | null;
@@ -39,6 +42,7 @@ export type AdminOverview = {
     id: string;
     name: string;
     email: string;
+    isActive: boolean;
     createdAt: number;
     threadCount: number;
     messageCount: number;
@@ -143,10 +147,33 @@ export async function revokeUserSessions(userId: string) {
   return result.rowCount ?? 0;
 }
 
+export async function setUserActiveStatus(userId: string, isActive: boolean) {
+  const result = await query<{ id: string; is_active: boolean | string }>(
+    "UPDATE app_users SET is_active = $2 WHERE id = $1 RETURNING id, is_active",
+    [userId, isActive]
+  );
+  const user = result.rows[0];
+
+  if (!user) {
+    throw new AuthError("User not found.", 404);
+  }
+
+  const revoked = isActive ? 0 : await revokeUserSessions(userId);
+
+  return {
+    user: {
+      id: user.id,
+      isActive: toBoolean(user.is_active)
+    },
+    revoked
+  };
+}
+
 async function getDatabaseSnapshot(currentAdminId: string) {
   const emptySnapshot = {
     stats: {
       users: null,
+      activeUsers: null,
       activeSessions: null,
       chatThreads: null,
       chatMessages: null
@@ -160,8 +187,9 @@ async function getDatabaseSnapshot(currentAdminId: string) {
 
   try {
     const now = Date.now();
-    const [usersCount, sessionsCount, threadsCount, messagesCount, users] = await Promise.all([
+    const [usersCount, activeUsersCount, sessionsCount, threadsCount, messagesCount, users] = await Promise.all([
       getCount("SELECT COUNT(*) AS count FROM app_users"),
+      getCount("SELECT COUNT(*) AS count FROM app_users WHERE is_active = TRUE"),
       getCount("SELECT COUNT(*) AS count FROM app_sessions WHERE expires_at > $1", [now]),
       getCount("SELECT COUNT(*) AS count FROM chat_threads"),
       getCount("SELECT COUNT(*) AS count FROM chat_messages"),
@@ -171,6 +199,7 @@ async function getDatabaseSnapshot(currentAdminId: string) {
             app_users.id,
             app_users.name,
             app_users.email,
+            app_users.is_active,
             app_users.created_at,
             COALESCE(thread_counts.thread_count, 0)::int AS thread_count,
             COALESCE(message_counts.message_count, 0)::int AS message_count,
@@ -203,6 +232,7 @@ async function getDatabaseSnapshot(currentAdminId: string) {
     return {
       stats: {
         users: usersCount,
+        activeUsers: activeUsersCount,
         activeSessions: sessionsCount,
         chatThreads: threadsCount,
         chatMessages: messagesCount
@@ -211,6 +241,7 @@ async function getDatabaseSnapshot(currentAdminId: string) {
         id: user.id,
         name: user.name,
         email: user.email,
+        isActive: toBoolean(user.is_active),
         createdAt: toNumber(user.created_at),
         threadCount: toNumber(user.thread_count),
         messageCount: toNumber(user.message_count),
@@ -241,6 +272,10 @@ function toAdminSlot(slot: AionRouteSlot) {
 function toNumber(value: string | number | undefined) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toBoolean(value: boolean | string | number | null | undefined) {
+  return value === true || value === "true" || value === "1" || value === 1;
 }
 
 function hasAnyBudgetEnv() {

@@ -11,9 +11,17 @@ import { useNotebookStore } from "@/store/useNotebookStore";
 type AppFrameProps = {
   children: ReactNode;
   title?: string;
+  sidebar?: (props: AppFrameSidebarProps) => ReactNode;
 };
 
-export function AppFrame({ children, title }: AppFrameProps) {
+export type AppFrameSidebarProps = {
+  isOpen: boolean;
+  isCollapsed: boolean;
+  onClose: () => void;
+  onToggleCollapsed: () => void;
+};
+
+export function AppFrame({ children, title, sidebar }: AppFrameProps) {
   const router = useRouter();
   const pathname = usePathname() ?? "route";
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -70,36 +78,45 @@ export function AppFrame({ children, title }: AppFrameProps) {
 
   return (
     <div className={`app-shell ${sidebarCollapsed ? "is-collapsed" : ""}`}>
-      <Sidebar
-        threads={threads}
-        activeThreadId={activeThreadId}
-        isOpen={sidebarOpen}
-        isCollapsed={sidebarCollapsed}
-        tempMode={tempMode}
-        notebooks={notebooks.map((notebook) => notebook.title)}
-        notebookItems={notebooks}
-        onClose={() => setSidebarOpen(false)}
-        onToggleCollapsed={() => setSidebarCollapsed((value) => !value)}
-        onNewChat={handleNewChat}
-        onSelectThread={handleSelectThread}
-        onShareThread={shareThread}
-        onTogglePin={togglePin}
-        onRenameThread={renameThread}
-        onAddToNotebook={handleAddToNotebook}
-        onCreateNotebook={(name) => {
-          createThreadNotebookLabel(name);
-          createNotebook({ title: name });
-        }}
-        onDeleteThread={deleteThread}
-        onOpenSearch={() => window.dispatchEvent(new Event("aion:open-search"))}
-        onCreateNotebookDialog={() => window.dispatchEvent(new Event("aion:new-notebook"))}
-        onSelectNotebook={(id) => router.push(`/notebooks/${id}`)}
-        onRenameNotebook={renameNotebook}
-        onChangeNotebookEmoji={(id, emoji) => updateNotebookMeta(id, { emoji })}
-        onDuplicateNotebook={duplicateNotebook}
-        onDeleteNotebook={deleteNotebook}
-        onOpenShortcuts={() => window.dispatchEvent(new Event("aion:show-shortcuts"))}
-      />
+      {sidebar ? (
+        sidebar({
+          isOpen: sidebarOpen,
+          isCollapsed: sidebarCollapsed,
+          onClose: () => setSidebarOpen(false),
+          onToggleCollapsed: () => setSidebarCollapsed((value) => !value)
+        })
+      ) : (
+        <Sidebar
+          threads={threads}
+          activeThreadId={activeThreadId}
+          isOpen={sidebarOpen}
+          isCollapsed={sidebarCollapsed}
+          tempMode={tempMode}
+          notebooks={notebooks.map((notebook) => notebook.title)}
+          notebookItems={notebooks}
+          onClose={() => setSidebarOpen(false)}
+          onToggleCollapsed={() => setSidebarCollapsed((value) => !value)}
+          onNewChat={handleNewChat}
+          onSelectThread={handleSelectThread}
+          onShareThread={shareThread}
+          onTogglePin={togglePin}
+          onRenameThread={renameThread}
+          onAddToNotebook={handleAddToNotebook}
+          onCreateNotebook={(name) => {
+            createThreadNotebookLabel(name);
+            createNotebook({ title: name });
+          }}
+          onDeleteThread={deleteThread}
+          onOpenSearch={() => window.dispatchEvent(new Event("aion:open-search"))}
+          onCreateNotebookDialog={() => window.dispatchEvent(new Event("aion:new-notebook"))}
+          onSelectNotebook={(id) => router.push(`/notebooks/${id}`)}
+          onRenameNotebook={renameNotebook}
+          onChangeNotebookEmoji={(id, emoji) => updateNotebookMeta(id, { emoji })}
+          onDuplicateNotebook={duplicateNotebook}
+          onDeleteNotebook={deleteNotebook}
+          onOpenShortcuts={() => window.dispatchEvent(new Event("aion:show-shortcuts"))}
+        />
+      )}
       <main className="main-panel route-panel">
         <header className="route-header">
           <button

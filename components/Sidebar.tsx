@@ -10,6 +10,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
   Film,
   HelpCircle,
   History,
@@ -74,6 +75,12 @@ const ACCOUNT_NAME = "Anoop Kumar";
 const ACCOUNT_PLAN = "Pro";
 const ACCOUNT_AVATAR_SRC = "/profile_avtar.png";
 
+type AuthMeResponse = {
+  user?: {
+    name?: string;
+  };
+} | null;
+
 export function Sidebar({
   threads,
   activeThreadId,
@@ -111,21 +118,35 @@ export function Sidebar({
   }, []);
 
   useEffect(() => {
-    ["/images", "/videos", "/podcast", "/translate", "/library", "/notebooks", "/billing"].forEach((route) =>
-      router.prefetch(route)
-    );
+    [
+      "/images",
+      "/videos",
+      "/podcast",
+      "/translate",
+      "/library",
+      "/notebooks",
+      "/billing",
+      "/settings"
+    ].forEach((route) => router.prefetch(route));
   }, [router]);
 
   useEffect(() => {
     void fetch("/api/auth/me")
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: { user?: { name?: string } } | null) => {
+      .then((response) => {
+        if (response.status === 401) {
+          router.replace("/login");
+          return null;
+        }
+
+        return response.ok ? response.json() : null;
+      })
+      .then((data: AuthMeResponse) => {
         if (data?.user?.name) {
           setAccount({ name: data.user.name, plan: ACCOUNT_PLAN });
         }
       })
       .catch(() => undefined);
-  }, []);
+  }, [router]);
 
   function markVideosVisited() {
     if (!window.localStorage.getItem(VIDEO_VISIT_KEY)) {
@@ -275,6 +296,20 @@ export function Sidebar({
             >
               <NotebookTabs size={17} />
               <span className="sidebar-action-label">Notebook</span>
+            </Link>
+          </div>
+
+          <div className="sidebar-action-group">
+            <div className="sidebar-section-label">Workspace</div>
+            <Link
+              className={clsx("sidebar-action", isActiveRoute(pathname, "/billing") && "is-active")}
+              href="/billing"
+              aria-current={isActiveRoute(pathname, "/billing") ? "page" : undefined}
+              onClick={onClose}
+              title="Billing"
+            >
+              <CreditCard size={17} />
+              <span className="sidebar-action-label">Billing</span>
             </Link>
           </div>
         </nav>

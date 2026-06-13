@@ -16,10 +16,12 @@ export type AuthUser = {
 
 type UserRow = AuthUser & {
   password_hash: string;
+  is_active: boolean | string;
 };
 
 type SessionUserRow = AuthUser & {
   expires_at: string | number;
+  is_active: boolean | string;
 };
 
 export function normalizeEmail(email: string) {
@@ -75,13 +77,17 @@ export async function loginUser(email: string, password: string) {
 
   const cleanEmail = normalizeEmail(email);
   const result = await query<UserRow>(
-    "SELECT id, name, email, password_hash FROM app_users WHERE email = $1",
+    "SELECT id, name, email, password_hash, is_active FROM app_users WHERE email = $1",
     [cleanEmail]
   );
   const user = result.rows[0];
 
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     throw new AuthError("Invalid email or password.");
+  }
+
+  if (!toBoolean(user.is_active)) {
+    throw new AuthError("This account is inactive. Contact the administrator.", 403);
   }
 
   return {
@@ -112,7 +118,7 @@ export async function getUserFromSession(sessionId: string | undefined) {
   }
 
   const result = await query<SessionUserRow>(
-    `SELECT app_users.id, app_users.name, app_users.email, app_sessions.expires_at
+    `SELECT app_users.id, app_users.name, app_users.email, app_users.is_active, app_sessions.expires_at
      FROM app_sessions
      INNER JOIN app_users ON app_users.id = app_sessions.user_id
      WHERE app_sessions.id = $1`,
@@ -121,6 +127,11 @@ export async function getUserFromSession(sessionId: string | undefined) {
   const row = result.rows[0];
 
   if (!row) {
+    return null;
+  }
+
+  if (!toBoolean(row.is_active)) {
+    await deleteSession(sessionId);
     return null;
   }
 
@@ -219,6 +230,10 @@ function validatePassword(password: string) {
   if (password.length < 8) {
     throw new AuthError("Password must be at least 8 characters.");
   }
+}
+
+function toBoolean(value: boolean | string | number | null | undefined) {
+  return value === true || value === "true" || value === "1" || value === 1;
 }
 
 function assertAuthConfigured() {

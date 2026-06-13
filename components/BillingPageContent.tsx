@@ -13,6 +13,7 @@ import {
   Zap
 } from "lucide-react";
 import { AppFrame } from "@/components/AppFrame";
+import { BillingSidebar } from "@/components/BillingSidebar";
 import {
   barFillVariants,
   hoverLift,
@@ -46,9 +47,24 @@ export function BillingPageContent() {
   const monthlyRemaining = getMonthlyRemainingCredits(billing);
   const usedPercent = getCreditUsagePercent(billing);
   const usageSummary = getUsageSummary(billing.usage);
+  const nextRenewalDate = getNextRenewalDate();
 
   return (
-    <AppFrame title="Billing">
+    <AppFrame
+      title="Billing"
+      sidebar={(sidebarProps) => (
+        <BillingSidebar
+          {...sidebarProps}
+          planName={currentPlan.name}
+          availableCredits={availableCredits}
+          monthlyRemaining={monthlyRemaining}
+          topUpCredits={billing.topUpCredits}
+          usedPercent={usedPercent}
+          nextRenewalDate={nextRenewalDate}
+          autoTopUpEnabled={billing.autoTopUpEnabled}
+        />
+      )}
+    >
       <section className="route-content billing-route">
         <motion.div
           className="page-toolbar billing-toolbar"
@@ -61,11 +77,12 @@ export function BillingPageContent() {
             <h2>Billing</h2>
           </div>
           <div className="billing-toolbar-actions">
-            <span className="billing-renewal-pill">Renews {getNextRenewalDate()}</span>
+            <span className="billing-renewal-pill">Renews {nextRenewalDate}</span>
           </div>
         </motion.div>
 
         <motion.section
+          id="billing-overview"
           className="billing-overview"
           aria-label="Credit wallet overview"
           variants={scrollContainerVariants}
@@ -105,6 +122,7 @@ export function BillingPageContent() {
         </motion.section>
 
         <motion.section
+          id="billing-plans"
           className="billing-section"
           aria-labelledby="billing-plans-heading"
           variants={scrollRevealVariants}
@@ -166,7 +184,12 @@ export function BillingPageContent() {
           whileInView="show"
           viewport={scrollRevealViewport}
         >
-          <motion.section className="billing-panel" aria-labelledby="credit-rates-heading" variants={scrollItemVariants}>
+          <motion.section
+            id="billing-rates"
+            className="billing-panel"
+            aria-labelledby="credit-rates-heading"
+            variants={scrollItemVariants}
+          >
             <div className="billing-panel-heading">
               <span className="billing-icon small">
                 <Zap size={17} />
@@ -187,7 +210,12 @@ export function BillingPageContent() {
             </div>
           </motion.section>
 
-          <motion.section className="billing-panel" aria-labelledby="topups-heading" variants={scrollItemVariants}>
+          <motion.section
+            id="billing-topups"
+            className="billing-panel"
+            aria-labelledby="topups-heading"
+            variants={scrollItemVariants}
+          >
             <div className="billing-panel-heading">
               <span className="billing-icon small">
                 <Plus size={17} />
@@ -212,7 +240,12 @@ export function BillingPageContent() {
             </div>
           </motion.section>
 
-          <motion.section className="billing-panel" aria-labelledby="usage-heading" variants={scrollItemVariants}>
+          <motion.section
+            id="billing-usage"
+            className="billing-panel"
+            aria-labelledby="usage-heading"
+            variants={scrollItemVariants}
+          >
             <div className="billing-panel-heading">
               <span className="billing-icon small">
                 <Activity size={17} />
@@ -244,7 +277,12 @@ export function BillingPageContent() {
             </div>
           </motion.section>
 
-          <motion.section className="billing-panel" aria-labelledby="payment-heading" variants={scrollItemVariants}>
+          <motion.section
+            id="billing-payment"
+            className="billing-panel"
+            aria-labelledby="payment-heading"
+            variants={scrollItemVariants}
+          >
             <div className="billing-panel-heading">
               <span className="billing-icon small">
                 <CreditCard size={17} />
@@ -278,6 +316,7 @@ export function BillingPageContent() {
         </motion.div>
 
         <motion.section
+          id="billing-ledger"
           className="billing-section"
           aria-labelledby="ledger-heading"
           variants={scrollRevealVariants}

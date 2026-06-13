@@ -105,14 +105,21 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
 
   useEffect(() => {
     void fetch("/api/auth/me")
-      .then((response) => (response.ok ? response.json() : null))
+      .then((response) => {
+        if (response.status === 401) {
+          router.replace("/login");
+          return null;
+        }
+
+        return response.ok ? response.json() : null;
+      })
       .then((data: { user?: { name?: string } } | null) => {
         if (data?.user?.name) {
           setAccountName(data.user.name);
         }
       })
       .catch(() => undefined);
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (initialThreadId && rawThreads.some((thread) => thread.id === initialThreadId)) {

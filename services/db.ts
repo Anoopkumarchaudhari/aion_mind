@@ -1,7 +1,7 @@
 import { Pool, type PoolConfig, type QueryResultRow } from "pg";
 
 const globalKey = "__aionMindPgPool";
-const schemaKey = "__aionMindPgSchemaReady_v2";
+const schemaKey = "__aionMindPgSchemaReady_v3";
 const splitConfigPrefixes = ["AION_PG", "JBTALLY_PG"] as const;
 const requiredSplitConfigKeys = ["HOST", "DATABASE", "USER", "PASSWORD"] as const;
 
@@ -88,8 +88,12 @@ async function createSchema() {
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
       created_at BIGINT NOT NULL
     );
+
+    ALTER TABLE app_users
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
 
     CREATE TABLE IF NOT EXISTS app_sessions (
       id TEXT PRIMARY KEY,
