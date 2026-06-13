@@ -2272,6 +2272,37 @@ a {
   min-height: 0;
   overflow-y: auto;
   padding: 12px 28px 48px;
+  scroll-behavior: smooth;
+  scrollbar-color: color-mix(in srgb, var(--accent-2) 35%, transparent) transparent;
+  scrollbar-gutter: stable;
+}
+
+.route-content::-webkit-scrollbar,
+.chat-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.route-content::-webkit-scrollbar-thumb,
+.chat-scroll::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: color-mix(in srgb, var(--accent-2) 30%, transparent);
+}
+
+.route-content::-webkit-scrollbar-thumb:hover,
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--accent-2) 46%, transparent);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-2) 72%, white);
+  outline-offset: 3px;
 }
 
 .page-toolbar {
@@ -2351,6 +2382,7 @@ a {
   transition:
     background-color 150ms ease,
     color 150ms ease,
+    box-shadow 150ms ease,
     opacity 150ms ease,
     transform 150ms ease;
 }
@@ -2362,6 +2394,7 @@ a {
 }
 
 .primary-button:hover:not(:disabled) {
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--accent) 18%, transparent);
   transform: translateY(-1px);
 }
 
@@ -2382,6 +2415,8 @@ a {
 
 .ghost-button:hover {
   background: var(--hover);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
+  transform: translateY(-1px);
 }
 
 .danger-button {
@@ -2830,9 +2865,12 @@ a {
 .artifact-card,
 .notebook-card {
   position: relative;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.018)),
+    rgba(255, 255, 255, 0.025);
   color: var(--text-primary);
   padding: 16px;
   text-decoration: none;
@@ -2843,7 +2881,9 @@ a {
 
 .artifact-card:hover,
 .notebook-card:hover {
+  border-color: color-mix(in srgb, var(--accent-2) 28%, var(--border));
   background: rgba(255, 255, 255, 0.055);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
   transform: translateY(-1px);
 }
 
@@ -2928,6 +2968,11 @@ a {
   gap: 16px;
   max-width: 1120px;
   margin: 0 auto 28px;
+}
+
+.image-generator-motion {
+  display: grid;
+  gap: 18px;
 }
 
 .image-generator-panel,
@@ -4440,11 +4485,37 @@ a {
 .billing-panel,
 .billing-plan-card,
 .billing-ledger {
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--border);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.02)),
     rgba(13, 20, 28, 0.76);
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.24);
+}
+
+.billing-overview::before,
+.billing-panel::before,
+.billing-plan-card::before,
+.admin-panel::before,
+.admin-stat-card::before {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.08), transparent 28%),
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent 38%);
+  opacity: 0.38;
+  content: "";
+}
+
+.billing-overview > *,
+.billing-panel > *,
+.billing-plan-card > *,
+.admin-panel > *,
+.admin-stat-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .billing-overview {
@@ -4554,6 +4625,7 @@ a {
   height: 100%;
   border-radius: inherit;
   background: var(--gradient-accent);
+  transform-origin: left center;
 }
 
 .billing-overview-stat {
@@ -4601,6 +4673,16 @@ a {
   gap: 10px;
   border-radius: 18px;
   padding: 16px;
+}
+
+.billing-plan-card:hover,
+.billing-panel:hover,
+.admin-panel:hover,
+.admin-stat-card:hover {
+  border-color: color-mix(in srgb, var(--accent-2) 30%, var(--border));
+  box-shadow:
+    0 22px 70px rgba(0, 0, 0, 0.3),
+    0 0 28px color-mix(in srgb, var(--accent-2) 10%, transparent);
 }
 
 .billing-plan-card.is-active {
@@ -4794,6 +4876,22 @@ a {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.035);
   padding: 10px 12px;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.billing-rate-row:hover,
+.billing-topup-row:hover,
+.billing-usage-row:hover,
+.billing-switch-row:hover,
+.billing-ledger-row:hover,
+.admin-list-row:hover,
+.admin-route-row:hover {
+  border-color: color-mix(in srgb, var(--accent-2) 24%, transparent);
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.16);
 }
 
 .billing-rate-row span:first-child {
@@ -4919,6 +5017,8 @@ a {
 
 .admin-stat-card,
 .admin-panel {
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--border);
   background:
     linear-gradient(135deg, rgba(45, 212, 191, 0.09), transparent 34%),
@@ -5064,6 +5164,18 @@ a {
 
 .admin-table tr:last-child td {
   border-bottom: 0;
+}
+
+.admin-table tbody tr,
+.billing-model-table tbody tr {
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.admin-table tbody tr:hover,
+.billing-model-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.035);
 }
 
 .admin-table strong,

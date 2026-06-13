@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { motion } from "framer-motion";
 import {
   Activity,
   CheckCircle2,
@@ -12,6 +13,14 @@ import {
   Zap
 } from "lucide-react";
 import { AppFrame } from "@/components/AppFrame";
+import {
+  barFillVariants,
+  hoverLift,
+  scrollContainerVariants,
+  scrollItemVariants,
+  scrollRevealVariants,
+  scrollRevealViewport
+} from "@/lib/motion";
 import {
   BILLING_PLANS,
   BILLING_TOP_UP_PACKS,
@@ -41,7 +50,12 @@ export function BillingPageContent() {
   return (
     <AppFrame title="Billing">
       <section className="route-content billing-route">
-        <div className="page-toolbar billing-toolbar">
+        <motion.div
+          className="page-toolbar billing-toolbar"
+          variants={scrollRevealVariants}
+          initial="hidden"
+          animate="show"
+        >
           <div>
             <p className="eyebrow">Credit wallet</p>
             <h2>Billing</h2>
@@ -49,10 +63,16 @@ export function BillingPageContent() {
           <div className="billing-toolbar-actions">
             <span className="billing-renewal-pill">Renews {getNextRenewalDate()}</span>
           </div>
-        </div>
+        </motion.div>
 
-        <section className="billing-overview" aria-label="Credit wallet overview">
-          <div className="billing-overview-main">
+        <motion.section
+          className="billing-overview"
+          aria-label="Credit wallet overview"
+          variants={scrollContainerVariants}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.div className="billing-overview-main" variants={scrollItemVariants}>
             <span className="billing-icon">
               <Wallet size={22} />
             </span>
@@ -61,27 +81,37 @@ export function BillingPageContent() {
               <strong>{availableCredits.toLocaleString("en-IN")}</strong>
               <span>credits</span>
             </div>
-          </div>
-          <div className="billing-meter-block">
+          </motion.div>
+          <motion.div className="billing-meter-block" variants={scrollItemVariants}>
             <div className="billing-meter-copy">
               <span>{currentPlan.name} monthly credits</span>
               <strong>{monthlyRemaining.toLocaleString("en-IN")} left</strong>
             </div>
             <div className="billing-credit-meter" aria-label={`${usedPercent}% of monthly credits used`}>
-              <span style={{ width: `${usedPercent}%` }} />
+              <motion.span
+                style={{ width: `${usedPercent}%` }}
+                variants={barFillVariants}
+              />
             </div>
-          </div>
-          <div className="billing-overview-stat">
+          </motion.div>
+          <motion.div className="billing-overview-stat" variants={scrollItemVariants}>
             <span>Top-up credits</span>
             <strong>{billing.topUpCredits.toLocaleString("en-IN")}</strong>
-          </div>
-          <div className="billing-overview-stat">
+          </motion.div>
+          <motion.div className="billing-overview-stat" variants={scrollItemVariants}>
             <span>Target margin</span>
             <strong>2x</strong>
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
-        <section className="billing-section" aria-labelledby="billing-plans-heading">
+        <motion.section
+          className="billing-section"
+          aria-labelledby="billing-plans-heading"
+          variants={scrollRevealVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={scrollRevealViewport}
+        >
           <div className="billing-section-heading">
             <div>
               <p className="eyebrow">Plans</p>
@@ -90,15 +120,23 @@ export function BillingPageContent() {
             <span>Every plan unlocks every Aria feature.</span>
           </div>
 
-          <div className="billing-plan-grid">
+          <motion.div
+            className="billing-plan-grid"
+            variants={scrollContainerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={scrollRevealViewport}
+          >
             {BILLING_PLANS.map((plan) => {
               const isActive = plan.id === billing.planId;
 
               return (
-                <article
+                <motion.article
                   className={`billing-plan-card ${isActive ? "is-active" : ""}`}
                   key={plan.id}
                   style={{ "--plan-color": plan.accent } as CSSProperties}
+                  variants={scrollItemVariants}
+                  whileHover={hoverLift}
                 >
                   <div className="billing-plan-topline">
                     <span>{plan.name}</span>
@@ -115,14 +153,20 @@ export function BillingPageContent() {
                   >
                     {isActive ? "Current plan" : "Choose plan"}
                   </button>
-                </article>
+                </motion.article>
               );
             })}
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
-        <div className="billing-dashboard-grid">
-          <section className="billing-panel" aria-labelledby="credit-rates-heading">
+        <motion.div
+          className="billing-dashboard-grid"
+          variants={scrollContainerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={scrollRevealViewport}
+        >
+          <motion.section className="billing-panel" aria-labelledby="credit-rates-heading" variants={scrollItemVariants}>
             <div className="billing-panel-heading">
               <span className="billing-icon small">
                 <Zap size={17} />
@@ -134,16 +178,16 @@ export function BillingPageContent() {
             </div>
             <div className="billing-rate-list">
               {FEATURE_CREDIT_RATES.map((item) => (
-                <div className="billing-rate-row" key={item.id}>
+                <motion.div className="billing-rate-row" key={item.id} whileHover={hoverLift}>
                   <span style={{ background: item.color }} />
                   <strong>{item.label}</strong>
                   <em>{item.credits} credits</em>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </section>
+          </motion.section>
 
-          <section className="billing-panel" aria-labelledby="topups-heading">
+          <motion.section className="billing-panel" aria-labelledby="topups-heading" variants={scrollItemVariants}>
             <div className="billing-panel-heading">
               <span className="billing-icon small">
                 <Plus size={17} />
@@ -155,7 +199,7 @@ export function BillingPageContent() {
             </div>
             <div className="billing-topup-list">
               {BILLING_TOP_UP_PACKS.map((pack) => (
-                <div className="billing-topup-row" key={pack.id}>
+                <motion.div className="billing-topup-row" key={pack.id} whileHover={hoverLift}>
                   <div>
                     <strong>{pack.name}</strong>
                     <span>{pack.credits.toLocaleString("en-IN")} credits</span>
@@ -163,12 +207,12 @@ export function BillingPageContent() {
                   <button className="ghost-button" type="button" onClick={() => billing.buyTopUp(pack.id)}>
                     {inrFormatter.format(pack.priceInr)}
                   </button>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </section>
+          </motion.section>
 
-          <section className="billing-panel" aria-labelledby="usage-heading">
+          <motion.section className="billing-panel" aria-labelledby="usage-heading" variants={scrollItemVariants}>
             <div className="billing-panel-heading">
               <span className="billing-icon small">
                 <Activity size={17} />
@@ -183,21 +227,24 @@ export function BillingPageContent() {
                 <p className="muted-copy">No credits spent in this cycle yet.</p>
               ) : (
                 usageSummary.map((item) => (
-                  <div className="billing-usage-row" key={item.featureId}>
+                  <motion.div className="billing-usage-row" key={item.featureId} whileHover={hoverLift}>
                     <div>
                       <strong>{item.label}</strong>
                       <span>{item.credits.toLocaleString("en-IN")} credits</span>
                     </div>
                     <div className="billing-usage-bar">
-                      <span style={{ width: `${item.percent}%`, background: item.color }} />
+                      <motion.span
+                        style={{ width: `${item.percent}%`, background: item.color }}
+                        variants={barFillVariants}
+                      />
                     </div>
-                  </div>
+                  </motion.div>
                 ))
               )}
             </div>
-          </section>
+          </motion.section>
 
-          <section className="billing-panel" aria-labelledby="payment-heading">
+          <motion.section className="billing-panel" aria-labelledby="payment-heading" variants={scrollItemVariants}>
             <div className="billing-panel-heading">
               <span className="billing-icon small">
                 <CreditCard size={17} />
@@ -227,19 +274,32 @@ export function BillingPageContent() {
                 <span>{billing.paymentMethodLabel}</span>
               </div>
             </div>
-          </section>
-        </div>
+          </motion.section>
+        </motion.div>
 
-        <section className="billing-section" aria-labelledby="ledger-heading">
+        <motion.section
+          className="billing-section"
+          aria-labelledby="ledger-heading"
+          variants={scrollRevealVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={scrollRevealViewport}
+        >
           <div className="billing-section-heading">
             <div>
               <p className="eyebrow">Records</p>
               <h3 id="ledger-heading">Invoices and credit activity</h3>
             </div>
           </div>
-          <div className="billing-ledger">
+          <motion.div
+            className="billing-ledger"
+            variants={scrollContainerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={scrollRevealViewport}
+          >
             {billing.ledger.map((item) => (
-              <div className="billing-ledger-row" key={item.id}>
+              <motion.div className="billing-ledger-row" key={item.id} variants={scrollItemVariants}>
                 <span className="billing-icon small">
                   <Receipt size={16} />
                 </span>
@@ -252,10 +312,10 @@ export function BillingPageContent() {
                   {item.credits.toLocaleString("en-IN")} credits
                 </em>
                 <strong>{item.amountInr !== undefined ? inrFormatter.format(item.amountInr) : "-"}</strong>
-              </div>
+              </motion.div>
             ))}
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
       </section>
     </AppFrame>
   );

@@ -4,8 +4,16 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
+import { motion } from "framer-motion";
 import { Code2, Download, FileText, Image, MessageSquare, MoreVertical, Pencil, Trash2, Video } from "lucide-react";
 import { AppFrame } from "@/components/AppFrame";
+import {
+  hoverLift,
+  scrollContainerVariants,
+  scrollItemVariants,
+  scrollRevealVariants,
+  scrollRevealViewport
+} from "@/lib/motion";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import type { LibraryItem, LibraryItemType } from "@/types/workspace";
 
@@ -35,7 +43,7 @@ export function LibraryPageContent() {
   return (
     <AppFrame title="Library">
       <section className="route-content">
-        <div className="page-toolbar">
+        <motion.div className="page-toolbar" variants={scrollRevealVariants} initial="hidden" animate="show">
           <div>
             <p className="eyebrow">Saved artifacts</p>
             <h2>Library</h2>
@@ -46,8 +54,15 @@ export function LibraryPageContent() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search library..."
           />
-        </div>
-        <div className="filter-tabs" role="tablist" aria-label="Library filters">
+        </motion.div>
+        <motion.div
+          className="filter-tabs"
+          role="tablist"
+          aria-label="Library filters"
+          variants={scrollRevealVariants}
+          initial="hidden"
+          animate="show"
+        >
           {filters.map((item) => (
             <button
               className={item === filter ? "is-active" : ""}
@@ -58,17 +73,33 @@ export function LibraryPageContent() {
               {item === "all" ? "All" : item[0].toUpperCase() + item.slice(1)}
             </button>
           ))}
-        </div>
+        </motion.div>
 
         {filteredItems.length === 0 ? (
-          <div className="empty-panel">
+          <motion.div
+            className="empty-panel"
+            variants={scrollRevealVariants}
+            initial="hidden"
+            animate="show"
+          >
             <h3>No saved items yet</h3>
             <p>Save AI responses, code snippets, or generated videos and they will appear here.</p>
-          </div>
+          </motion.div>
         ) : (
-          <div className="artifact-grid">
+          <motion.div
+            className="artifact-grid"
+            variants={scrollContainerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={scrollRevealViewport}
+          >
             {filteredItems.map((item) => (
-              <article className="artifact-card" key={item.id}>
+              <motion.article
+                className="artifact-card"
+                key={item.id}
+                variants={scrollItemVariants}
+                whileHover={hoverLift}
+              >
                 <div className="artifact-icon">{getIcon(item.type)}</div>
                 <div className="artifact-card-body">
                   <h3>{item.title}</h3>
@@ -79,9 +110,9 @@ export function LibraryPageContent() {
                   <time>{formatDistanceToNow(item.createdAt, { addSuffix: true })}</time>
                 </div>
                 <LibraryMenu item={item} onRename={renameItem} onRemove={removeItem} />
-              </article>
+              </motion.article>
             ))}
-          </div>
+          </motion.div>
         )}
       </section>
     </AppFrame>

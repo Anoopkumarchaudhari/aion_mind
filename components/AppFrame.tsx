@@ -112,7 +112,7 @@ export function AppFrame({ children, title }: AppFrameProps) {
           </button>
           {title ? <h1>{title}</h1> : <span />}
         </header>
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="wait">
           <motion.div
             className="route-motion-shell"
             key={pathname}

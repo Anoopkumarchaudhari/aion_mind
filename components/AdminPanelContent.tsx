@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Activity,
   CreditCard,
@@ -17,6 +18,13 @@ import {
 } from "lucide-react";
 import { AppFrame } from "@/components/AppFrame";
 import { ModelRoutingDrawer } from "@/components/ModelRoutingDrawer";
+import {
+  hoverLift,
+  scrollContainerVariants,
+  scrollItemVariants,
+  scrollRevealVariants,
+  scrollRevealViewport
+} from "@/lib/motion";
 import type { AdminOverview } from "@/services/adminOverview";
 import type { ProviderModelBalancesPayload } from "@/services/providerModelBalances";
 
@@ -121,7 +129,12 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
   return (
     <AppFrame title="Admin">
       <section className="route-content admin-route">
-        <div className="page-toolbar admin-toolbar">
+        <motion.div
+          className="page-toolbar admin-toolbar"
+          variants={scrollRevealVariants}
+          initial="hidden"
+          animate="show"
+        >
           <div>
             <p className="eyebrow">Private control</p>
             <h2>Admin panel</h2>
@@ -142,9 +155,15 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
               Model routing
             </button>
           </div>
-        </div>
+        </motion.div>
 
-        <section className="admin-stat-grid" aria-label="Admin overview">
+        <motion.section
+          className="admin-stat-grid"
+          aria-label="Admin overview"
+          variants={scrollContainerVariants}
+          initial="hidden"
+          animate="show"
+        >
           <AdminStat icon={<Users size={18} />} label="Users" value={formatStat(overview.stats.users)} />
           <AdminStat
             icon={<Activity size={18} />}
@@ -162,10 +181,20 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
             value={overview.admin.name}
             detail={overview.admin.email}
           />
-        </section>
+        </motion.section>
 
-        <div className="admin-dashboard-grid">
-          <section className="admin-panel admin-panel-wide" aria-labelledby="admin-model-balances-heading">
+        <motion.div
+          className="admin-dashboard-grid"
+          variants={scrollContainerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={scrollRevealViewport}
+        >
+          <motion.section
+            className="admin-panel admin-panel-wide"
+            aria-labelledby="admin-model-balances-heading"
+            variants={scrollItemVariants}
+          >
             <div className="admin-panel-heading admin-model-balance-heading">
               <span className="admin-panel-icon">
                 <KeyRound size={17} />
@@ -249,9 +278,13 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                 </>
               ) : null}
             </div>
-          </section>
+          </motion.section>
 
-          <section className="admin-panel admin-panel-wide" aria-labelledby="admin-users-heading">
+          <motion.section
+            className="admin-panel admin-panel-wide"
+            aria-labelledby="admin-users-heading"
+            variants={scrollItemVariants}
+          >
             <div className="admin-panel-heading">
               <span className="admin-panel-icon">
                 <Users size={17} />
@@ -306,9 +339,9 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                 </tbody>
               </table>
             </div>
-          </section>
+          </motion.section>
 
-          <section className="admin-panel" aria-labelledby="admin-providers-heading">
+          <motion.section className="admin-panel" aria-labelledby="admin-providers-heading" variants={scrollItemVariants}>
             <div className="admin-panel-heading">
               <span className="admin-panel-icon">
                 <KeyRound size={17} />
@@ -320,7 +353,7 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
             </div>
             <div className="admin-list">
               {overview.providers.map((provider) => (
-                <div className="admin-list-row" key={provider.id}>
+                <motion.div className="admin-list-row" key={provider.id} whileHover={hoverLift}>
                   <div>
                     <strong>{provider.label}</strong>
                     <span>{provider.modelCount} configured models</span>
@@ -328,12 +361,12 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                   <span className={`admin-status-pill ${provider.apiKeyConfigured ? "is-ready" : "is-missing"}`}>
                     {provider.apiKeyConfigured ? "Ready" : "Missing"}
                   </span>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </section>
+          </motion.section>
 
-          <section className="admin-panel" aria-labelledby="admin-routing-heading">
+          <motion.section className="admin-panel" aria-labelledby="admin-routing-heading" variants={scrollItemVariants}>
             <div className="admin-panel-heading">
               <span className="admin-panel-icon">
                 <Route size={17} />
@@ -345,19 +378,19 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
             </div>
             <div className="admin-route-list">
               {overview.routing.map((route) => (
-                <div className="admin-route-row" key={route.label}>
+                <motion.div className="admin-route-row" key={route.label} whileHover={hoverLift}>
                   <strong>{route.label}</strong>
                   {route.slots.map((slot) => (
                     <span key={slot.id}>
                       {slot.enabled ? "On" : "Off"} / {slot.provider} / {slot.model}
                     </span>
                   ))}
-                </div>
+                </motion.div>
               ))}
             </div>
-          </section>
+          </motion.section>
 
-          <section className="admin-panel" aria-labelledby="admin-config-heading">
+          <motion.section className="admin-panel" aria-labelledby="admin-config-heading" variants={scrollItemVariants}>
             <div className="admin-panel-heading">
               <span className="admin-panel-icon">
                 <Database size={17} />
@@ -369,7 +402,7 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
             </div>
             <div className="admin-list">
               {overview.config.map((item) => (
-                <div className="admin-list-row" key={item.label}>
+                <motion.div className="admin-list-row" key={item.label} whileHover={hoverLift}>
                   <div>
                     <strong>{item.label}</strong>
                     <span>{item.detail}</span>
@@ -377,12 +410,16 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                   <span className={`admin-status-pill is-${item.status}`}>
                     {item.status === "ready" ? "Ready" : "Missing"}
                   </span>
-                </div>
+                </motion.div>
               ))}
             </div>
-          </section>
+          </motion.section>
 
-          <section className="admin-panel admin-panel-wide" aria-labelledby="admin-billing-heading">
+          <motion.section
+            className="admin-panel admin-panel-wide"
+            aria-labelledby="admin-billing-heading"
+            variants={scrollItemVariants}
+          >
             <div className="admin-panel-heading">
               <span className="admin-panel-icon">
                 <Wallet size={17} />
@@ -394,12 +431,12 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
             </div>
             <div className="admin-billing-grid">
               {overview.billing.plans.map((plan) => (
-                <article className="admin-billing-card" key={plan.id}>
+                <motion.article className="admin-billing-card" key={plan.id} whileHover={hoverLift}>
                   <span style={{ background: plan.accent }} />
                   <strong>{plan.name}</strong>
                   <em>{inrFormatter.format(plan.priceInr)}</em>
                   <small>{plan.monthlyCredits.toLocaleString("en-IN")} credits</small>
-                </article>
+                </motion.article>
               ))}
             </div>
             <div className="admin-mini-grid">
@@ -426,8 +463,8 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                 ))}
               </div>
             </div>
-          </section>
-        </div>
+          </motion.section>
+        </motion.div>
       </section>
 
       <ModelRoutingDrawer open={routingOpen} initialTab="aion" onOpenChange={setRoutingOpen} />
@@ -447,14 +484,14 @@ function AdminStat({
   detail?: string;
 }) {
   return (
-    <article className="admin-stat-card">
+    <motion.article className="admin-stat-card" variants={scrollItemVariants} whileHover={hoverLift}>
       <span className="admin-panel-icon">{icon}</span>
       <div>
         <span>{label}</span>
         <strong>{value}</strong>
         {detail ? <small>{detail}</small> : null}
       </div>
-    </article>
+    </motion.article>
   );
 }
 

@@ -3,8 +3,16 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
+import { motion } from "framer-motion";
 import { Film, ImagePlus, Loader2, X } from "lucide-react";
 import { AppFrame } from "@/components/AppFrame";
+import {
+  hoverLift,
+  scrollContainerVariants,
+  scrollItemVariants,
+  scrollRevealVariants,
+  scrollRevealViewport
+} from "@/lib/motion";
 import { getAvailableCredits, getVideoCreditCharge, useBillingStore } from "@/store/useBillingStore";
 import { useVideoStore } from "@/store/useVideoStore";
 import type {
@@ -145,7 +153,7 @@ export function VideosHubContent() {
   return (
     <AppFrame title="Videos">
       <section className="route-content">
-        <div className="video-hero">
+        <motion.div className="video-hero" variants={scrollRevealVariants} initial="hidden" animate="show">
           <Film size={26} />
           <h2>Generate video with Aria Mind</h2>
           <p>Describe a scene, choose a style and duration, then generate a video session.</p>
@@ -254,24 +262,42 @@ export function VideosHubContent() {
               {isGenerating ? "Starting..." : "Generate"}
             </button>
           </form>
-        </div>
-        <div className="page-toolbar">
+        </motion.div>
+        <motion.div
+          className="page-toolbar"
+          variants={scrollRevealVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={scrollRevealViewport}
+        >
           <div>
             <p className="eyebrow">Past generations</p>
             <h2>Video sessions</h2>
           </div>
-        </div>
+        </motion.div>
         {sortedJobs.length === 0 ? (
-          <div className="empty-panel">
+          <motion.div
+            className="empty-panel"
+            variants={scrollRevealVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={scrollRevealViewport}
+          >
             <h3>No video sessions yet</h3>
             <p>Your generated video sessions will appear here with thumbnails and status.</p>
-          </div>
+          </motion.div>
         ) : (
-          <div className="artifact-grid">
+          <motion.div
+            className="artifact-grid"
+            variants={scrollContainerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={scrollRevealViewport}
+          >
             {sortedJobs.map((job) => (
               <VideoCard job={job} key={job.id} />
             ))}
-          </div>
+          </motion.div>
         )}
       </section>
     </AppFrame>
@@ -280,7 +306,12 @@ export function VideosHubContent() {
 
 function VideoCard({ job }: { job: VideoJob }) {
   return (
-    <a className="artifact-card video-card" href={`/videos/${job.id}`}>
+    <motion.a
+      className="artifact-card video-card"
+      href={`/videos/${job.id}`}
+      variants={scrollItemVariants}
+      whileHover={hoverLift}
+    >
       {job.thumbnailUrl ? <img className="artifact-thumb" src={job.thumbnailUrl} alt="" /> : <div className="video-placeholder" />}
       <div className="artifact-card-body">
         <h3>{job.prompt.slice(0, 72)}</h3>
@@ -290,7 +321,7 @@ function VideoCard({ job }: { job: VideoJob }) {
         <span />
         <time>{formatDistanceToNow(job.createdAt, { addSuffix: true })}</time>
       </div>
-    </a>
+    </motion.a>
   );
 }
 

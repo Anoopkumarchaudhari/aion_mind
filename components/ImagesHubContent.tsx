@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { formatDistanceToNow } from "date-fns";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Download,
   Image as ImageIcon,
@@ -15,6 +16,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppFrame } from "@/components/AppFrame";
+import {
+  hoverLift,
+  scrollContainerVariants,
+  scrollItemVariants,
+  scrollRevealVariants,
+  scrollRevealViewport
+} from "@/lib/motion";
 import { getAvailableCredits, getImageCreditCharge, useBillingStore } from "@/store/useBillingStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import type {
@@ -332,7 +340,12 @@ export function ImagesHubContent() {
   return (
     <AppFrame title="Images">
       <section className="route-content image-studio-route">
-        <section className="image-preview-first">
+        <motion.section
+          className="image-preview-first"
+          variants={scrollRevealVariants}
+          initial="hidden"
+          animate="show"
+        >
           <div className="image-preview-first-heading">
             <div>
               <p className="eyebrow">Live inspiration</p>
@@ -342,12 +355,20 @@ export function ImagesHubContent() {
             <span className="preview-live-pill">Auto</span>
           </div>
 
-          <div className="ai-preview-grid ai-preview-grid-large">
+          <motion.div
+            className="ai-preview-grid ai-preview-grid-large"
+            variants={scrollContainerVariants}
+            initial="hidden"
+            animate="show"
+          >
             {visiblePreviewImages.map((image) => (
-              <button
+              <motion.button
                 className="ai-preview-card"
                 type="button"
                 key={image.id}
+                variants={scrollItemVariants}
+                whileHover={hoverLift}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => openPreviewImage(image)}
                 aria-label={`Open ${image.title}`}
               >
@@ -359,9 +380,9 @@ export function ImagesHubContent() {
                   <strong>{image.title}</strong>
                   <small>{image.prompt}</small>
                 </span>
-              </button>
+              </motion.button>
             ))}
-          </div>
+          </motion.div>
 
           <div className="image-preview-first-actions">
             <button className="primary-button image-generate-button spark-button" type="button" onClick={openGenerator}>
@@ -373,11 +394,19 @@ export function ImagesHubContent() {
               Rotate Images
             </button>
           </div>
-        </section>
+        </motion.section>
 
-        {showGenerator ? (
-          <>
-            <section className="image-studio-hero" id="image-generator-panel">
+        <AnimatePresence initial={false}>
+          {showGenerator ? (
+            <motion.div
+              className="image-generator-motion"
+              key="image-generator"
+              variants={scrollRevealVariants}
+              initial="hidden"
+              animate="show"
+              exit="hidden"
+            >
+              <section className="image-studio-hero" id="image-generator-panel">
               <form className="image-studio-form" onSubmit={handleSubmit}>
                 <div className="image-studio-heading">
                   <div className="image-studio-title">
@@ -484,10 +513,16 @@ export function ImagesHubContent() {
                   </button>
                 </div>
               </form>
-            </section>
+              </section>
 
-            <section className="image-workbench">
-              <div className="image-workbench-panel image-output-panel">
+              <motion.section
+                className="image-workbench"
+                variants={scrollContainerVariants}
+                initial="hidden"
+                whileInView="show"
+                viewport={scrollRevealViewport}
+              >
+              <motion.div className="image-workbench-panel image-output-panel" variants={scrollItemVariants}>
                 <div className="image-section-heading">
                   <div>
                     <p className="eyebrow">Latest render</p>
@@ -513,9 +548,9 @@ export function ImagesHubContent() {
                     </div>
                   )}
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="image-workbench-panel image-history-panel">
+              <motion.div className="image-workbench-panel image-history-panel" variants={scrollItemVariants}>
                 <div className="image-section-heading">
                   <div>
                     <p className="eyebrow">Recent generations</p>
@@ -533,7 +568,7 @@ export function ImagesHubContent() {
                 ) : (
                   <div className="image-history-grid">
                     {sortedImages.map((image) => (
-                      <article className="image-history-card" key={image.id}>
+                      <motion.article className="image-history-card" key={image.id} whileHover={hoverLift}>
                         <button
                           className="image-thumb-button"
                           type="button"
@@ -561,14 +596,15 @@ export function ImagesHubContent() {
                             <Trash2 size={15} />
                           </button>
                         </div>
-                      </article>
+                      </motion.article>
                     ))}
                   </div>
                 )}
-              </div>
-            </section>
-          </>
-        ) : null}
+              </motion.div>
+              </motion.section>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
 
         <ImageViewer image={viewerImage} onClose={() => setViewerImage(null)} />
       </section>
@@ -586,7 +622,7 @@ function GeneratedImagePreview({
   onOpen: (image: GeneratedImage) => void;
 }) {
   return (
-    <article className="image-preview-result">
+    <motion.article className="image-preview-result" variants={scrollRevealVariants} initial="hidden" animate="show">
       <button
         className="generated-image-main-button"
         type="button"
@@ -605,7 +641,7 @@ function GeneratedImagePreview({
         {image.revisedPrompt ? <p>{image.revisedPrompt}</p> : null}
         <ImageActions image={image} onSave={onSave} />
       </div>
-    </article>
+    </motion.article>
   );
 }
 
@@ -650,9 +686,21 @@ function ImageViewer({ image, onClose }: { image: ViewableImage | null; onClose:
   }
 
   return (
-    <div className="image-viewer-overlay" role="dialog" aria-modal="true" aria-label={image.title}>
+    <motion.div
+      className="image-viewer-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={image.title}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
       <button className="image-viewer-backdrop" type="button" aria-label="Close image viewer" onClick={onClose} />
-      <div className="image-viewer-panel">
+      <motion.div
+        className="image-viewer-panel"
+        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+      >
         <button className="dialog-close image-viewer-close" type="button" onClick={onClose} aria-label="Close">
           <X size={17} />
         </button>
@@ -662,8 +710,8 @@ function ImageViewer({ image, onClose }: { image: ViewableImage | null; onClose:
           <h3>{image.title}</h3>
           <p>{image.prompt}</p>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

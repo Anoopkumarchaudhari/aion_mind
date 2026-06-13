@@ -19,6 +19,17 @@ export const gentleSpring: Transition = {
   mass: 0.8
 };
 
+export const scrollRevealViewport = {
+  once: true,
+  amount: 0.16,
+  margin: "0px 0px -8% 0px"
+} as const;
+
+export const hoverLift = {
+  y: -3,
+  scale: 1.01
+};
+
 export const pageShellVariants: Variants = {
   hidden: {
     opacity: 0,
@@ -39,6 +50,20 @@ export const pageShellVariants: Variants = {
   }
 };
 
+export const scrollRevealVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 18,
+    filter: "blur(8px)"
+  },
+  show: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: standardTransition
+  }
+};
+
 export const fadeThroughVariants: Variants = {
   hidden: {
     opacity: 0
@@ -53,6 +78,16 @@ export const fadeThroughVariants: Variants = {
   }
 };
 
+export const scrollContainerVariants: Variants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.07,
+      delayChildren: 0.04
+    }
+  }
+};
+
 export const staggerContainerVariants: Variants = {
   hidden: {},
   show: {
@@ -60,6 +95,20 @@ export const staggerContainerVariants: Variants = {
       staggerChildren: 0.055,
       delayChildren: 0.035
     }
+  }
+};
+
+export const scrollItemVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 14,
+    scale: 0.99
+  },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: standardTransition
   }
 };
 
@@ -80,6 +129,21 @@ export const cardItemVariants: Variants = {
     y: -8,
     scale: 0.985,
     transition: quickTransition
+  }
+};
+
+export const barFillVariants: Variants = {
+  hidden: {
+    scaleX: 0,
+    transformOrigin: "0% 50%"
+  },
+  show: {
+    scaleX: 1,
+    transformOrigin: "0% 50%",
+    transition: {
+      duration: 0.72,
+      ease: premiumEase
+    }
   }
 };
 
