@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/AppFrame";
 
@@ -115,8 +116,8 @@ function SettingsPanel({ tab }: { tab: SettingsTab }) {
     return (
       <div className="settings-card">
         <h3>Aria Mind</h3>
-        <p className="muted-copy">Your workspace is currently on the Pro tier.</p>
-        <button className="ghost-button" type="button">Download invoice summary</button>
+        <p className="muted-copy">Credit wallet, plans, top-ups, invoices, and usage are managed in Billing.</p>
+        <Link className="ghost-button" href="/billing">Open billing dashboard</Link>
       </div>
     );
   }

@@ -19,6 +19,7 @@ import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { AionLogo } from "@/components/AionLogo";
 import { ConfigAlert } from "@/components/ConfigAlert";
+import { messageRowVariants } from "@/lib/motion";
 import { useChatStore } from "@/store/useChatStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import type { UiMessage } from "@/store/useChatStore";
@@ -57,9 +58,12 @@ export function MessageBubble({
     return (
       <motion.div
         className="message-row is-user"
-        initial={{ opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
+        custom="user"
+        variants={messageRowVariants}
+        initial="hidden"
+        animate="show"
+        exit="exit"
+        layout="position"
       >
         <div className="user-message-body">
           <div className={clsx("user-bubble", isImageOnly && "is-image-only")}>
@@ -81,9 +85,12 @@ export function MessageBubble({
   return (
     <motion.div
       className="message-row is-ai"
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+      custom="assistant"
+      variants={messageRowVariants}
+      initial="hidden"
+      animate="show"
+      exit="exit"
+      layout="position"
     >
       <div className="ai-message-body">
         <div className="ai-message-meta" aria-label={`Responded by ${displayModelLabel}`}>
@@ -159,9 +166,12 @@ export function LoadingBubble({ model }: { model: AionModelId }) {
   return (
     <motion.div
       className="message-row is-ai"
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+      custom="assistant"
+      variants={messageRowVariants}
+      initial="hidden"
+      animate="show"
+      exit="exit"
+      layout="position"
     >
       <div className="ai-message-body">
         <div className="typing">

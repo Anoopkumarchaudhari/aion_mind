@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { BarChart3, Code2, FileText, MoreHorizontal, Search } from "lucide-react";
+import { cardItemVariants, pageShellVariants, quickTransition, staggerContainerVariants } from "@/lib/motion";
 
 type EmptyStateProps = {
   controls: ReactNode;
@@ -53,44 +54,54 @@ export function EmptyState({ controls, accountName, onPromptSelect }: EmptyState
     <motion.section
       className="hero-empty"
       aria-label="Start a chat"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.34, ease: "easeOut" }}
+      variants={pageShellVariants}
+      initial="hidden"
+      animate="show"
+      exit="exit"
     >
       <div className="hero-content">
         <button className="hero-more-button" type="button" aria-label="More dashboard actions" title="More">
           <MoreHorizontal size={18} />
         </button>
 
-        <header className="dashboard-hero-heading">
+        <motion.header className="dashboard-hero-heading" variants={cardItemVariants}>
           <h1>
             {greeting}
             {firstName ? `, ${firstName}` : ""}
           </h1>
           <p>What would you like to explore today?</p>
-        </header>
+        </motion.header>
 
-        <div className="dashboard-action-grid" aria-label="Suggested starting points">
+        <motion.div
+          className="dashboard-action-grid"
+          aria-label="Suggested starting points"
+          variants={staggerContainerVariants}
+        >
           {DASHBOARD_ACTIONS.map((action) => {
             const Icon = action.icon;
 
             return (
-              <button
+              <motion.button
                 className={`dashboard-action-card is-${action.tone}`}
                 key={action.title}
                 type="button"
+                variants={cardItemVariants}
+                whileHover={{ y: -3, scale: 1.012 }}
+                whileTap={{ scale: 0.985 }}
+                transition={quickTransition}
                 onClick={() => onPromptSelect?.(action.prompt)}
               >
                 <Icon size={24} aria-hidden="true" />
                 <span className="dashboard-action-title">{action.title}</span>
                 <span className="dashboard-action-description">{action.description}</span>
-              </button>
+              </motion.button>
             );
           })}
-        </div>
+        </motion.div>
 
-        <div className="hero-controls">{controls}</div>
+        <motion.div className="hero-controls" variants={cardItemVariants}>
+          {controls}
+        </motion.div>
       </div>
     </motion.section>
   );

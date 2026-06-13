@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast as sonnerToast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
 import { MessageInput } from "@/components/MessageInput";
 import { ModelRoutingDrawer } from "@/components/ModelRoutingDrawer";
@@ -15,6 +16,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { TempBanner } from "@/components/TempBanner";
 import { TopBar } from "@/components/TopBar";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
+import { fadeThroughVariants, gentleSpring } from "@/lib/motion";
+import { getAvailableCredits, getChatCreditCharge, useBillingStore } from "@/store/useBillingStore";
 import { sortThreads, useChatStore } from "@/store/useChatStore";
 import { useNotebookStore } from "@/store/useNotebookStore";
 import type { AionModelId, AionResearchModelId, ChatAttachment } from "@/types/aion";
@@ -163,12 +166,22 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
     event?.preventDefault();
 
     const content = input.trim();
+    const outgoingAttachments = attachments;
+    const requestModel = options.selectedModel ?? selectedModel;
+    const creditCharge = getChatCreditCharge(requestModel, outgoingAttachments.length);
+    const billingState = useBillingStore.getState();
 
     if ((!content && attachments.length === 0) || isLoading || isReadingFiles) {
       return;
     }
 
-    const outgoingAttachments = attachments;
+    if (getAvailableCredits(billingState) < creditCharge.credits) {
+      sonnerToast.error(`Need ${creditCharge.credits} credits for ${creditCharge.label}.`);
+      router.push("/billing");
+      return;
+    }
+
+    billingState.spendCredits(creditCharge);
     setInput("");
     setAttachments([]);
     setAttachmentError("");
@@ -177,7 +190,7 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
     await sendMessage(content, {
       debug: debugEnabled,
       attachments: outgoingAttachments,
-      selectedModel: options.selectedModel,
+      selectedModel: requestModel,
       researchModel: options.researchModel ?? researchModel
     });
     window.setTimeout(() => inputRef.current?.focus(), 0);
@@ -433,10 +446,10 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
                 <motion.div
                   key="messages"
                   className="chat-thread"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+                  variants={fadeThroughVariants}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
                 >
                   <MessageList
                     messages={activeMessages}
@@ -445,7 +458,7 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
                     debugEnabled={debugEnabled}
                     scrollRef={scrollRef}
                   />
-                  <motion.div className="docked-composer" layout>
+                  <motion.div className="docked-composer" layout transition={gentleSpring}>
                     {controls}
                   </motion.div>
                 </motion.div>

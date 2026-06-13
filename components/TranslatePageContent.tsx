@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight, Clipboard, Languages, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { AppFrame } from "@/components/AppFrame";
+import { getAvailableCredits, getTranslateCreditCharge, useBillingStore } from "@/store/useBillingStore";
 
 const targetLanguages = [
   "English",
@@ -40,6 +41,15 @@ export function TranslatePageContent() {
       return;
     }
 
+    const creditCharge = getTranslateCreditCharge(cleanText.length);
+    const billingState = useBillingStore.getState();
+
+    if (getAvailableCredits(billingState) < creditCharge.credits) {
+      setError(`Need ${creditCharge.credits} credits for ${creditCharge.label}.`);
+      return;
+    }
+
+    billingState.spendCredits(creditCharge);
     setIsTranslating(true);
     setError("");
 

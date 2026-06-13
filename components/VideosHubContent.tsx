@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { Film, ImagePlus, Loader2, X } from "lucide-react";
 import { AppFrame } from "@/components/AppFrame";
+import { getAvailableCredits, getVideoCreditCharge, useBillingStore } from "@/store/useBillingStore";
 import { useVideoStore } from "@/store/useVideoStore";
 import type {
   VideoGenerationMode,
@@ -76,6 +77,15 @@ export function VideosHubContent() {
       return;
     }
 
+    const creditCharge = getVideoCreditCharge(provider, modelKey, duration, mode);
+    const billingState = useBillingStore.getState();
+
+    if (getAvailableCredits(billingState) < creditCharge.credits) {
+      setError(`Need ${creditCharge.credits} credits for ${creditCharge.label}.`);
+      return;
+    }
+
+    billingState.spendCredits(creditCharge);
     setIsGenerating(true);
     setError("");
 

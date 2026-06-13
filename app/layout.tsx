@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AppMotionProvider } from "@/components/AppMotionProvider";
 import { ModeProvider } from "@/components/ModeProvider";
 import "./globals.css";
 
@@ -25,7 +26,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ModeProvider>{children}</ModeProvider>
+        <AppMotionProvider>
+          <ModeProvider>{children}</ModeProvider>
+        </AppMotionProvider>
       </body>
     </html>
   );

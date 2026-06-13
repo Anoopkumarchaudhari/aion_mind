@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { AionLogo } from "@/components/AionLogo";
+import { messageRowVariants } from "@/lib/motion";
 import type { AionModelId } from "@/types/aion";
 
 const LABELS: Record<AionModelId, string> = {
@@ -14,9 +15,12 @@ export function ThinkingIndicator({ model }: { model: AionModelId }) {
   return (
     <motion.div
       className="thinking-indicator"
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+      custom="assistant"
+      variants={messageRowVariants}
+      initial="hidden"
+      animate="show"
+      exit="exit"
+      layout="position"
     >
       <span className="thinking-logo" aria-hidden="true">
         <AionLogo size={24} decorative />

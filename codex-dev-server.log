@@ -8,5 +8,7 @@
    - Environments: .env
 
  ✓ Starting...
- ✓ Ready in 6.2s
+ ✓ Ready in 2.9s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 573ms (115 modules)
 [?25h

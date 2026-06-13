@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppFrame } from "@/components/AppFrame";
+import { getAvailableCredits, getImageCreditCharge, useBillingStore } from "@/store/useBillingStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import type {
   GeneratedImage,
@@ -230,6 +231,15 @@ export function ImagesHubContent() {
       return;
     }
 
+    const creditCharge = getImageCreditCharge(modelKey, quality);
+    const billingState = useBillingStore.getState();
+
+    if (getAvailableCredits(billingState) < creditCharge.credits) {
+      setError(`Need ${creditCharge.credits} credits for ${creditCharge.label}.`);
+      return;
+    }
+
+    billingState.spendCredits(creditCharge);
     setIsGenerating(true);
     setError("");
 

@@ -1,7 +1,9 @@
 "use client";
 
-import { Edit3, Menu } from "lucide-react";
+import Link from "next/link";
+import { CreditCard, Edit3, Menu } from "lucide-react";
 import { TempModeToggle } from "@/components/TempModeToggle";
+import { getAvailableCredits, useBillingStore } from "@/store/useBillingStore";
 
 type TopBarProps = {
   tempMode: boolean;
@@ -11,6 +13,9 @@ type TopBarProps = {
 };
 
 export function TopBar({ tempMode, onToggleTempMode, onNewChat, onToggleSidebar }: TopBarProps) {
+  const billing = useBillingStore();
+  const availableCredits = getAvailableCredits(billing);
+
   return (
     <header className="topbar">
       <button
@@ -24,6 +29,10 @@ export function TopBar({ tempMode, onToggleTempMode, onNewChat, onToggleSidebar 
       </button>
       <div />
       <div className="topbar-actions">
+        <Link className="top-billing-button" href="/billing" aria-label="Open billing dashboard" title="Billing">
+          <CreditCard size={16} />
+          <span className="top-billing-balance">{formatCompactCredits(availableCredits)}</span>
+        </Link>
         <TempModeToggle active={tempMode} onToggle={onToggleTempMode} />
         <button
           className="top-edit-button"
@@ -37,4 +46,12 @@ export function TopBar({ tempMode, onToggleTempMode, onNewChat, onToggleSidebar 
       </div>
     </header>
   );
+}
+
+function formatCompactCredits(value: number) {
+  if (value >= 1000) {
+    return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}k`;
+  }
+
+  return String(value);
 }

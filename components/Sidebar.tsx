@@ -28,6 +28,7 @@ import {
 import { AionLogo } from "@/components/AionLogo";
 import { ChatRowMenu } from "@/components/ChatRowMenu";
 import { RenameInline } from "@/components/RenameInline";
+import { cardItemVariants, gentleSpring, sidebarBackdropVariants } from "@/lib/motion";
 import type { AionModelId } from "@/types/aion";
 import type { Notebook } from "@/types/workspace";
 
@@ -110,7 +111,7 @@ export function Sidebar({
   }, []);
 
   useEffect(() => {
-    ["/images", "/videos", "/podcast", "/translate", "/library", "/notebooks"].forEach((route) =>
+    ["/images", "/videos", "/podcast", "/translate", "/library", "/notebooks", "/billing"].forEach((route) =>
       router.prefetch(route)
     );
   }, [router]);
@@ -149,18 +150,26 @@ export function Sidebar({
 
   return (
     <>
-      {isOpen ? (
-        <button
-          className="sidebar-backdrop"
-          type="button"
-          aria-label="Close sidebar"
-          onClick={onClose}
-        />
-      ) : null}
+      <AnimatePresence initial={false}>
+        {isOpen ? (
+          <motion.button
+            className="sidebar-backdrop"
+            type="button"
+            aria-label="Close sidebar"
+            variants={sidebarBackdropVariants}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+            onClick={onClose}
+          />
+        ) : null}
+      </AnimatePresence>
 
-      <aside
+      <motion.aside
         className={clsx("sidebar", isOpen && "is-open", isCollapsed && "is-collapsed")}
         aria-label="Chat history"
+        layout="size"
+        transition={gentleSpring}
       >
         <div className="brand-row">
           <AionLogo size={28} />
@@ -362,7 +371,7 @@ export function Sidebar({
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
-      </aside>
+      </motion.aside>
     </>
   );
 }
@@ -437,10 +446,10 @@ function ThreadSection({
                   )}
                   key={thread.id}
                   layout
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                  transition={{ duration: 0.18 }}
+                  variants={cardItemVariants}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
                   title={`${thread.title} - ${getDisplayModelLabel(thread.model)}`}
                 >
                   {isRenaming ? (

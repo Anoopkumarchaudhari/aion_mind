@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "@/components/Sidebar";
+import { pageShellVariants } from "@/lib/motion";
 import { sortThreads, useChatStore } from "@/store/useChatStore";
 import { useNotebookStore } from "@/store/useNotebookStore";
 
@@ -13,6 +15,7 @@ type AppFrameProps = {
 
 export function AppFrame({ children, title }: AppFrameProps) {
   const router = useRouter();
+  const pathname = usePathname() ?? "route";
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const rawThreads = useChatStore((state) => state.threads);
@@ -109,7 +112,18 @@ export function AppFrame({ children, title }: AppFrameProps) {
           </button>
           {title ? <h1>{title}</h1> : <span />}
         </header>
-        {children}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            className="route-motion-shell"
+            key={pathname}
+            variants={pageShellVariants}
+            initial="hidden"
+            animate="show"
+            exit="exit"
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );
