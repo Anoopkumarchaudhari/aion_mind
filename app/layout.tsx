@@ -9,12 +9,12 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/aion-mind-logo.jpg",
-        type: "image/jpeg"
+        url: "/Aria%20logo/aria-icon.png",
+        type: "image/png"
       }
     ],
-    shortcut: "/aion-mind-logo.jpg",
-    apple: "/aion-mind-logo.jpg"
+    shortcut: "/Aria%20logo/aria-icon.png",
+    apple: "/Aria%20logo/aria-icon.png"
   }
 };
 

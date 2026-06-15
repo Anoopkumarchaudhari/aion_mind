@@ -109,7 +109,7 @@ export function Sidebar({
   const [account, setAccount] = useState({ name: ACCOUNT_NAME, plan: ACCOUNT_PLAN });
   const pinnedThreads = useMemo(() => threads.filter((thread) => thread.pinned), [threads]);
   const recentThreads = useMemo(() => threads.filter((thread) => !thread.pinned), [threads]);
-  const isChatRoute = pathname === "/" || pathname.startsWith("/chat/");
+  const isChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
   const displayedActiveThreadId = isChatRoute ? activeThreadId : "";
 
   useEffect(() => {

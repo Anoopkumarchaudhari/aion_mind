@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE = "aion_session";
-const PUBLIC_PATHS = new Set(["/login", "/signup"]);
+const PUBLIC_PATHS = new Set(["/", "/login", "/signup"]);
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -12,8 +12,8 @@ export function middleware(request: NextRequest) {
   }
 
   if (PUBLIC_PATHS.has(pathname)) {
-    if (hasSession) {
-      return NextResponse.redirect(new URL("/", request.url));
+    if (hasSession && (pathname === "/login" || pathname === "/signup")) {
+      return NextResponse.redirect(getSafeRedirectUrl(request));
     }
 
     return NextResponse.next();
@@ -28,6 +28,16 @@ export function middleware(request: NextRequest) {
   }
 
   return NextResponse.next();
+}
+
+function getSafeRedirectUrl(request: NextRequest) {
+  const redirect = request.nextUrl.searchParams.get("redirect");
+
+  if (redirect?.startsWith("/") && !redirect.startsWith("//")) {
+    return new URL(redirect, request.url);
+  }
+
+  return new URL("/chat", request.url);
 }
 
 function isPublicAsset(pathname: string) {

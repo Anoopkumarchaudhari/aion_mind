@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -48,6 +48,18 @@ export function BillingPageContent() {
   const usedPercent = getCreditUsagePercent(billing);
   const usageSummary = getUsageSummary(billing.usage);
   const nextRenewalDate = getNextRenewalDate();
+
+  useEffect(() => {
+    const planId = new URLSearchParams(window.location.search).get("plan");
+
+    if (isBillingPlanId(planId)) {
+      if (planId !== useBillingStore.getState().planId) {
+        useBillingStore.getState().selectPlan(planId);
+      }
+
+      window.history.replaceState(null, "", "/billing");
+    }
+  }, []);
 
   return (
     <AppFrame
@@ -395,4 +407,8 @@ function getNextRenewalDate() {
     month: "short",
     year: "numeric"
   }).format(value);
+}
+
+function isBillingPlanId(value: string | null): value is (typeof BILLING_PLANS)[number]["id"] {
+  return BILLING_PLANS.some((plan) => plan.id === value);
 }

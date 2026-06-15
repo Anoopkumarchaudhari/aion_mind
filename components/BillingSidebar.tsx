@@ -143,7 +143,7 @@ export function BillingSidebar({
             <strong>{nextRenewalDate}</strong>
           </section>
 
-          <Link className="sidebar-action context-sidebar-footer" href="/" onClick={onClose}>
+          <Link className="sidebar-action context-sidebar-footer" href="/chat" onClick={onClose}>
             <Home size={17} />
             <span className="sidebar-action-label">Back to chat</span>
           </Link>

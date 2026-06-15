@@ -9,10 +9,10 @@ export function AionLogo({ size, decorative = false }: AionLogoProps) {
   return (
     <img
       className="aion-mark"
-      src="/aion-mind-logo.jpg"
+      src="/Aria%20logo/aria-icon.png"
       width={size}
       height={size}
-      alt={decorative ? "" : "Aria Mind"}
+      alt={decorative ? "" : "AriamindX"}
       aria-hidden={decorative || undefined}
       draggable={false}
     />

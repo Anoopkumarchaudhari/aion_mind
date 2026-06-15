@@ -35,7 +35,7 @@ export function GlobalOverlays() {
       } else if (event.key.toLowerCase() === "n") {
         event.preventDefault();
         const id = createOrFocusNewChat();
-        router.push(id === "aion-temp-chat" ? "/" : `/chat/${id}`);
+        router.push(id === "aion-temp-chat" ? "/chat" : `/chat/${id}`);
       }
 
       if (event.key.toLowerCase() === "b") {

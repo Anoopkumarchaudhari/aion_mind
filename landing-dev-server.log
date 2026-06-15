@@ -1,0 +1,33 @@
+
+> aion-mind@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.5.18
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.75.1:3001
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 6.8s
+ ✓ Compiled /middleware in 456ms (115 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 3.7s (1677 modules)
+ GET / 200 in 5026ms
+ GET / 200 in 388ms
+ ○ Compiling /api/chats ...
+ ✓ Compiled /api/chats in 1603ms (1709 modules)
+ GET /api/chats 200 in 23362ms
+ POST /api/chats 200 in 4094ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1321ms (1714 modules)
+ POST /api/chats 404 in 2460ms
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1901ms (2061 modules)
+ POST /api/chats 200 in 9099ms
+ POST /api/chats 200 in 10265ms
+ POST /api/chats 200 in 10649ms
+ GET / 200 in 396ms
+ GET / 200 in 96ms
+ POST /api/chats 200 in 12157ms
+ POST /api/chats 200 in 12418ms
+ ✓ Compiled in 1333ms (1929 modules)

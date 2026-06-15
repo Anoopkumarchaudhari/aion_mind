@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent, type MouseEvent } from "react";
 import { ArrowRight, Chrome, Eye, EyeOff, Github, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { motion } from "framer-motion";
@@ -12,11 +12,12 @@ type AuthFormProps = {
   mode: "login" | "signup";
 };
 
-const ACCOUNT_CREATION_DISABLED = true;
+const ACCOUNT_CREATION_DISABLED = false;
 const ACCOUNT_CREATION_DISABLED_MESSAGE = "New account creation is temporarily disabled.";
 
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +29,8 @@ export function AuthForm({ mode }: AuthFormProps) {
   const isSignupDisabled = isSignup && ACCOUNT_CREATION_DISABLED;
   const isCreateAccountLinkDisabled = !isSignup && ACCOUNT_CREATION_DISABLED;
   const passwordScore = getPasswordScore(password);
-  const switchHref = isSignup ? "/login" : "/signup";
+  const redirectPath = getSafeRedirectPath(searchParams.get("redirect"));
+  const switchHref = buildAuthModeHref(isSignup ? "/login" : "/signup", redirectPath);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,7 +59,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         throw new Error(data.error || "Authentication failed.");
       }
 
-      router.push("/");
+      router.push(redirectPath);
       router.refresh();
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : "Authentication failed.");
@@ -263,6 +265,22 @@ export function AuthForm({ mode }: AuthFormProps) {
       </motion.section>
     </main>
   );
+}
+
+function buildAuthModeHref(path: "/login" | "/signup", redirectPath: string) {
+  if (redirectPath === "/chat") {
+    return path;
+  }
+
+  return `${path}?redirect=${encodeURIComponent(redirectPath)}`;
+}
+
+function getSafeRedirectPath(value: string | null) {
+  if (value?.startsWith("/") && !value.startsWith("//")) {
+    return value;
+  }
+
+  return "/chat";
 }
 
 function getPasswordScore(password: string) {

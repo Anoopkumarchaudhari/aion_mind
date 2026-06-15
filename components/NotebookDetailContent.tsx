@@ -149,7 +149,7 @@ export function NotebookDetailContent({ notebookId }: NotebookDetailContentProps
           <button
             className="primary-button full"
             type="button"
-            onClick={() => window.location.assign(`/?notebook=${currentNotebook.id}`)}
+            onClick={() => window.location.assign(`/chat?notebook=${currentNotebook.id}`)}
           >
             Ask Aria Mind
           </button>

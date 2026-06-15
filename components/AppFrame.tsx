@@ -59,7 +59,7 @@ export function AppFrame({ children, title, sidebar }: AppFrameProps) {
   function handleNewChat() {
     const id = createOrFocusNewChat(selectedModel);
     setSidebarOpen(false);
-    router.push(id === "aion-temp-chat" ? "/" : `/chat/${id}`);
+    router.push(id === "aion-temp-chat" ? "/chat" : `/chat/${id}`);
   }
 
   function handleSelectThread(thread: { id: string }) {

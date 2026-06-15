@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { AuthError, createSession, setSessionCookie, signupUser } from "@/services/auth";
 
 export const runtime = "nodejs";
-const ACCOUNT_CREATION_DISABLED = true;
+const ACCOUNT_CREATION_DISABLED = false;
 
 type SignupBody = {
   name?: unknown;
