@@ -9519,3 +9519,138 @@ body:has(.landing-page) {
     display: none;
   }
 }
+
+/* ============================================================
+   Landing: mobile header (hamburger menu) + About section.
+   Placed at end of file so these win over the earlier base
+   rules (.landing-about / .landing-nav nav) that otherwise
+   override the older max-width media queries on small screens.
+   ============================================================ */
+
+.landing-nav-toggle {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .landing-nav {
+    padding: 8px clamp(12px, 4vw, 22px);
+  }
+
+  .landing-nav-inner {
+    position: relative;
+    gap: 12px;
+  }
+
+  .landing-brand strong {
+    font-size: 0.98rem;
+  }
+
+  .landing-brand small {
+    font-size: 0.7rem;
+  }
+
+  /* Hamburger / close toggle */
+  .landing-nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease;
+  }
+
+  .landing-nav-toggle:hover,
+  .landing-nav.is-open .landing-nav-toggle {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+
+  /* Solidify the bar while the menu is open so the panel reads
+     clearly over the animated starfield, even before scroll. */
+  .landing-nav.is-open {
+    background: rgba(6, 10, 16, 0.96);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(20px) saturate(1.2);
+  }
+
+  /* Inline nav becomes a dropdown panel under the bar */
+  .landing-nav nav {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    background: rgba(10, 14, 22, 0.98);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(22px) saturate(1.2);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease,
+      visibility 180ms ease;
+  }
+
+  .landing-nav nav.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .landing-nav nav a {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 0.98rem;
+  }
+
+  .landing-nav nav a.landing-nav-cta {
+    justify-content: center;
+    margin-top: 4px;
+    padding: 13px 16px;
+  }
+
+  /* About: force a single column so the stat cards stack below the
+     copy instead of overlapping it. */
+  .landing-about {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 26px;
+  }
+
+  .landing-about-copy {
+    max-width: none;
+  }
+
+  .landing-about-copy p {
+    font-size: 0.96rem;
+    line-height: 1.6;
+  }
+}
+
+@media (max-width: 460px) {
+  .landing-about-stat {
+    padding: 15px;
+  }
+
+  .landing-about-stat strong {
+    font-size: 1.6rem;
+  }
+}

@@ -18,6 +18,7 @@ import {
   Languages,
   Layers3,
   Library,
+  Menu,
   MessageSquare,
   Mic2,
   NotebookPen,
@@ -30,6 +31,7 @@ import {
   Users,
   Video,
   WandSparkles,
+  X,
   Zap
 } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
@@ -663,23 +665,46 @@ function TierWorkflow({ diagram, color }: { diagram: TierDiagram; color: string 
 }
 
 function LandingNav({ scrolled }: { scrolled: boolean }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close the mobile menu once the viewport grows back to desktop width.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onResize = () => {
+      if (window.innerWidth > 720) setMenuOpen(false);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [menuOpen]);
+
+  const closeMenu = () => setMenuOpen(false);
+
   return (
-    <header className={`landing-nav ${scrolled ? "is-scrolled" : ""}`}>
+    <header className={`landing-nav ${scrolled ? "is-scrolled" : ""} ${menuOpen ? "is-open" : ""}`}>
       <div className="landing-nav-inner">
-        <Link className="landing-brand" href="/">
+        <Link className="landing-brand" href="/" onClick={closeMenu}>
           <AionLogo size={34} />
           <span>
             <strong>AriamindX</strong>
             <small>By JB Crownstone</small>
           </span>
         </Link>
-        <nav aria-label="Landing navigation">
-          <a href="#models">Models</a>
-          <a href="#features">Features</a>
-          <a href="#about">About</a>
-          <a href="#plans">Plans</a>
-          <Link href="/login">Login</Link>
-          <Link className="landing-nav-cta" href="/login">
+        <button
+          type="button"
+          className="landing-nav-toggle"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {menuOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+        <nav aria-label="Landing navigation" className={menuOpen ? "is-open" : ""}>
+          <a href="#models" onClick={closeMenu}>Models</a>
+          <a href="#features" onClick={closeMenu}>Features</a>
+          <a href="#about" onClick={closeMenu}>About</a>
+          <a href="#plans" onClick={closeMenu}>Plans</a>
+          <Link href="/login" onClick={closeMenu}>Login</Link>
+          <Link className="landing-nav-cta" href="/login" onClick={closeMenu}>
             Get started
             <ArrowRight size={15} />
           </Link>
