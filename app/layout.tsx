@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppMotionProvider } from "@/components/AppMotionProvider";
 import { ModeProvider } from "@/components/ModeProvider";
+import { ScrollToTopOnLoad } from "@/components/ScrollToTopOnLoad";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <ScrollToTopOnLoad />
         <AppMotionProvider>
           <ModeProvider>{children}</ModeProvider>
         </AppMotionProvider>
