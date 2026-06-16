@@ -13,6 +13,7 @@ import {
   Route,
   ShieldCheck,
   UserCheck,
+  UserCog,
   Users,
   Wallet
 } from "lucide-react";
@@ -38,6 +39,8 @@ export function AdminSidebar({
   const activeUsers = overview.stats.activeUsers ?? overview.users.filter((user) => user.isActive).length;
   const liveModels = modelBalances?.rows.filter((row) => row.liveStatus === "available").length ?? null;
   const readyProviders = overview.providers.filter((provider) => provider.apiKeyConfigured).length;
+  const adminCount = overview.admins.length;
+  const subAdminCount = overview.admins.filter((member) => !member.isSuperAdmin).length;
 
   return (
     <>
@@ -103,6 +106,14 @@ export function AdminSidebar({
               <span>Plans</span>
               <strong>{overview.billing.plans.length.toLocaleString("en-IN")}</strong>
             </div>
+            <div>
+              <span>Admins</span>
+              <strong>{adminCount.toLocaleString("en-IN")}</strong>
+            </div>
+            <div>
+              <span>Sub-admins</span>
+              <strong>{subAdminCount.toLocaleString("en-IN")}</strong>
+            </div>
           </div>
 
           <nav className="context-sidebar-nav" aria-label="Admin sections">
@@ -118,6 +129,10 @@ export function AdminSidebar({
             <a className="sidebar-action" href="#admin-users" onClick={onClose}>
               <Users size={17} />
               <span className="sidebar-action-label">Users</span>
+            </a>
+            <a className="sidebar-action" href="#admin-members" onClick={onClose}>
+              <UserCog size={17} />
+              <span className="sidebar-action-label">Admins ({adminCount})</span>
             </a>
             <a className="sidebar-action" href="#admin-providers" onClick={onClose}>
               <UserCheck size={17} />

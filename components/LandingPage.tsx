@@ -35,7 +35,7 @@ import {
   Zap
 } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
-import { BILLING_PLANS, FEATURE_CREDIT_RATES, type BillingPlanId } from "@/services/billingCatalog";
+import { type BillingPlanId, type ResolvedBillingCatalog } from "@/services/billingCatalog";
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -164,7 +164,7 @@ const audiences = [
 
 const heroWords = ["Text", "Image", "Video", "Voice", "Research", "Analysis"];
 
-export function LandingPage() {
+export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
   const scrolled = useScrolled(24);
 
   return (
@@ -389,7 +389,7 @@ export function LandingPage() {
           copy="Pick a monthly credit wallet. Every plan unlocks the full workspace: chat, research, image, video, translate, notebooks, and library."
         />
         <div className="landing-plan-grid">
-          {BILLING_PLANS.map((plan, index) => (
+          {catalog.plans.map((plan, index) => (
             <motion.article
               className={`landing-plan-card ${plan.id === "pro" ? "is-featured" : ""}`}
               key={plan.id}
@@ -420,7 +420,7 @@ export function LandingPage() {
           copy="Use one balance across the creative stack instead of juggling many disconnected subscriptions."
         />
         <div className="landing-rate-grid">
-          {FEATURE_CREDIT_RATES.map((rate) => (
+          {catalog.featureRates.map((rate) => (
             <div className="landing-rate-pill" key={rate.id} style={{ "--rate-color": rate.color } as CSSProperties}>
               <span />
               <strong>{rate.label}</strong>

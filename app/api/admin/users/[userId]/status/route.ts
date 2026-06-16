@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminUser } from "@/services/adminAuth";
-import { setUserActiveStatus } from "@/services/adminOverview";
+import { assertCanManageTargetUser, setUserActiveStatus } from "@/services/adminOverview";
 import { AuthError } from "@/services/auth";
 
 export const runtime = "nodejs";
@@ -24,6 +24,8 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (userId === admin.id) {
       return NextResponse.json({ error: "You cannot change your own admin status." }, { status: 400 });
     }
+
+    await assertCanManageTargetUser(admin, userId);
 
     const body = (await request.json()) as StatusBody;
 

@@ -6,3 +6,13 @@
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: EPERM: operation not permitted, rename 'D:\Aion_mind\.next\cache\webpack\client-development\1.pack.gz_' -> 'D:\Aion_mind\.next\cache\webpack\client-development\1.pack.gz'
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: EPERM: operation not permitted, rename 'D:\Aion_mind\.next\cache\webpack\client-development\1.pack.gz_' -> 'D:\Aion_mind\.next\cache\webpack\client-development\1.pack.gz'
 <w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: EPERM: operation not permitted, rename 'D:\Aion_mind\.next\cache\webpack\client-development\2.pack.gz_' -> 'D:\Aion_mind\.next\cache\webpack\client-development\2.pack.gz'
+RangeError: Array buffer allocation failed
+    at new Promise (<anonymous>)
+ ⨯ unhandledRejection: RangeError: Array buffer allocation failed
+    at new Promise (<anonymous>)
+ ⨯ unhandledRejection:  RangeError: Array buffer allocation failed
+    at new Promise (<anonymous>)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: RangeError: Array buffer allocation failed
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: EPERM: operation not permitted, rename 'D:\Aion_mind\.next\cache\webpack\server-development\1.pack.gz_' -> 'D:\Aion_mind\.next\cache\webpack\server-development\1.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename 'D:\Aion_mind\.next\cache\webpack\client-development\3.pack.gz_' -> 'D:\Aion_mind\.next\cache\webpack\client-development\3.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: EPERM: operation not permitted, rename 'D:\Aion_mind\.next\cache\webpack\server-development\2.pack.gz_' -> 'D:\Aion_mind\.next\cache\webpack\server-development\2.pack.gz'

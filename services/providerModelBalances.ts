@@ -1,5 +1,6 @@
 import { fetchJsonWithTimeout, getTimeoutMs, truncate } from "@/providers/providerUtils";
 import { loadAionRoutingSettings } from "@/services/aionRoutingConfig";
+import { getProviderBudgets } from "@/services/adminSettings";
 import {
   getAionRoutingProviderLabel,
   type AionRouteSlot,
@@ -54,10 +55,43 @@ type OpenAICostsResponse = {
     results?: Array<{
       amount?: {
         currency?: string;
-        value?: number;
+        value?: number | string;
       };
     }>;
   }>;
+};
+
+type OpenAICreditGrantsResponse = {
+  total_granted?: number;
+  total_used?: number;
+  total_available?: number;
+  total_paid_available?: number;
+};
+
+type DeepSeekBalanceResponse = {
+  is_available?: boolean;
+  balance_infos?: Array<{
+    currency?: string;
+    total_balance?: string | number;
+    granted_balance?: string | number;
+    topped_up_balance?: string | number;
+  }>;
+};
+
+type AnthropicCostAmount = string | number | { value?: number; currency?: string } | undefined;
+
+type AnthropicCostResponse = {
+  data?: Array<{
+    results?: Array<{
+      amount?: AnthropicCostAmount;
+      currency?: string;
+    }>;
+  }>;
+};
+
+type ProviderBalance = {
+  remainingUsd: number;
+  source: string;
 };
 
 type RouteModelSlot = {
@@ -82,6 +116,7 @@ export type ProviderModelBalanceRow = {
   budgetUsd: number | null;
   spentUsd: number | null;
   remainingUsd: number | null;
+  balanceSource: string | null;
   inputTokensLeft: number | null;
   outputTokensLeft: number | null;
   contextWindowTokens?: number;
@@ -172,22 +207,52 @@ export async function getProviderModelBalances(): Promise<ProviderModelBalancesP
     { routeLabel: "Aria Analyzer judge", slot: settings.analyzer.judge }
   ]);
   const providers = [...new Set(slots.map((item) => item.slot.provider))];
-  const [catalogs, spendByProvider] = await Promise.all([
+  const [catalogs, spendByProvider, balanceByProvider, adminBudgets] = await Promise.all([
     getProviderCatalogs(providers),
-    getProviderSpend(providers)
+    getProviderSpend(providers),
+    getProviderBalances(providers),
+    getProviderBudgets()
   ]);
   const generatedAt = new Date();
   const rows = slots.map((item) => {
     const { slot } = item;
     const providerCatalog = catalogs.get(slot.provider) ?? getUnsupportedCatalog(slot.provider);
     const price = getModelPrice(slot.provider, slot.model);
-    const budgetUsd = getProviderBudgetUsd(slot.provider);
+    const liveBalance = balanceByProvider.get(slot.provider) ?? null;
+    const adminBudget = adminBudgets[slot.provider];
+    const providerDisabled = adminBudget?.enabled === false;
+    // Admin-configured budget (DB) takes priority over env vars.
+    const configuredBudget = adminBudget?.budgetUsd ?? getProviderBudgetUsd(slot.provider);
     const spentUsd = spendByProvider.get(slot.provider) ?? null;
-    const remainingUsd =
-      budgetUsd === null ? null : Math.max(0, budgetUsd - Math.max(0, spentUsd ?? 0));
+
+    // Priority for "remaining":
+    //   1. Manual balance the admin typed from the provider console (most reliable).
+    //   2. A live balance API (DeepSeek /user/balance, OpenAI credit grants).
+    //   3. Budget − spend math.
+    const manualBalance = adminBudget?.balanceUsd ?? null;
+    let remainingUsd: number | null;
+    let budgetUsd: number | null;
+    let balanceSource: string | null = null;
+
+    if (manualBalance !== null) {
+      remainingUsd = manualBalance;
+      budgetUsd = configuredBudget ?? manualBalance;
+      balanceSource = "Manual (admin)";
+    } else if (liveBalance) {
+      remainingUsd = liveBalance.remainingUsd;
+      budgetUsd = configuredBudget ?? liveBalance.remainingUsd;
+      balanceSource = liveBalance.source;
+    } else {
+      budgetUsd = configuredBudget;
+      remainingUsd = budgetUsd === null ? null : Math.max(0, budgetUsd - Math.max(0, spentUsd ?? 0));
+    }
+
     const liveStatus = getLiveStatus(slot.model, providerCatalog);
     const modelDetails = getModelDetails(slot.model, providerCatalog);
-    const note = getRowNote(slot.provider, price, budgetUsd, providerCatalog.message);
+    const note = getRowNote(slot.provider, price, budgetUsd, providerCatalog.message, {
+      hasLiveBalance: Boolean(liveBalance),
+      providerDisabled
+    });
 
     return {
       id: `${slot.provider}:${slot.model}`,
@@ -195,7 +260,7 @@ export async function getProviderModelBalances(): Promise<ProviderModelBalancesP
       providerLabel: getAionRoutingProviderLabel(slot.provider),
       label: modelDetails.displayName || slot.label,
       model: slot.model,
-      enabled: item.slot.enabled,
+      enabled: item.slot.enabled && !providerDisabled,
       routes: item.routeLabel.split(" | "),
       liveStatus,
       liveStatusLabel: getLiveStatusLabel(liveStatus),
@@ -206,6 +271,7 @@ export async function getProviderModelBalances(): Promise<ProviderModelBalancesP
       budgetUsd,
       spentUsd,
       remainingUsd,
+      balanceSource,
       inputTokensLeft: estimateTokensLeft(remainingUsd, price?.inputUsdPerMillion),
       outputTokensLeft: estimateTokensLeft(remainingUsd, price?.outputUsdPerMillion),
       contextWindowTokens: modelDetails.contextWindowTokens,
@@ -219,9 +285,10 @@ export async function getProviderModelBalances(): Promise<ProviderModelBalancesP
     cycleStart: getCycleStartDate().toISOString(),
     rows,
     notes: [
-      "Live status is fetched from provider model-list APIs using server-side API keys.",
-      "Tokens left are calculated from provider budget env values minus known spend; providers usually do not expose a simple per-model token-balance API.",
-      "Set OPENAI_BUDGET_USD, ANTHROPIC_BUDGET_USD, GEMINI_BUDGET_USD, DEEPSEEK_BUDGET_USD, or AION_PROVIDER_BUDGET_USD to calculate balances."
+      "Live status is fetched from each provider's model-list API using server-side keys.",
+      "Real balance: DeepSeek (/user/balance) and OpenAI (credit grants, if your account exposes it) report actual remaining balance.",
+      "Real spend: OpenAI and Anthropic cost APIs (need OPENAI_ADMIN_API_KEY / ANTHROPIC_ADMIN_API_KEY) give live month-to-date spend; remaining = budget − spend.",
+      "Gemini and Grok have no public balance/spend API, so they rely on the budget you set in Admin → Providers (which overrides the *_BUDGET_USD env values)."
     ]
   };
 }
@@ -426,7 +493,211 @@ async function getProviderSpentUsd(provider: AionRoutingProvider) {
     }
   }
 
+  if (provider === "anthropic") {
+    const liveCost = await getAnthropicCycleCostUsd();
+
+    if (liveCost !== null) {
+      return liveCost;
+    }
+  }
+
   return readNumberEnv(`${provider.toUpperCase()}_SPENT_USD`);
+}
+
+/**
+ * Real account balances. Only providers that expose a balance API are queried;
+ * the rest return null and fall back to budget-minus-spend math.
+ */
+async function getProviderBalances(providers: AionRoutingProvider[]) {
+  const entries = await Promise.all(
+    providers.map(async (provider) => [provider, await getProviderBalanceUsd(provider)] as const)
+  );
+
+  return new Map(entries.filter((entry): entry is [AionRoutingProvider, ProviderBalance] => entry[1] !== null));
+}
+
+async function getProviderBalanceUsd(provider: AionRoutingProvider): Promise<ProviderBalance | null> {
+  if (provider === "deepseek") {
+    return getDeepSeekBalanceUsd();
+  }
+
+  if (provider === "openai") {
+    return getOpenAICreditBalanceUsd();
+  }
+
+  return null;
+}
+
+/**
+ * Best-effort: OpenAI's legacy credit-grants endpoint returns the real
+ * available prepaid balance for accounts that still expose it. Many accounts
+ * now require a dashboard session token and will 401 here — in that case we
+ * return null and fall back to spend/budget math.
+ */
+async function getOpenAICreditBalanceUsd(): Promise<ProviderBalance | null> {
+  const apiKey = readEnv("OPENAI_API_KEY");
+
+  if (!apiKey) {
+    return null;
+  }
+
+  try {
+    const data = await fetchJsonWithTimeout<OpenAICreditGrantsResponse>(
+      "https://api.openai.com/dashboard/billing/credit_grants",
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`
+        }
+      },
+      getModelBalanceTimeoutMs(),
+      { maxRetries: 0 }
+    );
+
+    const available = Number(data.total_available);
+
+    if (!Number.isFinite(available)) {
+      return null;
+    }
+
+    return {
+      remainingUsd: Math.max(0, available),
+      source: "OpenAI credit grants"
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function getDeepSeekBalanceUsd(): Promise<ProviderBalance | null> {
+  const apiKey = readEnv("DEEPSEEK_API_KEY");
+
+  if (!apiKey) {
+    return null;
+  }
+
+  try {
+    const data = await fetchJsonWithTimeout<DeepSeekBalanceResponse>(
+      "https://api.deepseek.com/user/balance",
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Accept: "application/json"
+        }
+      },
+      getModelBalanceTimeoutMs(),
+      { maxRetries: 0 }
+    );
+
+    const infos = data.balance_infos ?? [];
+    const usdInfo = infos.find((info) => (info.currency ?? "").toUpperCase() === "USD");
+    const info = usdInfo ?? infos[0];
+
+    if (!info) {
+      return null;
+    }
+
+    const total = Number(info.total_balance);
+
+    if (!Number.isFinite(total)) {
+      return null;
+    }
+
+    const currency = (info.currency ?? "USD").toUpperCase();
+
+    return {
+      remainingUsd: Math.max(0, total),
+      source: `DeepSeek /user/balance${currency === "USD" ? "" : ` (${currency})`}`
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function getAnthropicCycleCostUsd() {
+  const apiKey = readEnv("ANTHROPIC_ADMIN_API_KEY");
+
+  if (!apiKey) {
+    return null;
+  }
+
+  // Anthropic Cost API: amounts are USD decimal strings, bucketed by day.
+  // limit is the number of time buckets (max 31), so a 1d bucket covers a month.
+  const params = new URLSearchParams({
+    starting_at: getCycleStartDate().toISOString(),
+    bucket_width: "1d",
+    limit: "31"
+  });
+
+  try {
+    const data = await fetchJsonWithTimeout<AnthropicCostResponse>(
+      `https://api.anthropic.com/v1/organizations/cost_report?${params}`,
+      {
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01"
+        }
+      },
+      getModelBalanceTimeoutMs(),
+      { maxRetries: 0 }
+    );
+
+    let total = 0;
+    let sawValue = false;
+    let rowCount = 0;
+
+    for (const bucket of data.data ?? []) {
+      for (const result of bucket.results ?? []) {
+        // Skip non-USD line items so we never mix currencies into a USD total.
+        const currency = (result.currency ?? amountCurrency(result.amount) ?? "USD").toUpperCase();
+
+        if (currency !== "USD") {
+          continue;
+        }
+
+        const value = amountValue(result.amount);
+
+        if (value !== null) {
+          total += value;
+          sawValue = true;
+          rowCount += 1;
+        }
+      }
+    }
+
+    // Anthropic's cost report returns amounts in cents (e.g. 90.73 = $0.9073),
+    // unlike OpenAI which reports dollars. Convert cents -> USD and round to cents.
+    const usd = total / 100;
+
+    if (readEnv("AION_DEBUG_BALANCES")) {
+      console.warn(
+        "[balances] Anthropic cost_report:",
+        JSON.stringify({ rowCount, totalCents: total, usd, raw: data }, null, 2)
+      );
+    }
+
+    return sawValue ? Math.round(usd * 100) / 100 : null;
+  } catch {
+    return null;
+  }
+}
+
+function amountValue(amount: AnthropicCostAmount): number | null {
+  const raw =
+    typeof amount === "number"
+      ? amount
+      : typeof amount === "string"
+        ? Number(amount)
+        : typeof amount?.value === "number"
+          ? amount.value
+          : null;
+
+  return raw !== null && Number.isFinite(raw) ? raw : null;
+}
+
+function amountCurrency(amount: AnthropicCostAmount): string | null {
+  return typeof amount === "object" && amount !== null && typeof amount.currency === "string"
+    ? amount.currency
+    : null;
 }
 
 async function getOpenAICycleCostUsd() {
@@ -455,9 +726,9 @@ async function getOpenAICycleCostUsd() {
       { maxRetries: 0 }
     );
 
-    return (data.data ?? []).reduce((total, bucket) => {
+    const total = (data.data ?? []).reduce((runningTotal, bucket) => {
       return (
-        total +
+        runningTotal +
         (bucket.results ?? []).reduce((bucketTotal, result) => {
           const amount = result.amount;
 
@@ -465,13 +736,33 @@ async function getOpenAICycleCostUsd() {
             return bucketTotal;
           }
 
-          return bucketTotal + (amount?.value ?? 0);
+          return bucketTotal + (toMoneyNumber(amount?.value) ?? 0);
         }, 0)
       );
     }, 0);
+
+    if (readEnv("AION_DEBUG_BALANCES")) {
+      console.warn("[balances] OpenAI costs total:", total);
+    }
+
+    return Math.round(total * 100) / 100;
   } catch {
     return null;
   }
+}
+
+/** Coerce a money amount that may arrive as a number or a decimal string. */
+function toMoneyNumber(value: number | string | null | undefined): number | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
 }
 
 function fromModelIds(provider: AionRoutingProvider, values: Array<string | undefined>): ProviderCatalog {
@@ -567,12 +858,16 @@ function getRowNote(
   provider: AionRoutingProvider,
   price: ModelPrice | null,
   budgetUsd: number | null,
-  providerMessage?: string
+  providerMessage?: string,
+  options?: { hasLiveBalance?: boolean; providerDisabled?: boolean }
 ) {
   const notes = [
+    options?.providerDisabled ? "Disabled in admin." : "",
     providerMessage,
     price ? "" : `Set AION_PRICE_${provider.toUpperCase()}_<MODEL>_INPUT_USD_PER_MTOK and OUTPUT_USD_PER_MTOK for this model.`,
-    budgetUsd === null ? `Set ${provider.toUpperCase()}_BUDGET_USD to calculate tokens left.` : ""
+    budgetUsd === null && !options?.hasLiveBalance
+      ? `Set a budget for ${provider.toUpperCase()} in Admin → Providers to calculate tokens left.`
+      : ""
   ].filter(Boolean);
 
   return notes.length > 0 ? notes.join(" ") : undefined;

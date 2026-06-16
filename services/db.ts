@@ -1,7 +1,7 @@
 import { Pool, type PoolConfig, type QueryResultRow } from "pg";
 
 const globalKey = "__aionMindPgPool";
-const schemaKey = "__aionMindPgSchemaReady_v3";
+const schemaKey = "__aionMindPgSchemaReady_v6";
 const splitConfigPrefixes = ["AION_PG", "JBTALLY_PG"] as const;
 const requiredSplitConfigKeys = ["HOST", "DATABASE", "USER", "PASSWORD"] as const;
 
@@ -94,6 +94,52 @@ async function createSchema() {
 
     ALTER TABLE app_users
       ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
+
+    ALTER TABLE app_users
+      ADD COLUMN IF NOT EXISTS plan_id TEXT NOT NULL DEFAULT 'free';
+
+    ALTER TABLE app_users
+      ADD COLUMN IF NOT EXISTS credits INTEGER NOT NULL DEFAULT 0;
+
+    ALTER TABLE app_users
+      ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'member';
+
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value JSONB NOT NULL,
+      updated_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_credentials (
+      email TEXT PRIMARY KEY,
+      password_hash TEXT NOT NULL,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_members (
+      email TEXT PRIMARY KEY,
+      added_by TEXT,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_login_codes (
+      email TEXT PRIMARY KEY,
+      code_hash TEXT NOT NULL,
+      expires_at BIGINT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS admin_sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      expires_at BIGINT NOT NULL,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_admin_sessions_user_id ON admin_sessions(user_id);
 
     CREATE TABLE IF NOT EXISTS app_sessions (
       id TEXT PRIMARY KEY,

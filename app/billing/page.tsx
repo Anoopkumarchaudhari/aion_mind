@@ -1,5 +1,10 @@
 import { BillingPageContent } from "@/components/BillingPageContent";
+import { getResolvedBillingCatalog } from "@/services/adminSettings";
 
-export default function BillingPage() {
-  return <BillingPageContent />;
+export const dynamic = "force-dynamic";
+
+export default async function BillingPage() {
+  const catalog = await getResolvedBillingCatalog();
+
+  return <BillingPageContent catalog={catalog} />;
 }

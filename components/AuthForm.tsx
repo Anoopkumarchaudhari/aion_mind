@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent, type MouseEvent } from "react";
 import { ArrowRight, Chrome, Eye, EyeOff, Github, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { motion } from "framer-motion";
-import { AionLogo } from "@/components/AionLogo";
 import { NeuralBackdrop } from "@/components/NeuralBackdrop";
 
 type AuthFormProps = {
@@ -126,7 +125,14 @@ export function AuthForm({ mode }: AuthFormProps) {
         >
           <div className="auth-mind-visual" />
           <div className="auth-showcase-brand">
-            <AionLogo size={30} decorative />
+            <img
+              className="auth-brand-logo"
+              src="/Aria%20logo/logo.jpeg"
+              alt="Aria Mind logo"
+              width={38}
+              height={38}
+              draggable={false}
+            />
             <div>
               <strong>Aria Mind</strong>
               <span>JB Crownstone </span>

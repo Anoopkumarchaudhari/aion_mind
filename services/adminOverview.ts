@@ -1,6 +1,24 @@
-import { BILLING_PLANS, BILLING_TOP_UP_PACKS, FEATURE_CREDIT_RATES } from "@/services/billingCatalog";
+import {
+  mergeBillingCatalog,
+  type ResolvedBillingCatalog
+} from "@/services/billingCatalog";
 import { getAionRoutingPayload } from "@/services/aionRoutingConfig";
-import { getAdminAccessSummary, type AdminUser } from "@/services/adminAuth";
+import {
+  getAdminAccessSummary,
+  getAllAdminEmails,
+  isSuperAdminEmail,
+  listAdminMembers,
+  type AdminMember,
+  type AdminUser
+} from "@/services/adminAuth";
+import { normalizeEmail } from "@/services/auth";
+import {
+  getBillingOverrides,
+  getFeatureFlags,
+  getProviderBudgets,
+  type FeatureFlags,
+  type ProviderBudgets
+} from "@/services/adminSettings";
 import { AuthError } from "@/services/auth";
 import { getDatabaseConfigIssue, isDatabaseConfigured, query } from "@/services/db";
 import type { AionRouteSlot } from "@/types/aionRouting";
@@ -14,6 +32,9 @@ type AdminUserRow = {
   name: string;
   email: string;
   is_active: boolean | string;
+  plan_id: string | null;
+  credits: string | number | null;
+  role: string | null;
   created_at: string | number;
   thread_count: string | number;
   message_count: string | number;
@@ -26,7 +47,10 @@ export type AdminOverview = {
     id: string;
     name: string;
     email: string;
+    role: "super" | "sub";
+    isSuperAdmin: boolean;
   };
+  admins: AdminMember[];
   database: {
     configured: boolean;
     issue: string | null;
@@ -43,6 +67,9 @@ export type AdminOverview = {
     name: string;
     email: string;
     isActive: boolean;
+    planId: string;
+    credits: number;
+    role: string;
     createdAt: number;
     threadCount: number;
     messageCount: number;
@@ -59,11 +86,9 @@ export type AdminOverview = {
     label: string;
     slots: Array<Pick<AionRouteSlot, "id" | "label" | "provider" | "model" | "enabled">>;
   }>;
-  billing: {
-    plans: typeof BILLING_PLANS;
-    topUps: typeof BILLING_TOP_UP_PACKS;
-    featureRates: typeof FEATURE_CREDIT_RATES;
-  };
+  billing: ResolvedBillingCatalog;
+  featureFlags: FeatureFlags;
+  providerBudgets: ProviderBudgets;
   config: Array<{
     label: string;
     status: "ready" | "missing";
@@ -72,10 +97,15 @@ export type AdminOverview = {
 };
 
 export async function getAdminOverview(admin: AdminUser): Promise<AdminOverview> {
-  const [routingPayload, databaseSnapshot] = await Promise.all([
-    getAionRoutingPayload(),
-    getDatabaseSnapshot(admin.id)
-  ]);
+  const [routingPayload, databaseSnapshot, featureFlags, providerBudgets, billingOverrides, admins] =
+    await Promise.all([
+      getAionRoutingPayload(),
+      getDatabaseSnapshot(admin.id),
+      getFeatureFlags(),
+      getProviderBudgets(),
+      getBillingOverrides(),
+      listAdminMembers(admin.email)
+    ]);
   const adminAccess = getAdminAccessSummary();
 
   return {
@@ -83,8 +113,11 @@ export async function getAdminOverview(admin: AdminUser): Promise<AdminOverview>
     admin: {
       id: admin.id,
       name: admin.name,
-      email: admin.email
+      email: admin.email,
+      role: admin.role,
+      isSuperAdmin: admin.isSuperAdmin
     },
+    admins,
     database: {
       configured: isDatabaseConfigured(),
       issue: getDatabaseConfigIssue()
@@ -110,11 +143,9 @@ export async function getAdminOverview(admin: AdminUser): Promise<AdminOverview>
         )
       }
     ],
-    billing: {
-      plans: BILLING_PLANS,
-      topUps: BILLING_TOP_UP_PACKS,
-      featureRates: FEATURE_CREDIT_RATES
-    },
+    billing: mergeBillingCatalog(billingOverrides),
+    featureFlags,
+    providerBudgets,
     config: [
       {
         label: "Database",
@@ -169,6 +200,95 @@ export async function setUserActiveStatus(userId: string, isActive: boolean) {
   };
 }
 
+export async function updateUserBilling(
+  userId: string,
+  changes: { planId?: string; credits?: number; creditsDelta?: number; role?: string }
+) {
+  const sets: string[] = [];
+  const params: unknown[] = [userId];
+
+  if (typeof changes.planId === "string" && changes.planId.trim()) {
+    params.push(changes.planId.trim().slice(0, 40));
+    sets.push(`plan_id = $${params.length}`);
+  }
+
+  if (typeof changes.role === "string" && changes.role.trim()) {
+    params.push(changes.role.trim().slice(0, 40));
+    sets.push(`role = $${params.length}`);
+  }
+
+  if (typeof changes.credits === "number" && Number.isFinite(changes.credits)) {
+    params.push(Math.max(0, Math.round(changes.credits)));
+    sets.push(`credits = $${params.length}`);
+  } else if (typeof changes.creditsDelta === "number" && Number.isFinite(changes.creditsDelta)) {
+    params.push(Math.round(changes.creditsDelta));
+    sets.push(`credits = GREATEST(0, credits + $${params.length})`);
+  }
+
+  if (sets.length === 0) {
+    throw new AuthError("No billing changes were provided.");
+  }
+
+  const result = await query<{ id: string; plan_id: string; credits: number; role: string }>(
+    `UPDATE app_users SET ${sets.join(", ")} WHERE id = $1
+     RETURNING id, plan_id, credits, role`,
+    params
+  );
+  const user = result.rows[0];
+
+  if (!user) {
+    throw new AuthError("User not found.", 404);
+  }
+
+  return {
+    user: {
+      id: user.id,
+      planId: user.plan_id,
+      credits: toNumber(user.credits),
+      role: user.role
+    }
+  };
+}
+
+export async function deleteUserAccount(userId: string) {
+  const result = await query("DELETE FROM app_users WHERE id = $1", [userId]);
+
+  if (!result.rowCount) {
+    throw new AuthError("User not found.", 404);
+  }
+
+  return { deleted: result.rowCount };
+}
+
+/**
+ * Enforce the admin hierarchy on user-account mutations:
+ *  - Nobody can modify a primary (super) admin's account.
+ *  - Sub-admins cannot modify any admin account (super or sub).
+ *  - Super-admins may manage sub-admins and regular users.
+ */
+export async function assertCanManageTargetUser(actor: AdminUser, targetUserId: string) {
+  const result = await query<{ email: string }>("SELECT email FROM app_users WHERE id = $1", [targetUserId]);
+  const rawEmail = result.rows[0]?.email;
+
+  if (!rawEmail) {
+    return; // Missing user is handled by the mutation itself (404).
+  }
+
+  const targetEmail = normalizeEmail(rawEmail);
+
+  if (isSuperAdminEmail(targetEmail)) {
+    throw new AuthError("Primary admin accounts are protected.", 403);
+  }
+
+  if (!actor.isSuperAdmin) {
+    const adminEmails = await getAllAdminEmails();
+
+    if (adminEmails.has(targetEmail)) {
+      throw new AuthError("Sub-admins cannot manage other admin accounts.", 403);
+    }
+  }
+}
+
 async function getDatabaseSnapshot(currentAdminId: string) {
   const emptySnapshot = {
     stats: {
@@ -200,6 +320,9 @@ async function getDatabaseSnapshot(currentAdminId: string) {
             app_users.name,
             app_users.email,
             app_users.is_active,
+            app_users.plan_id,
+            app_users.credits,
+            app_users.role,
             app_users.created_at,
             COALESCE(thread_counts.thread_count, 0)::int AS thread_count,
             COALESCE(message_counts.message_count, 0)::int AS message_count,
@@ -242,6 +365,9 @@ async function getDatabaseSnapshot(currentAdminId: string) {
         name: user.name,
         email: user.email,
         isActive: toBoolean(user.is_active),
+        planId: user.plan_id ?? "free",
+        credits: toNumber(user.credits),
+        role: user.role ?? "member",
         createdAt: toNumber(user.created_at),
         threadCount: toNumber(user.thread_count),
         messageCount: toNumber(user.message_count),
@@ -269,7 +395,7 @@ function toAdminSlot(slot: AionRouteSlot) {
   };
 }
 
-function toNumber(value: string | number | undefined) {
+function toNumber(value: string | number | null | undefined) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
 }

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { AuthError, createSession, setSessionCookie, signupUser } from "@/services/auth";
+import { getFeatureFlags } from "@/services/adminSettings";
 
 export const runtime = "nodejs";
-const ACCOUNT_CREATION_DISABLED = false;
 
 type SignupBody = {
   name?: unknown;
@@ -11,7 +11,9 @@ type SignupBody = {
 };
 
 export async function POST(request: Request) {
-  if (ACCOUNT_CREATION_DISABLED) {
+  const featureFlags = await getFeatureFlags();
+
+  if (!featureFlags.signupEnabled) {
     return NextResponse.json({ error: "New account creation is temporarily disabled." }, { status: 403 });
   }
 

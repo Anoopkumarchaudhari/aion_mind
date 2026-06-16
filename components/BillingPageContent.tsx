@@ -24,15 +24,11 @@ import {
 } from "@/lib/motion";
 import {
   BILLING_PLANS,
-  BILLING_TOP_UP_PACKS,
-  FEATURE_CREDIT_RATES,
-  getAvailableCredits,
   getBillingPlan,
-  getCreditUsagePercent,
-  getMonthlyRemainingCredits,
   useBillingStore,
   type BillingFeatureId
 } from "@/store/useBillingStore";
+import type { FeatureCreditRate, ResolvedBillingCatalog } from "@/services/billingCatalog";
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
   style: "currency",
@@ -40,13 +36,17 @@ const inrFormatter = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 0
 });
 
-export function BillingPageContent() {
+export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalog }) {
   const billing = useBillingStore();
-  const currentPlan = getBillingPlan(billing.planId);
-  const availableCredits = getAvailableCredits(billing);
-  const monthlyRemaining = getMonthlyRemainingCredits(billing);
-  const usedPercent = getCreditUsagePercent(billing);
-  const usageSummary = getUsageSummary(billing.usage);
+  // Resolve the active plan from the admin-edited catalog so credits/price reflect edits.
+  const currentPlan = catalog.plans.find((plan) => plan.id === billing.planId) ?? getBillingPlan(billing.planId);
+  const monthlyRemaining = Math.max(0, currentPlan.monthlyCredits - billing.usedMonthlyCredits);
+  const availableCredits = monthlyRemaining + billing.topUpCredits;
+  const usedPercent = Math.min(
+    100,
+    Math.round((billing.usedMonthlyCredits / Math.max(1, currentPlan.monthlyCredits)) * 100)
+  );
+  const usageSummary = getUsageSummary(billing.usage, catalog.featureRates);
   const nextRenewalDate = getNextRenewalDate();
 
   useEffect(() => {
@@ -157,7 +157,7 @@ export function BillingPageContent() {
             whileInView="show"
             viewport={scrollRevealViewport}
           >
-            {BILLING_PLANS.map((plan) => {
+            {catalog.plans.map((plan) => {
               const isActive = plan.id === billing.planId;
 
               return (
@@ -212,7 +212,7 @@ export function BillingPageContent() {
               </div>
             </div>
             <div className="billing-rate-list">
-              {FEATURE_CREDIT_RATES.map((item) => (
+              {catalog.featureRates.map((item) => (
                 <motion.div className="billing-rate-row" key={item.id} whileHover={hoverLift}>
                   <span style={{ background: item.color }} />
                   <strong>{item.label}</strong>
@@ -238,7 +238,7 @@ export function BillingPageContent() {
               </div>
             </div>
             <div className="billing-topup-list">
-              {BILLING_TOP_UP_PACKS.map((pack) => (
+              {catalog.topUps.map((pack) => (
                 <motion.div className="billing-topup-row" key={pack.id} whileHover={hoverLift}>
                   <div>
                     <strong>{pack.name}</strong>
@@ -372,10 +372,13 @@ export function BillingPageContent() {
   );
 }
 
-function getUsageSummary(usage: Array<{ featureId: BillingFeatureId; credits: number }>) {
+function getUsageSummary(
+  usage: Array<{ featureId: BillingFeatureId; credits: number }>,
+  featureRates: FeatureCreditRate[]
+) {
   const total = usage.reduce((sum, item) => sum + item.credits, 0);
 
-  return FEATURE_CREDIT_RATES.map((rate) => {
+  return featureRates.map((rate) => {
     const credits = usage
       .filter((item) => item.featureId === rate.id)
       .reduce((sum, item) => sum + item.credits, 0);
