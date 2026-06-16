@@ -35,8 +35,7 @@ import {
   hoverLift,
   scrollContainerVariants,
   scrollItemVariants,
-  scrollRevealVariants,
-  scrollRevealViewport
+  scrollRevealVariants
 } from "@/lib/motion";
 import type { AdminOverview } from "@/services/adminOverview";
 import type { AnnouncementTone, FeatureFlags, ProviderBudgets } from "@/services/adminSettings";
@@ -473,8 +472,7 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
           className="admin-dashboard-grid"
           variants={scrollContainerVariants}
           initial="hidden"
-          whileInView="show"
-          viewport={scrollRevealViewport}
+          animate="show"
         >
           {/* ---- System & feature flags ---- */}
           <motion.section
