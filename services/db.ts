@@ -1,7 +1,7 @@
 import { Pool, type PoolConfig, type QueryResultRow } from "pg";
 
 const globalKey = "__aionMindPgPool";
-const schemaKey = "__aionMindPgSchemaReady_v8";
+const schemaKey = "__aionMindPgSchemaReady_v9";
 const splitConfigPrefixes = ["AION_PG", "JBTALLY_PG"] as const;
 const requiredSplitConfigKeys = ["HOST", "DATABASE", "USER", "PASSWORD"] as const;
 
@@ -148,6 +148,24 @@ async function createSchema() {
       attempts INTEGER NOT NULL DEFAULT 0,
       created_at BIGINT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS payments (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL DEFAULT 'razorpay',
+      kind TEXT NOT NULL,
+      item_id TEXT NOT NULL,
+      item_label TEXT NOT NULL,
+      amount_inr INTEGER NOT NULL,
+      credits INTEGER NOT NULL,
+      plan_id TEXT,
+      status TEXT NOT NULL DEFAULT 'created',
+      payment_id TEXT,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
 
     CREATE TABLE IF NOT EXISTS admin_sessions (
       id TEXT PRIMARY KEY,

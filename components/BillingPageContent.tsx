@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { openRazorpayCheckout } from "@/lib/razorpayCheckout";
 import {
   Activity,
   CheckCircle2,
@@ -26,7 +28,8 @@ import {
   BILLING_PLANS,
   getBillingPlan,
   useBillingStore,
-  type BillingFeatureId
+  type BillingFeatureId,
+  type BillingPlanId
 } from "@/store/useBillingStore";
 import type { FeatureCreditRate, ResolvedBillingCatalog } from "@/services/billingCatalog";
 
@@ -49,17 +52,147 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
   const usageSummary = getUsageSummary(billing.usage, catalog.featureRates);
   const nextRenewalDate = getNextRenewalDate();
 
+  const [accountName, setAccountName] = useState("");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [pendingItem, setPendingItem] = useState<string | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/auth/me")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { user?: { name?: string; email?: string } } | null) => {
+        if (data?.user?.name) {
+          setAccountName(data.user.name);
+        }
+        if (data?.user?.email) {
+          setAccountEmail(data.user.email);
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const purchase = useCallback(
+    async (
+      kind: "plan" | "topup",
+      itemId: string,
+      label: string,
+      amountInr: number,
+      planId: string | null,
+      themeColor: string
+    ) => {
+      // Free items need no payment — apply immediately.
+      if (amountInr <= 0) {
+        if (kind === "plan" && planId) {
+          billing.selectPlan(planId as BillingPlanId);
+          toast.success(`${label} activated.`);
+        }
+        return;
+      }
+
+      if (pendingItem) {
+        return;
+      }
+
+      setPendingItem(itemId);
+
+      try {
+        const orderResponse = await fetch("/api/payments/razorpay/order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind, itemId })
+        });
+        const orderData = (await orderResponse.json()) as {
+          error?: string;
+          orderId?: string;
+          amount?: number;
+          currency?: string;
+          keyId?: string;
+        };
+
+        if (!orderResponse.ok || !orderData.orderId || !orderData.keyId) {
+          throw new Error(orderData.error || "Could not start the payment.");
+        }
+
+        const opened = await openRazorpayCheckout(
+          {
+            key: orderData.keyId,
+            amount: orderData.amount ?? amountInr * 100,
+            currency: orderData.currency ?? "INR",
+            name: "Aria Mind",
+            description: label,
+            order_id: orderData.orderId,
+            prefill: { name: accountName, email: accountEmail },
+            theme: { color: themeColor },
+            handler: async (response) => {
+              try {
+                const verifyResponse = await fetch("/api/payments/razorpay/verify", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(response)
+                });
+                const verifyData = (await verifyResponse.json()) as {
+                  ok?: boolean;
+                  error?: string;
+                  kind?: "plan" | "topup";
+                  itemId?: string;
+                  planId?: string | null;
+                  label?: string;
+                  credits?: number;
+                };
+
+                if (!verifyResponse.ok || !verifyData.ok) {
+                  throw new Error(verifyData.error || "Payment verification failed.");
+                }
+
+                if (verifyData.kind === "plan" && verifyData.planId) {
+                  billing.selectPlan(verifyData.planId as BillingPlanId);
+                } else if (verifyData.itemId) {
+                  billing.buyTopUp(verifyData.itemId);
+                }
+
+                toast.success(
+                  `${verifyData.label ?? label} activated — ${(verifyData.credits ?? 0).toLocaleString("en-IN")} credits added.`
+                );
+              } catch (verifyError) {
+                toast.error(
+                  verifyError instanceof Error ? verifyError.message : "Payment verification failed."
+                );
+              } finally {
+                setPendingItem(null);
+              }
+            },
+            modal: { ondismiss: () => setPendingItem(null) }
+          },
+          (reason) => {
+            toast.error(reason);
+            setPendingItem(null);
+          }
+        );
+
+        if (!opened) {
+          toast.error("Could not open the payment window. Check your connection and try again.");
+          setPendingItem(null);
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not start the payment.");
+        setPendingItem(null);
+      }
+    },
+    [accountEmail, accountName, billing, pendingItem]
+  );
+
   useEffect(() => {
     const planId = new URLSearchParams(window.location.search).get("plan");
 
     if (isBillingPlanId(planId)) {
-      if (planId !== useBillingStore.getState().planId) {
+      const plan = catalog.plans.find((item) => item.id === planId);
+
+      if (plan && plan.priceInr === 0 && planId !== useBillingStore.getState().planId) {
         useBillingStore.getState().selectPlan(planId);
       }
 
       window.history.replaceState(null, "", "/billing");
     }
-  }, []);
+  }, [catalog.plans]);
 
   return (
     <AppFrame
@@ -178,10 +311,18 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
                   <button
                     className={isActive ? "ghost-button full" : "primary-button full"}
                     type="button"
-                    onClick={() => billing.selectPlan(plan.id)}
-                    disabled={isActive}
+                    onClick={() =>
+                      purchase("plan", plan.id, `${plan.name} plan`, plan.priceInr, plan.id, plan.accent)
+                    }
+                    disabled={isActive || pendingItem === plan.id}
                   >
-                    {isActive ? "Current plan" : "Choose plan"}
+                    {isActive
+                      ? "Current plan"
+                      : pendingItem === plan.id
+                        ? "Processing..."
+                        : plan.priceInr === 0
+                          ? "Choose plan"
+                          : `Pay ${inrFormatter.format(plan.priceInr)}`}
                   </button>
                 </motion.article>
               );
@@ -244,8 +385,15 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
                     <strong>{pack.name}</strong>
                     <span>{pack.credits.toLocaleString("en-IN")} credits</span>
                   </div>
-                  <button className="ghost-button" type="button" onClick={() => billing.buyTopUp(pack.id)}>
-                    {inrFormatter.format(pack.priceInr)}
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={() =>
+                      purchase("topup", pack.id, `${pack.name} credit pack`, pack.priceInr, null, "#22d3ee")
+                    }
+                    disabled={pendingItem === pack.id}
+                  >
+                    {pendingItem === pack.id ? "..." : inrFormatter.format(pack.priceInr)}
                   </button>
                 </motion.div>
               ))}
