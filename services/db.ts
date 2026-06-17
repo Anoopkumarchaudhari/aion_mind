@@ -1,7 +1,7 @@
 import { Pool, type PoolConfig, type QueryResultRow } from "pg";
 
 const globalKey = "__aionMindPgPool";
-const schemaKey = "__aionMindPgSchemaReady_v6";
+const schemaKey = "__aionMindPgSchemaReady_v8";
 const splitConfigPrefixes = ["AION_PG", "JBTALLY_PG"] as const;
 const requiredSplitConfigKeys = ["HOST", "DATABASE", "USER", "PASSWORD"] as const;
 
@@ -124,6 +124,24 @@ async function createSchema() {
     );
 
     CREATE TABLE IF NOT EXISTS admin_login_codes (
+      email TEXT PRIMARY KEY,
+      code_hash TEXT NOT NULL,
+      expires_at BIGINT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS signup_verifications (
+      email TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      code_hash TEXT NOT NULL,
+      expires_at BIGINT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS password_reset_codes (
       email TEXT PRIMARY KEY,
       code_hash TEXT NOT NULL,
       expires_at BIGINT NOT NULL,

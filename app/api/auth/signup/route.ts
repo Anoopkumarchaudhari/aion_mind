@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { AuthError, createSession, setSessionCookie, signupUser } from "@/services/auth";
+import { AuthError } from "@/services/auth";
+import { requestSignupCode } from "@/services/signupVerification";
 import { getFeatureFlags } from "@/services/adminSettings";
 
 export const runtime = "nodejs";
@@ -26,15 +27,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = await signupUser({
+    const { email, delivered } = await requestSignupCode({
       name: typeof body.name === "string" ? body.name : "",
       email: typeof body.email === "string" ? body.email : "",
       password: typeof body.password === "string" ? body.password : ""
     });
-    const response = NextResponse.json({ user });
 
-    setSessionCookie(response, await createSession(user.id));
-    return response;
+    // Account is NOT created yet — the user must verify the emailed code first.
+    return NextResponse.json({ step: "verify", email, delivered });
   } catch (error) {
     return authErrorResponse(error);
   }
@@ -45,6 +45,11 @@ function authErrorResponse(error: unknown) {
     return NextResponse.json({ error: error.message }, { status: error.status });
   }
 
-  console.error("Signup failed", error);
-  return NextResponse.json({ error: "Could not create account." }, { status: 500 });
+  console.error("Signup request failed", error);
+
+  const detail = error instanceof Error ? error.message : "Unknown error";
+  return NextResponse.json(
+    { error: `Could not send the verification email: ${detail}` },
+    { status: 502 }
+  );
 }

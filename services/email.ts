@@ -79,6 +79,36 @@ export async function sendEmail({
   });
 }
 
+export async function sendSignupCode(to: string, code: string, ttlMinutes: number) {
+  const subject = "Verify your Aria Mind account";
+  const text = `Welcome to Aria Mind! Your verification code is ${code}. It expires in ${ttlMinutes} minutes. If you didn't create an account, you can ignore this email.`;
+  const html = `
+    <div style="font-family:system-ui,Segoe UI,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+      <h2 style="margin:0 0 8px">Verify your Aria Mind account</h2>
+      <p style="margin:0 0 16px;color:#475569">Enter this verification code to finish creating your account.</p>
+      <div style="font-size:32px;font-weight:800;letter-spacing:8px;padding:16px 0;text-align:center;background:#f1f5f9;border-radius:12px">${code}</div>
+      <p style="margin:16px 0 0;color:#64748b;font-size:13px">This code expires in ${ttlMinutes} minutes. If you didn't request it, you can ignore this email.</p>
+    </div>
+  `;
+
+  await sendEmail({ to, subject, text, html });
+}
+
+export async function sendPasswordResetCode(to: string, code: string, ttlMinutes: number) {
+  const subject = "Reset your Aria Mind password";
+  const text = `Your Aria Mind password reset code is ${code}. It expires in ${ttlMinutes} minutes. If you didn't request this, you can safely ignore this email.`;
+  const html = `
+    <div style="font-family:system-ui,Segoe UI,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+      <h2 style="margin:0 0 8px">Reset your Aria Mind password</h2>
+      <p style="margin:0 0 16px;color:#475569">Use this code to reset your password. Don't share it with anyone.</p>
+      <div style="font-size:32px;font-weight:800;letter-spacing:8px;padding:16px 0;text-align:center;background:#f1f5f9;border-radius:12px">${code}</div>
+      <p style="margin:16px 0 0;color:#64748b;font-size:13px">This code expires in ${ttlMinutes} minutes. If you didn't request a reset, you can ignore this email.</p>
+    </div>
+  `;
+
+  await sendEmail({ to, subject, text, html });
+}
+
 export async function sendAdminLoginCode(to: string, code: string, ttlMinutes: number) {
   const subject = "Your AriamindX admin verification code";
   const text = `Your AriamindX admin verification code is ${code}. It expires in ${ttlMinutes} minutes. If you did not request this, ignore this email.`;

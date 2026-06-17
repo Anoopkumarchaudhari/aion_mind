@@ -3,16 +3,37 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent, type MouseEvent } from "react";
-import { ArrowRight, Chrome, Eye, EyeOff, Github, LockKeyhole, Mail, UserRound } from "lucide-react";
-import { motion } from "framer-motion";
-import { NeuralBackdrop } from "@/components/NeuralBackdrop";
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, Chrome, Eye, EyeOff, Facebook, KeyRound, MailCheck } from "lucide-react";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 
 type AuthFormProps = {
   mode: "login" | "signup";
 };
 
+type SignupStep = "form" | "verify" | "success";
+
 const ACCOUNT_CREATION_DISABLED = false;
 const ACCOUNT_CREATION_DISABLED_MESSAGE = "New account creation is temporarily disabled.";
+
+const EASE_OUT = [0.22, 1, 0.36, 1] as const;
+
+const containerVariants: Variants = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.06, delayChildren: 0.1 }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE_OUT } }
+};
+
+const SHOWCASE_SLIDES = [
+  "Think bigger,\ncreate faster.",
+  "Your ideas,\nsupercharged by AI.",
+  "One workspace,\nevery model."
+];
 
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
@@ -20,10 +41,23 @@ export function AuthForm({ mode }: AuthFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSwitchingMode, setIsSwitchingMode] = useState(false);
+
+  // Two-step signup state
+  const [step, setStep] = useState<SignupStep>("form");
+  const [code, setCode] = useState("");
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [delivery, setDelivery] = useState<"email" | "console" | null>(null);
+  const [isResending, setIsResending] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+
   const isSignup = mode === "signup";
   const isSignupDisabled = isSignup && ACCOUNT_CREATION_DISABLED;
   const isCreateAccountLinkDisabled = !isSignup && ACCOUNT_CREATION_DISABLED;
@@ -34,32 +68,59 @@ export function AuthForm({ mode }: AuthFormProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setInfo("");
 
     if (isSignupDisabled) {
       setError(ACCOUNT_CREATION_DISABLED_MESSAGE);
       return;
     }
 
+    if (isSignup) {
+      if (password !== confirmPassword) {
+        setError("Passwords do not match.");
+        return;
+      }
+      if (!agreeTerms) {
+        setError("Please accept the Terms & Conditions to continue.");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`/api/auth/${mode}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          password
-        })
-      });
-      const data = (await response.json()) as { error?: string };
+      if (isSignup) {
+        // Step 1 — request a verification code (no account created yet).
+        const response = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password })
+        });
+        const data = (await response.json()) as { error?: string; email?: string; delivered?: "email" | "console" };
 
-      if (!response.ok) {
-        throw new Error(data.error || "Authentication failed.");
+        if (!response.ok) {
+          throw new Error(data.error || "Could not start signup.");
+        }
+
+        setPendingEmail(data.email || email.trim().toLowerCase());
+        setDelivery(data.delivered ?? null);
+        setCode("");
+        setStep("verify");
+      } else {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+        const data = (await response.json()) as { error?: string };
+
+        if (!response.ok) {
+          throw new Error(data.error || "Authentication failed.");
+        }
+
+        router.push(redirectPath);
+        router.refresh();
       }
-
-      router.push(redirectPath);
-      router.refresh();
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : "Authentication failed.");
     } finally {
@@ -67,17 +128,85 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
   }
 
-  function handleSocialSignIn(provider: "Google" | "GitHub") {
-    setError(`${provider} sign-in is not configured yet. Please use email for now.`);
+  async function handleVerify(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setInfo("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/auth/signup/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: pendingEmail, code })
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Verification failed.");
+      }
+
+      // Step 3 — account created; show success, then enter the workspace.
+      setStep("success");
+      window.setTimeout(() => {
+        router.push(redirectPath);
+        router.refresh();
+      }, 1900);
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : "Verification failed.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
-  function handleModeSwitch(event: MouseEvent<HTMLAnchorElement>) {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+  async function handleResend() {
+    if (isResending) {
       return;
     }
 
-    event.preventDefault();
+    setError("");
+    setInfo("");
+    setIsResending(true);
 
+    try {
+      const response = await fetch("/api/auth/signup/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: pendingEmail })
+      });
+      const data = (await response.json()) as { error?: string; delivered?: "email" | "console" };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not resend the code.");
+      }
+
+      setDelivery(data.delivered ?? null);
+      setInfo("A new code is on its way.");
+    } catch (resendError) {
+      setError(resendError instanceof Error ? resendError.message : "Could not resend the code.");
+    } finally {
+      setIsResending(false);
+    }
+  }
+
+  function handleBackToForm() {
+    setStep("form");
+    setCode("");
+    setError("");
+    setInfo("");
+  }
+
+  function handleSocialSignIn(provider: "Google" | "Facebook") {
+    setError(`${provider} sign-in is not configured yet. Please use email for now.`);
+  }
+
+  function handleForgotPassword() {
+    setError("");
+    setInfo("");
+    setShowForgot(true);
+  }
+
+  function triggerModeSwitch() {
     if (isCreateAccountLinkDisabled) {
       setError(ACCOUNT_CREATION_DISABLED_MESSAGE);
       return;
@@ -88,116 +217,627 @@ export function AuthForm({ mode }: AuthFormProps) {
     }
 
     setError("");
+    setInfo("");
     setIsSwitchingMode(true);
 
     window.setTimeout(() => {
       router.push(switchHref);
-    }, 420);
+    }, 340);
   }
 
-  const title = isSignup ? "Create your account" : "Welcome back";
+  function handleModeSwitch(event: MouseEvent<HTMLAnchorElement>) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    triggerModeSwitch();
+  }
+
+  const title = isSignup ? "Create an account" : "Sign in to your account";
   const subtitle = isSignup
     ? isSignupDisabled
       ? ACCOUNT_CREATION_DISABLED_MESSAGE
-      : "Free to start - no card required."
-    : "Sign in to continue your Aria Mind workspace.";
-  const sideTransition = { duration: 0.42, ease: "easeInOut" as const };
+      : "Start your journey with Aria Mind."
+    : "Welcome back — sign in to continue.";
+
+  const panelKey = isSignup ? `signup-${step}` : showForgot ? "forgot" : "login";
 
   return (
     <main className="auth-page">
-      <NeuralBackdrop intensity="active" />
-      <div className="auth-orb auth-orb-one" aria-hidden="true" />
-      <div className="auth-orb auth-orb-two" aria-hidden="true" />
+      {/* Pure-CSS night sky — black with twinkling stars (no image) */}
+      <div className="auth-bg" aria-hidden="true">
+        <div className="auth-stars auth-stars-far" />
+        <div className="auth-stars auth-stars-mid" />
+        <div className="auth-stars auth-stars-near" />
+        <div className="auth-nebula" />
+        <span className="auth-shooting auth-shooting-one" />
+        <span className="auth-shooting auth-shooting-two" />
+      </div>
 
       <motion.section
-        className={`auth-device${isSwitchingMode ? " is-switching" : ""}`}
+        className={`auth-shell ${isSignup ? "is-signup" : "is-login"}${isSwitchingMode ? " is-switching" : ""}`}
         aria-label={isSignup ? "Create account" : "Sign in"}
-        initial={{ opacity: 0, y: 18, scale: 0.985 }}
+        initial={{ opacity: 0, y: 26, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.42, ease: "easeOut" }}
+        transition={{ duration: 0.6, ease: EASE_OUT }}
       >
-        <motion.div
+        {/* Desktop visual panel — slides to the opposite side when modes swap */}
+        <motion.aside
           className="auth-showcase"
-          aria-hidden="true"
-          initial={{ opacity: 0, x: -64 }}
-          animate={isSwitchingMode ? { opacity: 0.55, x: 86 } : { opacity: 1, x: 0 }}
-          transition={sideTransition}
+          initial={{ opacity: 0, x: isSignup ? -70 : 70 }}
+          animate={isSwitchingMode ? { opacity: 0, x: isSignup ? 90 : -90 } : { opacity: 1, x: 0 }}
+          transition={{ duration: 0.45, ease: EASE_OUT }}
         >
-          <div className="auth-mind-visual" />
-          <div className="auth-showcase-brand">
-            <img
-              className="auth-brand-logo"
-              src="/Aria%20logo/logo.jpeg"
-              alt="Aria Mind logo"
-              width={38}
-              height={38}
-              draggable={false}
-            />
-            <div>
-              <strong>Aria Mind</strong>
-              <span>JB Crownstone </span>
+          <div className="auth-showcase-glow" aria-hidden="true" />
+
+          <div className="auth-showcase-top">
+            <div className="auth-showcase-brand">
+              <img
+                className="auth-brand-logo"
+                src="/Aria%20logo/logo.jpeg"
+                alt="Aria Mind logo"
+                width={40}
+                height={40}
+                draggable={false}
+              />
+              <span>
+              <strong>AriamindX</strong>
+              <small>By JB Crownstone</small>
+              </span>
+            </div>
+            <Link className="auth-back-pill" href="/">
+              Back to website <ArrowRight aria-hidden="true" size={15} />
+            </Link>
+          </div>
+
+          <div className="auth-core" aria-hidden="true">
+            <span className="auth-core-pulse" />
+            <span className="auth-core-glow" />
+            <span className="auth-orbit auth-orbit-one">
+              <span className="auth-orbit-dot" />
+            </span>
+            <span className="auth-orbit auth-orbit-two">
+              <span className="auth-orbit-dot" />
+            </span>
+            <span className="auth-orbit auth-orbit-three">
+              <span className="auth-orbit-dot" />
+            </span>
+          </div>
+
+          <div className="auth-showcase-bottom">
+            <AnimatePresence mode="wait">
+              <motion.h2
+                key={mode}
+                className="auth-showcase-headline"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -14 }}
+                transition={{ duration: 0.45, ease: EASE_OUT }}
+              >
+                {(isSignup ? SHOWCASE_SLIDES[0] : SHOWCASE_SLIDES[1]).split("\n").map((line) => (
+                  <span key={line}>{line}</span>
+                ))}
+              </motion.h2>
+            </AnimatePresence>
+            <div className="auth-dots" aria-hidden="true">
+              <span />
+              <span />
+              <span className="is-active" />
+            </div>
+
+            <div className="auth-showcase-cta">
+              <span>{isSignup ? "Already have an account?" : "New to Aria Mind?"}</span>
+              <button
+                className="auth-showcase-btn"
+                type="button"
+                onClick={triggerModeSwitch}
+                disabled={isSwitchingMode}
+              >
+                {isSignup ? "Login" : "Register"}
+              </button>
             </div>
           </div>
-          <div className="auth-orbit-line auth-orbit-one" />
-          <div className="auth-orbit-line auth-orbit-two" />
-          <div className="auth-showcase-copy">
-            <p>{isSignup ? "START YOUR" : "WELCOME"}</p>
-            <h2>{isSignup ? "ADVENTURE!" : "BACK!"}</h2>
-          </div>
-        </motion.div>
+        </motion.aside>
 
+        {/* Form panel — slides to the opposite side when modes swap */}
         <motion.div
           className="auth-panel"
-          initial={{ opacity: 0, x: 64 }}
-          animate={isSwitchingMode ? { opacity: 0.58, x: -86 } : { opacity: 1, x: 0 }}
-          transition={sideTransition}
+          initial={{ opacity: 0, x: isSignup ? 70 : -70 }}
+          animate={isSwitchingMode ? { opacity: 0, x: isSignup ? -90 : 90 } : { opacity: 1, x: 0 }}
+          transition={{ duration: 0.45, ease: EASE_OUT }}
         >
-          <motion.div
-            className="auth-panel-inner auth-panel-card"
-            initial={{ opacity: 0, x: 18 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.42, delay: 0.08, ease: "easeOut" }}
-          >
-            <header className="auth-heading">
-              <h1>{title}</h1>
-              <p>{subtitle}</p>
-            </header>
+          {/* Mobile-only back button */}
+          <Link className="auth-back-button" href="/" aria-label="Go back">
+            <ChevronLeft aria-hidden="true" size={22} />
+          </Link>
 
-            <div className="auth-social-row">
-              <button className="auth-social-button" type="button" onClick={() => handleSocialSignIn("Google")}>
-                <Chrome aria-hidden="true" size={18} />
-                <span>Google</span>
-              </button>
-              <button className="auth-social-button" type="button" onClick={() => handleSocialSignIn("GitHub")}>
-                <Github aria-hidden="true" size={18} />
-                <span>GitHub</span>
-              </button>
-            </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={panelKey}
+              className="auth-panel-inner"
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+            >
+              {isSignup && step === "verify" ? (
+                <VerifyStep
+                  pendingEmail={pendingEmail}
+                  code={code}
+                  setCode={setCode}
+                  onVerify={handleVerify}
+                  onResend={handleResend}
+                  onBack={handleBackToForm}
+                  isSubmitting={isSubmitting}
+                  isResending={isResending}
+                  delivery={delivery}
+                  error={error}
+                  info={info}
+                />
+              ) : isSignup && step === "success" ? (
+                <SuccessStep onContinue={() => router.push(redirectPath)} />
+              ) : !isSignup && showForgot ? (
+                <ForgotPasswordFlow
+                  initialEmail={email}
+                  onBack={() => {
+                    setShowForgot(false);
+                    setError("");
+                    setInfo("");
+                  }}
+                />
+              ) : (
+                <>
+                  <motion.header className="auth-heading" variants={itemVariants}>
+                    <h1>{title}</h1>
+                    <p>{subtitle}</p>
+                  </motion.header>
 
-            <div className="auth-divider">
-              <span>or with email</span>
-            </div>
+                  <form className="auth-form" onSubmit={handleSubmit}>
+                    {isSignup ? (
+                      <motion.label className="auth-field" variants={itemVariants}>
+                        <span className="auth-field-label">Full Name</span>
+                        <span className="auth-field-control">
+                          <input
+                            autoComplete="name"
+                            placeholder="Anoop Kumar"
+                            value={name}
+                            onChange={(event) => setName(event.target.value)}
+                            required
+                          />
+                        </span>
+                      </motion.label>
+                    ) : null}
 
-            <form className="auth-form" onSubmit={handleSubmit}>
-              {isSignup ? (
-                <label className="auth-label">
-                  <span>Name</span>
-                  <span className="auth-field">
-                    <UserRound aria-hidden="true" size={18} />
-                    <input
-                      autoComplete="name"
-                      placeholder="Anoop Kumar"
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                      required
-                    />
-                  </span>
-                </label>
-              ) : null}
-              <label className="auth-label">
-                <span>Email</span>
-                <span className="auth-field">
-                  <Mail aria-hidden="true" size={18} />
+                    <motion.label className="auth-field" variants={itemVariants}>
+                      <span className="auth-field-label">Email</span>
+                      <span className="auth-field-control">
+                        <input
+                          autoComplete="email"
+                          placeholder="you@example.com"
+                          type="email"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          required
+                        />
+                      </span>
+                    </motion.label>
+
+                    <motion.label className="auth-field" variants={itemVariants}>
+                      <span className="auth-field-label">Password</span>
+                      <span className="auth-field-control">
+                        <input
+                          autoComplete={isSignup ? "new-password" : "current-password"}
+                          minLength={8}
+                          placeholder="••••••••"
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          required
+                        />
+                        <button
+                          className="auth-password-toggle"
+                          type="button"
+                          onClick={() => setShowPassword((value) => !value)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          title={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff aria-hidden="true" size={18} /> : <Eye aria-hidden="true" size={18} />}
+                        </button>
+                      </span>
+                    </motion.label>
+
+                    {isSignup ? (
+                      <motion.label className="auth-field" variants={itemVariants}>
+                        <span className="auth-field-label">Repeat Password</span>
+                        <span className="auth-field-control">
+                          <input
+                            autoComplete="new-password"
+                            minLength={8}
+                            placeholder="••••••••"
+                            type={showConfirm ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(event) => setConfirmPassword(event.target.value)}
+                            required
+                          />
+                          <button
+                            className="auth-password-toggle"
+                            type="button"
+                            onClick={() => setShowConfirm((value) => !value)}
+                            aria-label={showConfirm ? "Hide password" : "Show password"}
+                            title={showConfirm ? "Hide password" : "Show password"}
+                          >
+                            {showConfirm ? <EyeOff aria-hidden="true" size={18} /> : <Eye aria-hidden="true" size={18} />}
+                          </button>
+                        </span>
+                      </motion.label>
+                    ) : null}
+
+                    {isSignup ? (
+                      <motion.div className="auth-strength" aria-hidden="true" variants={itemVariants}>
+                        {[0, 1, 2, 3].map((index) => (
+                          <span className={index < passwordScore ? "is-active" : ""} key={index} />
+                        ))}
+                      </motion.div>
+                    ) : null}
+
+                    {isSignup ? (
+                      <motion.label className="auth-terms" variants={itemVariants}>
+                        <input
+                          type="checkbox"
+                          checked={agreeTerms}
+                          onChange={(event) => setAgreeTerms(event.target.checked)}
+                        />
+                        <span className="auth-checkbox" aria-hidden="true" />
+                        <span>
+                          I agree to the <a href="#" onClick={(event) => event.preventDefault()}>Terms &amp; Conditions</a>
+                        </span>
+                      </motion.label>
+                    ) : (
+                      <motion.div className="auth-forgot-row" variants={itemVariants}>
+                        <button className="auth-forgot" type="button" onClick={handleForgotPassword}>
+                          Forgot Password
+                        </button>
+                      </motion.div>
+                    )}
+
+                    <AnimatePresence>
+                      {error ? (
+                        <motion.p
+                          className="auth-error"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.25 }}
+                        >
+                          {error}
+                        </motion.p>
+                      ) : null}
+                    </AnimatePresence>
+
+                    <motion.button
+                      className="auth-submit"
+                      type="submit"
+                      disabled={isSubmitting || isSignupDisabled}
+                      variants={itemVariants}
+                      whileHover={{ scale: 1.015 }}
+                      whileTap={{ scale: 0.985 }}
+                    >
+                      {isSignupDisabled
+                        ? "Account creation disabled"
+                        : isSubmitting
+                          ? "Please wait..."
+                          : isSignup
+                            ? "Register"
+                            : "Login"}
+                    </motion.button>
+                  </form>
+
+                  <motion.div className="auth-divider" variants={itemVariants}>
+                    <span>{isSignup ? "Or register with" : "Or login with"}</span>
+                  </motion.div>
+
+                  <motion.div className="auth-social-row" variants={itemVariants}>
+                    <button className="auth-social-button" type="button" onClick={() => handleSocialSignIn("Facebook")}>
+                      <Facebook aria-hidden="true" size={18} />
+                      <span>Facebook</span>
+                    </button>
+                    <button className="auth-social-button" type="button" onClick={() => handleSocialSignIn("Google")}>
+                      <Chrome aria-hidden="true" size={18} />
+                      <span>Google</span>
+                    </button>
+                  </motion.div>
+
+                  <motion.p className="auth-switch auth-mode-switch" variants={itemVariants}>
+                    {isSignup ? "I have an account?" : "Don't have an account?"}{" "}
+                    {isCreateAccountLinkDisabled ? (
+                      <span className="auth-switch-disabled" aria-disabled="true" title={ACCOUNT_CREATION_DISABLED_MESSAGE}>
+                        Register
+                      </span>
+                    ) : (
+                      <Link href={switchHref} onClick={handleModeSwitch} aria-disabled={isSwitchingMode}>
+                        {isSignup ? "Log in" : "Register"}
+                      </Link>
+                    )}
+                  </motion.p>
+                </>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </motion.section>
+    </main>
+  );
+}
+
+type VerifyStepProps = {
+  pendingEmail: string;
+  code: string;
+  setCode: (value: string) => void;
+  onVerify: (event: FormEvent<HTMLFormElement>) => void;
+  onResend: () => void;
+  onBack: () => void;
+  isSubmitting: boolean;
+  isResending: boolean;
+  delivery: "email" | "console" | null;
+  error: string;
+  info: string;
+};
+
+function VerifyStep({
+  pendingEmail,
+  code,
+  setCode,
+  onVerify,
+  onResend,
+  onBack,
+  isSubmitting,
+  isResending,
+  delivery,
+  error,
+  info
+}: VerifyStepProps) {
+  return (
+    <>
+      <motion.header className="auth-heading" variants={itemVariants}>
+        <span className="auth-verify-icon" aria-hidden="true">
+          <MailCheck size={26} />
+        </span>
+        <h1>Verify your email</h1>
+        <p>
+          Enter the 6-digit code we sent to <strong className="auth-verify-email">{pendingEmail}</strong>.
+        </p>
+      </motion.header>
+
+      <form className="auth-form" onSubmit={onVerify}>
+        <motion.label className="auth-field auth-code-field" variants={itemVariants}>
+          <span className="auth-field-label">Verification code</span>
+          <span className="auth-field-control">
+            <input
+              autoComplete="one-time-code"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              placeholder="------"
+              value={code}
+              onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+              required
+              autoFocus
+            />
+          </span>
+        </motion.label>
+
+        {delivery === "console" ? (
+          <motion.p className="auth-info" variants={itemVariants}>
+            Dev mode: SMTP isn&apos;t configured, so the code was printed to the server console.
+          </motion.p>
+        ) : null}
+
+        <AnimatePresence>
+          {error ? (
+            <motion.p
+              className="auth-error"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              {error}
+            </motion.p>
+          ) : info ? (
+            <motion.p
+              className="auth-info"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              {info}
+            </motion.p>
+          ) : null}
+        </AnimatePresence>
+
+        <motion.button
+          className="auth-submit"
+          type="submit"
+          disabled={isSubmitting || code.length !== 6}
+          variants={itemVariants}
+          whileHover={{ scale: 1.015 }}
+          whileTap={{ scale: 0.985 }}
+        >
+          {isSubmitting ? "Verifying..." : "Verify & create account"}
+        </motion.button>
+      </form>
+
+      <motion.p className="auth-switch" variants={itemVariants}>
+        Didn&apos;t get it?{" "}
+        <button className="auth-text-link" type="button" onClick={onResend} disabled={isResending}>
+          {isResending ? "Sending..." : "Resend code"}
+        </button>
+      </motion.p>
+
+      <motion.button className="auth-back-link" type="button" onClick={onBack} variants={itemVariants}>
+        <ArrowLeft aria-hidden="true" size={16} /> Use a different email
+      </motion.button>
+    </>
+  );
+}
+
+function SuccessStep({ onContinue }: { onContinue: () => void }) {
+  return (
+    <motion.div
+      className="auth-success"
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.45, ease: EASE_OUT }}
+    >
+      <motion.span
+        className="auth-success-icon"
+        initial={{ scale: 0, rotate: -20 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 220, damping: 16, delay: 0.1 }}
+      >
+        <CheckCircle2 size={48} strokeWidth={2.2} />
+      </motion.span>
+      <h1>You&apos;re successfully registered!</h1>
+      <p>Your Aria Mind account is ready. Taking you to your workspace…</p>
+      <button className="auth-submit" type="button" onClick={onContinue}>
+        Continue
+      </button>
+    </motion.div>
+  );
+}
+
+type ForgotStep = "email" | "code" | "reset" | "done";
+
+function ForgotPasswordFlow({ initialEmail, onBack }: { initialEmail: string; onBack: () => void }) {
+  const [fStep, setFStep] = useState<ForgotStep>("email");
+  const [email, setEmail] = useState(initialEmail);
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [delivery, setDelivery] = useState<"email" | "console" | null>(null);
+
+  const score = getPasswordScore(password);
+
+  async function sendCode(isResend: boolean) {
+    const setLoading = isResend ? setResending : setBusy;
+    setError("");
+    setInfo("");
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const data = (await response.json()) as { error?: string; delivered?: "email" | "console" };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not send the reset code.");
+      }
+
+      setDelivery(data.delivered ?? null);
+
+      if (isResend) {
+        setInfo("A new code is on its way.");
+      } else {
+        setCode("");
+        setFStep("code");
+      }
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : "Could not send the reset code.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await sendCode(false);
+  }
+
+  async function handleCodeSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setInfo("");
+    setBusy(true);
+
+    try {
+      const response = await fetch("/api/auth/forgot-password/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code })
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Verification failed.");
+      }
+
+      setFStep("reset");
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : "Verification failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleResetSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setInfo("");
+
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setBusy(true);
+
+    try {
+      const response = await fetch("/api/auth/forgot-password/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code, password })
+      });
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not reset your password.");
+      }
+
+      setFStep("done");
+    } catch (resetError) {
+      setError(resetError instanceof Error ? resetError.message : "Could not reset your password.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div key={fStep} variants={containerVariants} initial="hidden" animate="show">
+        {fStep === "email" ? (
+          <>
+            <motion.header className="auth-heading" variants={itemVariants}>
+              <span className="auth-verify-icon" aria-hidden="true">
+                <KeyRound size={26} />
+              </span>
+              <h1>Reset your password</h1>
+              <p>Enter your registered email and we&apos;ll send you a reset code.</p>
+            </motion.header>
+
+            <form className="auth-form" onSubmit={handleEmailSubmit}>
+              <motion.label className="auth-field" variants={itemVariants}>
+                <span className="auth-field-label">Email</span>
+                <span className="auth-field-control">
                   <input
                     autoComplete="email"
                     placeholder="you@example.com"
@@ -205,71 +845,229 @@ export function AuthForm({ mode }: AuthFormProps) {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     required
+                    autoFocus
                   />
                 </span>
-              </label>
-              <label className="auth-label">
-                <span>Password</span>
-                <span className="auth-field">
-                  <LockKeyhole aria-hidden="true" size={18} />
+              </motion.label>
+
+              <ForgotMessage error={error} info={info} />
+
+              <motion.button
+                className="auth-submit"
+                type="submit"
+                disabled={busy}
+                variants={itemVariants}
+                whileHover={{ scale: 1.015 }}
+                whileTap={{ scale: 0.985 }}
+              >
+                {busy ? "Sending..." : "Send reset code"}
+              </motion.button>
+            </form>
+
+            <motion.button className="auth-back-link" type="button" onClick={onBack} variants={itemVariants}>
+              <ArrowLeft aria-hidden="true" size={16} /> Back to sign in
+            </motion.button>
+          </>
+        ) : fStep === "code" ? (
+          <>
+            <motion.header className="auth-heading" variants={itemVariants}>
+              <span className="auth-verify-icon" aria-hidden="true">
+                <MailCheck size={26} />
+              </span>
+              <h1>Enter the code</h1>
+              <p>
+                We sent a 6-digit code to <strong className="auth-verify-email">{email}</strong>.
+              </p>
+            </motion.header>
+
+            <form className="auth-form" onSubmit={handleCodeSubmit}>
+              <motion.label className="auth-field auth-code-field" variants={itemVariants}>
+                <span className="auth-field-label">Verification code</span>
+                <span className="auth-field-control">
                   <input
-                    autoComplete={isSignup ? "new-password" : "current-password"}
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    placeholder="------"
+                    value={code}
+                    onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                    required
+                    autoFocus
+                  />
+                </span>
+              </motion.label>
+
+              {delivery === "console" ? (
+                <motion.p className="auth-info" variants={itemVariants}>
+                  Dev mode: SMTP isn&apos;t configured, so the code was printed to the server console.
+                </motion.p>
+              ) : null}
+
+              <ForgotMessage error={error} info={info} />
+
+              <motion.button
+                className="auth-submit"
+                type="submit"
+                disabled={busy || code.length !== 6}
+                variants={itemVariants}
+                whileHover={{ scale: 1.015 }}
+                whileTap={{ scale: 0.985 }}
+              >
+                {busy ? "Verifying..." : "Verify code"}
+              </motion.button>
+            </form>
+
+            <motion.p className="auth-switch" variants={itemVariants}>
+              Didn&apos;t get it?{" "}
+              <button className="auth-text-link" type="button" onClick={() => sendCode(true)} disabled={resending}>
+                {resending ? "Sending..." : "Resend code"}
+              </button>
+            </motion.p>
+
+            <motion.button
+              className="auth-back-link"
+              type="button"
+              onClick={() => {
+                setError("");
+                setInfo("");
+                setFStep("email");
+              }}
+              variants={itemVariants}
+            >
+              <ArrowLeft aria-hidden="true" size={16} /> Use a different email
+            </motion.button>
+          </>
+        ) : fStep === "reset" ? (
+          <>
+            <motion.header className="auth-heading" variants={itemVariants}>
+              <span className="auth-verify-icon" aria-hidden="true">
+                <KeyRound size={26} />
+              </span>
+              <h1>Set a new password</h1>
+              <p>Choose a new password for your account.</p>
+            </motion.header>
+
+            <form className="auth-form" onSubmit={handleResetSubmit}>
+              <motion.label className="auth-field" variants={itemVariants}>
+                <span className="auth-field-label">New password</span>
+                <span className="auth-field-control">
+                  <input
+                    autoComplete="new-password"
                     minLength={8}
-                    placeholder="Password"
-                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    type={showPw ? "text" : "password"}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
+                    required
+                    autoFocus
+                  />
+                  <button
+                    className="auth-password-toggle"
+                    type="button"
+                    onClick={() => setShowPw((value) => !value)}
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                  >
+                    {showPw ? <EyeOff aria-hidden="true" size={18} /> : <Eye aria-hidden="true" size={18} />}
+                  </button>
+                </span>
+              </motion.label>
+
+              <motion.label className="auth-field" variants={itemVariants}>
+                <span className="auth-field-label">Repeat password</span>
+                <span className="auth-field-control">
+                  <input
+                    autoComplete="new-password"
+                    minLength={8}
+                    placeholder="••••••••"
+                    type={showConfirmPw ? "text" : "password"}
+                    value={confirm}
+                    onChange={(event) => setConfirm(event.target.value)}
                     required
                   />
                   <button
                     className="auth-password-toggle"
                     type="button"
-                    onClick={() => setShowPassword((value) => !value)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                    title={showPassword ? "Hide password" : "Show password"}
+                    onClick={() => setShowConfirmPw((value) => !value)}
+                    aria-label={showConfirmPw ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? <EyeOff aria-hidden="true" size={17} /> : <Eye aria-hidden="true" size={17} />}
+                    {showConfirmPw ? <EyeOff aria-hidden="true" size={18} /> : <Eye aria-hidden="true" size={18} />}
                   </button>
                 </span>
-              </label>
-              {isSignup ? (
-                <div className="auth-strength" aria-hidden="true">
-                  {[0, 1, 2, 3].map((index) => (
-                    <span className={index < passwordScore ? "is-active" : ""} key={index} />
-                  ))}
-                </div>
-              ) : null}
-              {error ? <p className="auth-error">{error}</p> : null}
-              <button className="auth-submit" type="submit" disabled={isSubmitting || isSignupDisabled}>
-                <span>
-                  {isSignupDisabled
-                    ? "Account creation disabled"
-                    : isSubmitting
-                      ? "Please wait..."
-                      : isSignup
-                        ? "Create account"
-                        : "Sign in"}
-                </span>
-                <ArrowRight aria-hidden="true" size={18} />
-              </button>
-            </form>
+              </motion.label>
 
-            <p className="auth-switch">
-              {isSignup ? "Already have an account?" : "Need an account?"}{" "}
-              {isCreateAccountLinkDisabled ? (
-                <span className="auth-switch-disabled" aria-disabled="true" title={ACCOUNT_CREATION_DISABLED_MESSAGE}>
-                  Create account
-                </span>
-              ) : (
-                <Link href={switchHref} onClick={handleModeSwitch} aria-disabled={isSwitchingMode}>
-                  {isSignup ? "Sign in" : "Create account"}
-                </Link>
-              )}
-            </p>
+              <motion.div className="auth-strength" aria-hidden="true" variants={itemVariants}>
+                {[0, 1, 2, 3].map((index) => (
+                  <span className={index < score ? "is-active" : ""} key={index} />
+                ))}
+              </motion.div>
+
+              <ForgotMessage error={error} info={info} />
+
+              <motion.button
+                className="auth-submit"
+                type="submit"
+                disabled={busy}
+                variants={itemVariants}
+                whileHover={{ scale: 1.015 }}
+                whileTap={{ scale: 0.985 }}
+              >
+                {busy ? "Updating..." : "Update password"}
+              </motion.button>
+            </form>
+          </>
+        ) : (
+          <motion.div
+            className="auth-success"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.45, ease: EASE_OUT }}
+          >
+            <motion.span
+              className="auth-success-icon"
+              initial={{ scale: 0, rotate: -20 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 220, damping: 16, delay: 0.1 }}
+            >
+              <CheckCircle2 size={48} strokeWidth={2.2} />
+            </motion.span>
+            <h1>Password updated!</h1>
+            <p>You can now sign in with your new password.</p>
+            <button className="auth-submit" type="button" onClick={onBack}>
+              Back to sign in
+            </button>
           </motion.div>
-        </motion.div>
-      </motion.section>
-    </main>
+        )}
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function ForgotMessage({ error, info }: { error: string; info: string }) {
+  return (
+    <AnimatePresence>
+      {error ? (
+        <motion.p
+          className="auth-error"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          {error}
+        </motion.p>
+      ) : info ? (
+        <motion.p
+          className="auth-info"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          {info}
+        </motion.p>
+      ) : null}
+    </AnimatePresence>
   );
 }
 
