@@ -57,24 +57,14 @@ type BillingState = {
 export const useBillingStore = create<BillingState>()(
   persist(
     (set, get) => ({
-      planId: "pro",
+      planId: "free",
       usedMonthlyCredits: 0,
-      topUpCredits: 160,
-      autoTopUpEnabled: true,
+      topUpCredits: 0,
+      autoTopUpEnabled: false,
       invoiceEmailEnabled: true,
-      paymentMethodLabel: "Visa ending 4242",
+      paymentMethodLabel: "No payment method on file",
       usage: [],
-      ledger: [
-        {
-          id: "ledger-starter-pro",
-          kind: "subscription",
-          label: "Pro plan",
-          credits: 1350,
-          amountInr: 999,
-          status: "paid",
-          createdAt: Date.now()
-        }
-      ],
+      ledger: [],
 
       selectPlan(planId) {
         const plan = getBillingPlan(planId);
@@ -182,7 +172,26 @@ export const useBillingStore = create<BillingState>()(
     }),
     {
       name: "aion-mind-billing",
-      storage: createJSONStorage(() => localStorage)
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      // v0 shipped every browser a fabricated "Pro" wallet. Reset stale wallets
+      // to a clean Free state; real purchases are recorded server-side.
+      migrate: (persisted, version) => {
+        if (version < 1) {
+          return {
+            planId: "free",
+            usedMonthlyCredits: 0,
+            topUpCredits: 0,
+            autoTopUpEnabled: false,
+            invoiceEmailEnabled: true,
+            paymentMethodLabel: "No payment method on file",
+            usage: [],
+            ledger: []
+          } as Partial<BillingState> as BillingState;
+        }
+
+        return persisted as BillingState;
+      }
     }
   )
 );
@@ -211,22 +220,43 @@ export function getCreditUsagePercent(state: Pick<BillingState, "planId" | "used
 export function getChatCreditCharge(model: AionModelId, attachmentCount: number): BillingCharge {
   const attachmentCredits = attachmentCount > 0 ? attachmentCount * 2 : 0;
 
-  if (model === "aion-mind-analyzer") {
+  // Aria Mind = ask all 4 providers + GPT-5.5 judge (5 model calls).
+  if (model === "aion-mind") {
     return {
       featureId: "analyzer",
-      label: "Aria Analyzer answer",
+      label: "Aria Mind answer",
       credits: 24 + attachmentCredits
     };
   }
 
+  // Aria Research = all 4 providers side by side (4 model calls).
   if (model === "aion-mind-pro") {
     return {
       featureId: "research",
       label: "Aria Research answer",
-      credits: 10 + attachmentCredits
+      credits: 20 + attachmentCredits
     };
   }
 
+  // Aria Analyzer = router pass + the chosen model (2 calls).
+  if (model === "aion-mind-analyzer") {
+    return {
+      featureId: "analyzer",
+      label: "Aria Analyzer answer",
+      credits: 8 + attachmentCredits
+    };
+  }
+
+  // Aria Diverse = one provider the user picked.
+  if (model === "aria-diverse") {
+    return {
+      featureId: attachmentCount > 0 ? "file-chat" : "chat",
+      label: "Aria Diverse answer",
+      credits: (attachmentCount > 0 ? 4 : 3) + attachmentCredits
+    };
+  }
+
+  // Aria Instant = one fast model.
   if (attachmentCount > 0) {
     return {
       featureId: "file-chat",
@@ -237,7 +267,7 @@ export function getChatCreditCharge(model: AionModelId, attachmentCount: number)
 
   return {
     featureId: "chat",
-    label: "Aria Mind answer",
+    label: "Aria Instant answer",
     credits: 2
   };
 }

@@ -83,10 +83,10 @@ export type FeatureCreditRate = {
 };
 
 export const FEATURE_CREDIT_RATES: FeatureCreditRate[] = [
-  { id: "chat", label: "Aria Mind chat", credits: "2", color: "#22d3ee" },
+  { id: "chat", label: "Aria Instant / Diverse", credits: "2-3", color: "#22d3ee" },
   { id: "file-chat", label: "File or image chat", credits: "4+", color: "#38bdf8" },
-  { id: "research", label: "Aria Research", credits: "10+", color: "#60a5fa" },
-  { id: "analyzer", label: "Aria Analyzer", credits: "24+", color: "#34d399" },
+  { id: "research", label: "Aria Research (all models)", credits: "20+", color: "#60a5fa" },
+  { id: "analyzer", label: "Aria Mind / Analyzer", credits: "8-24+", color: "#34d399" },
   { id: "translate", label: "Translate", credits: "3+", color: "#a78bfa" },
   { id: "image", label: "Image generation", credits: "28-45", color: "#f97316" },
   { id: "video", label: "Video generation", credits: "120-360", color: "#fb7185" },

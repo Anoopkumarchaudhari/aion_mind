@@ -131,13 +131,11 @@ export async function getAdminOverview(admin: AdminUser): Promise<AdminOverview>
       modelCount: provider.defaultModels.filter((model) => model.value).length
     })),
     routing: [
-      { label: "Aria Mind", slots: [toAdminSlot(routingPayload.settings.aion.primary)] },
+      { label: "Aria Instant", slots: [toAdminSlot(routingPayload.settings.aion.primary)] },
+      { label: "Aria Diverse", slots: routingPayload.settings.diverse.map(toAdminSlot) },
+      { label: "Aria Research", slots: routingPayload.settings.pro.candidates.map(toAdminSlot) },
       {
-        label: "Aria Research",
-        slots: [...routingPayload.settings.pro.candidates, routingPayload.settings.pro.judge].map(toAdminSlot)
-      },
-      {
-        label: "Aria Analyzer",
+        label: "Aria Mind / Analyzer",
         slots: [...routingPayload.settings.analyzer.candidates, routingPayload.settings.analyzer.judge].map(
           toAdminSlot
         )
