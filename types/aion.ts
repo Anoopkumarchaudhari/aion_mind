@@ -1,10 +1,37 @@
 export const AION_MODELS = [
+  "aria-instant",
+  "aria-diverse",
   "aion-mind",
   "aion-mind-pro",
   "aion-mind-analyzer"
 ] as const;
 
 export type AionModelId = (typeof AION_MODELS)[number];
+
+/**
+ * Aria Diverse lets the user pick one provider directly.
+ * Labels are user-facing brand names; ids match the routing provider keys.
+ */
+export const ARIA_DIVERSE_PROVIDERS = ["openai", "anthropic", "deepseek", "gemini"] as const;
+
+export type AriaDiverseProvider = (typeof ARIA_DIVERSE_PROVIDERS)[number];
+
+export function getAriaDiverseProviderLabel(provider: AriaDiverseProvider) {
+  switch (provider) {
+    case "openai":
+      return "ChatGPT";
+    case "anthropic":
+      return "Claude";
+    case "deepseek":
+      return "DeepSeek";
+    case "gemini":
+      return "Gemini";
+  }
+}
+
+export function isAriaDiverseProvider(value: unknown): value is AriaDiverseProvider {
+  return typeof value === "string" && ARIA_DIVERSE_PROVIDERS.includes(value as AriaDiverseProvider);
+}
 
 export const AION_RESEARCH_MODELS = [
   "gpt-5.5",
@@ -76,12 +103,31 @@ export type ChatApiResponse = {
 
 export function getAionModelLabel(model: AionModelId) {
   switch (model) {
+    case "aria-instant":
+      return "Aria Instant";
+    case "aria-diverse":
+      return "Aria Diverse";
     case "aion-mind":
       return "Aria Mind";
     case "aion-mind-pro":
       return "Aria Research";
     case "aion-mind-analyzer":
       return "Aria Analyzer";
+  }
+}
+
+export function getAionModelTagline(model: AionModelId) {
+  switch (model) {
+    case "aria-instant":
+      return "Fast answers from a single model";
+    case "aria-diverse":
+      return "Pick your preferred AI provider";
+    case "aion-mind":
+      return "All models combined into one best answer";
+    case "aion-mind-pro":
+      return "Compare every model side by side";
+    case "aion-mind-analyzer":
+      return "Auto-routes to the best model for your question";
   }
 }
 

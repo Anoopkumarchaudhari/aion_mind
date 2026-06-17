@@ -4,6 +4,7 @@ import { create } from "zustand";
 import type {
   AionModelId,
   AionResearchModelId,
+  AriaDiverseProvider,
   ChatAttachment,
   DebugDiagnostic,
   MessageAttachment,
@@ -47,6 +48,7 @@ type SendMessageOptions = {
   attachments?: ChatAttachment[];
   selectedModel?: AionModelId;
   researchModel?: AionResearchModelId;
+  diverseProvider?: AriaDiverseProvider;
 };
 
 type ChatState = {
@@ -99,14 +101,14 @@ let activeStreamSmoother: AssistantStreamSmoother | null = null;
 let activeResearchWorkLogFlow: ResearchWorkLogFlow | null = null;
 let hydratePromise: Promise<void> | null = null;
 
-const initialThread = createThread("aion-mind");
+const initialThread = createThread("aria-instant");
 
 export const useChatStore = create<ChatState>((set, get) => ({
   threads: [initialThread],
   activeThreadId: initialThread.id,
-  selectedModel: "aion-mind",
+  selectedModel: "aria-instant",
   tempMode: false,
-  tempThread: createTempThread("aion-mind"),
+  tempThread: createTempThread("aria-instant"),
   lastPersistedThreadId: initialThread.id,
   isLoading: false,
   hydrated: false,
@@ -127,7 +129,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       const serverThreads = await readServerThreads();
       const threads = serverThreads && serverThreads.length > 0 ? serverThreads : localThreads;
       const dedupedThreads = dedupeDefaultEmptyThreads(threads);
-      const nextThreads = dedupedThreads.length > 0 ? sortThreads(dedupedThreads) : [createThread("aion-mind")];
+      const nextThreads = dedupedThreads.length > 0 ? sortThreads(dedupedThreads) : [createThread("aria-instant")];
       const activeThread = nextThreads[0];
 
       persistThreads(nextThreads);
@@ -269,7 +271,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
   },
 
-  async sendMessage(content, { debug, attachments = [], selectedModel: modelOverride, researchModel }) {
+  async sendMessage(content, { debug, attachments = [], selectedModel: modelOverride, researchModel, diverseProvider }) {
     const trimmed = content.trim();
     const state = get();
     const messageText = trimmed || (attachments.length > 0 ? "Please review the attached file(s)." : "");
@@ -377,6 +379,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           message: messageText,
           selectedModel,
           researchModel: selectedModel === "aion-mind-pro" ? researchModel : undefined,
+          diverseProvider: selectedModel === "aria-diverse" ? diverseProvider : undefined,
           history: toModelHistory(targetThread.messages),
           attachments: toModelAttachments(attachments),
           debug,
@@ -995,7 +998,9 @@ function isChatThread(value: unknown): value is ChatThread {
     typeof thread.title === "string" &&
     typeof thread.createdAt === "number" &&
     typeof thread.updatedAt === "number" &&
-    (thread.model === "aion-mind" ||
+    (thread.model === "aria-instant" ||
+      thread.model === "aria-diverse" ||
+      thread.model === "aion-mind" ||
       thread.model === "aion-mind-pro" ||
       thread.model === "aion-mind-analyzer") &&
     Array.isArray(thread.messages)

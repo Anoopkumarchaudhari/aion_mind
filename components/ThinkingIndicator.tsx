@@ -6,9 +6,11 @@ import { messageRowVariants } from "@/lib/motion";
 import type { AionModelId } from "@/types/aion";
 
 const LABELS: Record<AionModelId, string> = {
-  "aion-mind": "Preparing your answer",
-  "aion-mind-pro": "Starting research pass",
-  "aion-mind-analyzer": "Starting analysis pass"
+  "aria-instant": "Preparing your answer",
+  "aria-diverse": "Asking your chosen model",
+  "aion-mind": "Combining every model",
+  "aion-mind-pro": "Gathering every model's answer",
+  "aion-mind-analyzer": "Routing to the best model"
 };
 
 export function ThinkingIndicator({ model }: { model: AionModelId }) {

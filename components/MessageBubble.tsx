@@ -334,7 +334,7 @@ function getPlainText(value: unknown): string {
 function getModelHeadingTone(value: string) {
   const normalized = value.toLowerCase();
 
-  if (/\b(gpt|openai)\b/.test(normalized)) {
+  if (/\b(gpt|openai|chatgpt)\b/.test(normalized)) {
     return "gpt";
   }
 

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { buildRelevantMemoryContext, mergeMemoryIntoMessage } from "@/services/aionMemory";
 import { getCurrentUser } from "@/services/auth";
-import { isAionModelId, isAionResearchModelId } from "@/types/aion";
-import type { ChatAttachment, ChatMessage } from "@/types/aion";
+import { isAionModelId, isAionResearchModelId, isAriaDiverseProvider } from "@/types/aion";
+import type { AriaDiverseProvider, ChatAttachment, ChatMessage } from "@/types/aion";
 import { routeAionStream } from "@/services/streamRouter";
 
 export const runtime = "nodejs";
@@ -27,6 +27,7 @@ type RawChatBody = {
   message?: unknown;
   selectedModel?: unknown;
   researchModel?: unknown;
+  diverseProvider?: unknown;
   model?: unknown;
   history?: unknown;
   attachments?: unknown;
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
     searchQuery: validation.message,
     selectedModel: validation.selectedModel,
     researchModel: validation.researchModel,
+    diverseProvider: validation.diverseProvider,
     history: validation.history,
     attachments: validation.attachments,
     debug
@@ -88,6 +90,7 @@ function validateRequestBody(body: RawChatBody):
       message: string;
       selectedModel: NonNullable<RawChatBody["selectedModel"]> & ReturnType<typeof normalizeModel>;
       researchModel?: NonNullable<RawChatBody["researchModel"]> & ReturnType<typeof normalizeResearchModel>;
+      diverseProvider?: AriaDiverseProvider;
       history: ChatMessage[];
       attachments: ChatAttachment[];
       ephemeral: boolean;
@@ -97,6 +100,7 @@ function validateRequestBody(body: RawChatBody):
   const message = typeof body.message === "string" ? body.message.trim() : "";
   const model = normalizeModel(body.selectedModel ?? body.model);
   const researchModel = normalizeResearchModel(body.researchModel);
+  const diverseProvider = normalizeDiverseProvider(body.diverseProvider);
   const attachments = normalizeAttachments(body.attachments);
 
   if (!attachments) {
@@ -128,6 +132,7 @@ function validateRequestBody(body: RawChatBody):
     message: message || "Please review the attached file(s).",
     selectedModel: model,
     researchModel: model === "aion-mind-pro" ? researchModel ?? "gpt-5.5" : undefined,
+    diverseProvider: model === "aria-diverse" ? diverseProvider ?? "openai" : undefined,
     history,
     attachments,
     ephemeral,
@@ -141,6 +146,10 @@ function normalizeModel(value: unknown) {
 
 function normalizeResearchModel(value: unknown) {
   return isAionResearchModelId(value) ? value : null;
+}
+
+function normalizeDiverseProvider(value: unknown) {
+  return isAriaDiverseProvider(value) ? value : null;
 }
 
 function normalizeHistory(value: unknown): ChatMessage[] | null {

@@ -15,12 +15,23 @@ const DEFAULT_RESEARCH_GPT_MODEL = "gpt-5.5";
 const DEFAULT_JUDGE_MODEL = "gpt-5.5";
 const DEFAULT_CLAUDE_OPUS_MODEL = "claude-opus-4-8";
 const DEFAULT_GEMINI_RESEARCH_MODEL = "gemini-3.1";
+const DEFAULT_INSTANT_MODEL = "gpt-5.4-mini";
+
+/** Preset model options the admin can pick for Aria Instant (single fast model). */
+const INSTANT_MODEL_CHOICES: Array<{ label: string; value: string }> = [
+  { label: "GPT-5.4 mini (fast)", value: "gpt-5.4-mini" },
+  { label: "GPT-5.4 nano (fastest)", value: "gpt-5.4-nano" },
+  { label: "GPT-5.4", value: "gpt-5.4" },
+  { label: "GPT-5.5 (flagship)", value: "gpt-5.5" },
+  { label: "GPT-5 mini", value: "gpt-5-mini" }
+];
 
 export async function getAionRoutingPayload() {
   return {
     settings: await loadAionRoutingSettings(),
     defaults: getDefaultAionRoutingSettings(),
-    providerStatus: getAionProviderStatus()
+    providerStatus: getAionProviderStatus(),
+    instantModelChoices: INSTANT_MODEL_CHOICES
   };
 }
 
@@ -47,13 +58,47 @@ export function getDefaultAionRoutingSettings(): AionRoutingSettings {
     aion: {
       primary: {
         id: "aion-primary",
-        label: "GPT-5.4 mini instant",
+        label: "Aria Instant",
         provider: "openai",
-        model: DEFAULT_MIND_MODEL,
+        model: readEnv("OPENAI_INSTANT_MODEL") || DEFAULT_INSTANT_MODEL,
         enabled: true,
         temperature: 0.35
       }
     },
+    diverse: [
+      {
+        id: "diverse-openai",
+        label: "ChatGPT",
+        provider: "openai",
+        model: readEnv("OPENAI_ADVANCED_MODEL") || DEFAULT_RESEARCH_GPT_MODEL,
+        enabled: true,
+        temperature: 0.4
+      },
+      {
+        id: "diverse-anthropic",
+        label: "Claude",
+        provider: "anthropic",
+        model: readEnv("ANTHROPIC_OPUS_MODEL") || DEFAULT_CLAUDE_OPUS_MODEL,
+        enabled: true,
+        temperature: 0.4
+      },
+      {
+        id: "diverse-deepseek",
+        label: "DeepSeek",
+        provider: "deepseek",
+        model: readEnv("DEEPSEEK_MODEL") || DEFAULT_DEEPSEEK_MODEL,
+        enabled: true,
+        temperature: 0.6
+      },
+      {
+        id: "diverse-gemini",
+        label: "Gemini",
+        provider: "gemini",
+        model: readEnv("GEMINI_RESEARCH_MODEL") || readEnv("GEMINI_MODEL") || DEFAULT_GEMINI_RESEARCH_MODEL,
+        enabled: true,
+        temperature: 0.4
+      }
+    ],
     pro: {
       candidates: [
         {
@@ -203,54 +248,53 @@ export function getAionProviderStatus(): AionProviderStatus[] {
 function normalizeRoutingSettings(value: unknown): AionRoutingSettings {
   const defaults = getDefaultAionRoutingSettings();
   const record = asRecord(value);
+  const proRecord = asRecord(record.pro);
+  const proCandidateSources = Array.isArray(proRecord.candidates) ? proRecord.candidates : [];
+  const diverseSources = Array.isArray(record.diverse) ? record.diverse : [];
 
-  const settings = {
-    aion: {
-      primary: normalizeSlot(asRecord(asRecord(record.aion).primary), defaults.aion.primary)
-    },
-    pro: normalizeRoute(asRecord(record.pro), defaults.pro),
-    analyzer: normalizeRoute(asRecord(record.analyzer), defaults.analyzer)
-  };
-
-  return applyRequiredAriaResearchRouting(settings, defaults);
-}
-
-function applyRequiredAriaResearchRouting(
-  settings: AionRoutingSettings,
-  defaults: AionRoutingSettings
-): AionRoutingSettings {
   return {
     aion: {
-      primary: keepRuntimeToggles(settings.aion.primary, defaults.aion.primary)
+      primary: normalizeFixedProviderSlot(
+        asRecord(asRecord(record.aion).primary),
+        defaults.aion.primary
+      )
     },
+    // provider + id stay fixed per slot; the admin controls the model name.
+    diverse: defaults.diverse.map((slot) =>
+      normalizeFixedProviderSlot(findSlotSource(diverseSources, slot.id), slot)
+    ),
     pro: {
       candidates: defaults.pro.candidates.map((slot) =>
-        keepRuntimeToggles(findResearchSlot(settings.pro.candidates, slot.id), slot)
+        normalizeFixedProviderSlot(findSlotSourceWithLegacy(proCandidateSources, slot.id), slot)
       ),
-      judge: keepRuntimeToggles(settings.pro.judge, defaults.pro.judge)
+      judge: normalizeFixedProviderSlot(asRecord(proRecord.judge), defaults.pro.judge)
     },
-    analyzer: settings.analyzer
+    analyzer: normalizeRoute(asRecord(record.analyzer), defaults.analyzer)
   };
 }
 
-function findResearchSlot(slots: AionRouteSlot[], id: string) {
-  const legacyIds: Record<string, string[]> = {
-    "research-gpt-55": ["pro-openai"],
-    "research-opus-48": ["pro-claude", "pro-claude-opus"]
-  };
+const LEGACY_SLOT_IDS: Record<string, string[]> = {
+  "research-gpt-55": ["pro-openai"],
+  "research-opus-48": ["pro-claude", "pro-claude-opus"]
+};
 
-  return slots.find((slot) => slot.id === id) ??
-    slots.find((slot) => legacyIds[id]?.includes(slot.id));
+function findSlotSourceWithLegacy(values: unknown[], id: string) {
+  const matched =
+    values.find((value) => asRecord(value).id === id) ??
+    values.find((value) => LEGACY_SLOT_IDS[id]?.includes(String(asRecord(value).id ?? "")));
+
+  return asRecord(matched);
 }
 
-function keepRuntimeToggles(
-  source: AionRouteSlot | undefined,
-  fixed: AionRouteSlot
-): AionRouteSlot {
+/** Keeps the slot id + provider fixed (admin edits model/label/temperature/enabled). */
+function normalizeFixedProviderSlot(value: Record<string, unknown>, fixed: AionRouteSlot): AionRouteSlot {
   return {
-    ...fixed,
-    enabled: source?.enabled ?? fixed.enabled,
-    temperature: source?.temperature ?? fixed.temperature
+    id: fixed.id,
+    label: cleanText(value.label, fixed.label, 60),
+    provider: fixed.provider,
+    model: cleanText(value.model, fixed.model, 160),
+    enabled: typeof value.enabled === "boolean" ? value.enabled : fixed.enabled,
+    temperature: cleanTemperature(value.temperature, fixed.temperature)
   };
 }
 

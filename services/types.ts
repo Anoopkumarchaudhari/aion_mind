@@ -1,6 +1,7 @@
 import type {
   AionModelId,
   AionResearchModelId,
+  AriaDiverseProvider,
   ChatAttachment,
   ChatMessage,
   DebugDiagnostic,
@@ -55,6 +56,7 @@ export type ModelRouteRequest = {
   searchQuery?: string;
   selectedModel: AionModelId;
   researchModel?: AionResearchModelId;
+  diverseProvider?: AriaDiverseProvider;
   history: ChatMessage[];
   attachments?: ChatAttachment[];
   debug: boolean;

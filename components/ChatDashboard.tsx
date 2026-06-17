@@ -20,7 +20,7 @@ import { fadeThroughVariants, gentleSpring } from "@/lib/motion";
 import { getAvailableCredits, getChatCreditCharge, useBillingStore } from "@/store/useBillingStore";
 import { sortThreads, useChatStore } from "@/store/useChatStore";
 import { useNotebookStore } from "@/store/useNotebookStore";
-import type { AionModelId, AionResearchModelId, ChatAttachment } from "@/types/aion";
+import type { AionModelId, AionResearchModelId, AriaDiverseProvider, ChatAttachment } from "@/types/aion";
 
 const debugEnabled = process.env.NEXT_PUBLIC_AION_DEBUG === "true";
 const MAX_ATTACHMENTS = 5;
@@ -53,6 +53,7 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
   const [routingOpen, setRoutingOpen] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
   const [researchModel, setResearchModel] = useState<AionResearchModelId>("gpt-5.5");
+  const [diverseProvider, setDiverseProvider] = useState<AriaDiverseProvider>("openai");
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
   const [promptEnhanceError, setPromptEnhanceError] = useState("");
   const [promptEnhanceUndo, setPromptEnhanceUndo] = useState<string | null>(null);
@@ -198,7 +199,8 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
       debug: debugEnabled,
       attachments: outgoingAttachments,
       selectedModel: requestModel,
-      researchModel: options.researchModel ?? researchModel
+      researchModel: options.researchModel ?? researchModel,
+      diverseProvider
     });
     window.setTimeout(() => inputRef.current?.focus(), 0);
   }
@@ -361,12 +363,6 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
 
   const controls = (
     <>
-      <ModelPill
-        active={selectedModel}
-        onChange={setSelectedModel}
-        onResearchClick={() => setResearchOpen(true)}
-        onOpenRouting={() => setRoutingOpen(true)}
-      />
       <MessageInput
         value={input}
         disabled={isLoading}
@@ -377,6 +373,14 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
         attachmentError={attachmentError}
         promptEnhanceError={promptEnhanceError}
         canUndoPromptEnhance={promptEnhanceUndo !== null}
+        modelControl={
+          <ModelPill
+            active={selectedModel}
+            diverseProvider={diverseProvider}
+            onChange={setSelectedModel}
+            onDiverseProviderChange={setDiverseProvider}
+          />
+        }
         inputRef={inputRef}
         onChange={handleInputChange}
         onSubmit={handleSubmit}
@@ -500,8 +504,12 @@ function getRoutingTab(model: AionModelId) {
     return "pro";
   }
 
-  if (model === "aion-mind-analyzer") {
+  if (model === "aion-mind" || model === "aion-mind-analyzer") {
     return "analyzer";
+  }
+
+  if (model === "aria-diverse") {
+    return "diverse";
   }
 
   return "aion";

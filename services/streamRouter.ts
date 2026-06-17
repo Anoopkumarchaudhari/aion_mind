@@ -51,7 +51,7 @@ export async function routeAionStream({
   message,
   searchQuery,
   selectedModel,
-  researchModel,
+  diverseProvider,
   history,
   attachments = [],
   debug
@@ -87,7 +87,11 @@ export async function routeAionStream({
     : messages;
   const routing = await loadAionRoutingSettings();
 
-  if (selectedModel === "aion-mind") {
+  const preDiagnostics = liveSearchResponse ? [liveSearchResponse] : [];
+  const webSearchActivity = getWebSearchActivity(searchQuery ?? message, liveSearchResponse);
+
+  // Aria Instant — one fast model
+  if (selectedModel === "aria-instant") {
     const response = await streamConfiguredModel(routing.aion.primary, {
       messages: routedMessages,
       attachments,
@@ -98,39 +102,222 @@ export async function routeAionStream({
       response.ok && response.stream
         ? response.stream
         : streamText(getUnavailableAnswer(selectedModel, [response])),
-      debug ? [response] : undefined,
-      getWebSearchActivity(searchQuery ?? message, liveSearchResponse)
+      debug ? [...preDiagnostics, response] : undefined,
+      webSearchActivity
     );
   }
 
-  if (selectedModel === "aion-mind-pro") {
-    const result = await streamResearchTier(
-      routedMessages,
+  // Aria Diverse — the single provider the user chose
+  if (selectedModel === "aria-diverse") {
+    const slot = getDiverseSlot(routing.diverse, diverseProvider);
+    const response = await streamConfiguredModel(slot, {
+      messages: routedMessages,
       attachments,
-      routing.pro,
-      researchModel ?? DEFAULT_RESEARCH_MODEL,
-      liveSearchResponse ? [liveSearchResponse] : []
+      systemPrompt: BASE_SYSTEM_PROMPT
+    });
+
+    return createStreamResponse(
+      response.ok && response.stream
+        ? response.stream
+        : streamText(getUnavailableAnswer(selectedModel, [response])),
+      debug ? [...preDiagnostics, response] : undefined,
+      webSearchActivity
     );
+  }
+
+  // Aria Mind — ask every model, judge, return one synthesized answer
+  if (selectedModel === "aion-mind") {
+    const responses = await Promise.all(
+      routing.analyzer.candidates.map((slot) =>
+        callConfiguredModel(slot, {
+          messages: routedMessages,
+          attachments,
+          systemPrompt: AION_CANDIDATE_SYSTEM_PROMPT
+        })
+      )
+    );
+    const result = await streamJudgedAnswer({
+      selectedModel,
+      userMessage: message,
+      history,
+      responses,
+      mode: "analyzer",
+      judge: routing.analyzer.judge
+    });
+
+    return createStreamResponse(
+      result.stream,
+      debug ? [...preDiagnostics, ...result.diagnostics] : undefined,
+      webSearchActivity
+    );
+  }
+
+  // Aria Research — every model side by side, colored headings, no judge
+  if (selectedModel === "aion-mind-pro") {
+    const result = await runResearchSideBySide(routedMessages, attachments, routing.pro, preDiagnostics);
+
     return createStreamResponse(
       result.stream,
       debug ? result.diagnostics : undefined,
-      getWebSearchActivity(searchQuery ?? message, liveSearchResponse)
+      webSearchActivity
     );
   }
 
-  const result = await streamAnalyzerTier(
+  // Aria Analyzer — route to the single best model for this question, then answer
+  const result = await runAnalyzerAutoRoute(
     routedMessages,
     message,
-    history,
     attachments,
     routing.analyzer,
-    liveSearchResponse ? [liveSearchResponse] : []
+    preDiagnostics
   );
   return createStreamResponse(
     result.stream,
     debug ? result.diagnostics : undefined,
-    getWebSearchActivity(searchQuery ?? message, liveSearchResponse)
+    webSearchActivity
   );
+}
+
+function getDiverseSlot(slots: AionRouteSlot[], provider: ModelRouteRequest["diverseProvider"]): AionRouteSlot {
+  const wanted = provider ?? "openai";
+  return slots.find((slot) => slot.provider === wanted && slot.enabled) ??
+    slots.find((slot) => slot.provider === wanted) ??
+    slots.find((slot) => slot.enabled) ??
+    slots[0];
+}
+
+const PROVIDER_BRAND: Record<AionRouteSlot["provider"], string> = {
+  openai: "ChatGPT",
+  anthropic: "Claude",
+  deepseek: "DeepSeek",
+  gemini: "Gemini",
+  grok: "Grok"
+};
+
+async function runResearchSideBySide(
+  messages: ChatMessage[],
+  attachments: ChatAttachment[],
+  route: AionRouteSettings,
+  preDiagnostics: ProviderResponse[] = []
+): Promise<StreamRouteResult> {
+  const candidateResults = await Promise.all(
+    route.candidates.map(async (slot) => ({
+      label: PROVIDER_BRAND[slot.provider] ?? slot.label,
+      response: await callConfiguredModel(slot, {
+        messages,
+        attachments,
+        systemPrompt: PRO_SYSTEM_PROMPT
+      })
+    }))
+  );
+  const responses = candidateResults.map((candidate) => candidate.response);
+
+  if (responses.every((response) => !hasUsableContent(response))) {
+    return {
+      stream: streamText(getUnavailableAnswer("aion-mind-pro", responses)),
+      diagnostics: [...preDiagnostics, ...responses]
+    };
+  }
+
+  return {
+    stream: streamText(buildResearchSideBySideAnswer(candidateResults)),
+    diagnostics: [...preDiagnostics, ...responses]
+  };
+}
+
+function buildResearchSideBySideAnswer(candidates: Array<{ label: string; response: ProviderResponse }>) {
+  const sections = candidates.map(({ label, response }) => {
+    const answer =
+      response.ok && response.content?.trim()
+        ? response.content.trim()
+        : "This model did not return an answer for this question.";
+
+    return [`### ${label}`, "", answer].join("\n");
+  });
+
+  return ["## Every model, side by side", "", sections.join("\n\n")].join("\n\n");
+}
+
+async function runAnalyzerAutoRoute(
+  messages: ChatMessage[],
+  userMessage: string,
+  attachments: ChatAttachment[],
+  route: AionRouteSettings,
+  preDiagnostics: ProviderResponse[] = []
+): Promise<StreamRouteResult> {
+  const enabledCandidates = route.candidates.filter((slot) => slot.enabled);
+
+  if (enabledCandidates.length === 0) {
+    return {
+      stream: streamText(getUnavailableAnswer("aion-mind-analyzer", route.candidates.map(disabledDiagnostic))),
+      diagnostics: preDiagnostics
+    };
+  }
+
+  const router = await callConfiguredModel(
+    route.judge,
+    {
+      messages: [{ role: "user", content: buildRouterPrompt(userMessage, enabledCandidates) }],
+      systemPrompt: ROUTER_SYSTEM_PROMPT,
+      timeoutMs: getTimeoutMs(process.env.AION_JUDGE_TIMEOUT_MS, 20000)
+    },
+    "judge"
+  );
+  const chosen = pickRoutedSlot(router.content, enabledCandidates);
+  const response = await streamConfiguredModel(chosen, {
+    messages,
+    attachments,
+    systemPrompt: BASE_SYSTEM_PROMPT
+  });
+
+  return {
+    stream:
+      response.ok && response.stream
+        ? response.stream
+        : streamText(getUnavailableAnswer("aion-mind-analyzer", [response])),
+    diagnostics: [...preDiagnostics, router, response]
+  };
+}
+
+const ROUTER_SYSTEM_PROMPT =
+  "You are a routing classifier. Pick the single best AI model to answer the user's question based on each model's strengths. Reply with ONLY the number of the chosen model and nothing else.";
+
+function buildRouterPrompt(userMessage: string, candidates: AionRouteSlot[]) {
+  const list = candidates
+    .map((slot, index) => `${index + 1}. ${PROVIDER_BRAND[slot.provider] ?? slot.label} (${slot.label})`)
+    .join("\n");
+
+  return [
+    "User question:",
+    truncate(userMessage, 2000),
+    "",
+    "Available models:",
+    list,
+    "",
+    "Reply with only the number of the single best model for this question."
+  ].join("\n");
+}
+
+function pickRoutedSlot(content: string | undefined, candidates: AionRouteSlot[]): AionRouteSlot {
+  const match = content?.match(/\d+/);
+  const index = match ? Number(match[0]) - 1 : -1;
+
+  if (index >= 0 && index < candidates.length) {
+    return candidates[index];
+  }
+
+  return candidates[0];
+}
+
+function disabledDiagnostic(slot: AionRouteSlot): ProviderResponse {
+  return {
+    provider: slot.provider,
+    model: slot.model,
+    ok: false,
+    skipped: true,
+    error: "Disabled in model routing",
+    latencyMs: 0
+  };
 }
 
 async function getLiveSearchResponse({

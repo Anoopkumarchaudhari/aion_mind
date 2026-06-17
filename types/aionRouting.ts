@@ -26,6 +26,8 @@ export type AionRoutingSettings = {
   aion: {
     primary: AionRouteSlot;
   };
+  /** Aria Diverse: one configurable model per provider the user can pick. */
+  diverse: AionRouteSlot[];
   pro: AionRouteSettings;
   analyzer: AionRouteSettings;
 };
@@ -44,6 +46,8 @@ export type AionRoutingPayload = {
   settings: AionRoutingSettings;
   defaults: AionRoutingSettings;
   providerStatus: AionProviderStatus[];
+  /** Preset model options the admin can assign to Aria Instant. */
+  instantModelChoices: Array<{ label: string; value: string }>;
 };
 
 export function getAionRoutingProviderLabel(provider: AionRoutingProvider) {

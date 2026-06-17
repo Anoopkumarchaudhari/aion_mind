@@ -19,7 +19,7 @@ import {
   type AionRoutingSettings
 } from "@/types/aionRouting";
 
-type RoutingTab = "aion" | "pro" | "analyzer";
+type RoutingTab = "aion" | "diverse" | "pro" | "analyzer";
 type SaveState = "idle" | "loading" | "saving" | "saved" | "error";
 
 type ModelRoutingDrawerProps = {
@@ -29,9 +29,10 @@ type ModelRoutingDrawerProps = {
 };
 
 const ROUTING_TABS: Array<{ id: RoutingTab; label: string }> = [
-  { id: "aion", label: "Aria Mind" },
+  { id: "aion", label: "Aria Instant" },
+  { id: "diverse", label: "Aria Diverse" },
   { id: "pro", label: "Aria Research" },
-  { id: "analyzer", label: "Aria Analyzer" }
+  { id: "analyzer", label: "Aria Mind / Analyzer" }
 ];
 
 export function ModelRoutingDrawer({
@@ -70,7 +71,7 @@ export function ModelRoutingDrawer({
   }, [onOpenChange, open]);
 
   const activeRouteLabel = useMemo(
-    () => ROUTING_TABS.find((tab) => tab.id === activeTab)?.label ?? "Aria Mind",
+    () => ROUTING_TABS.find((tab) => tab.id === activeTab)?.label ?? "Aria Instant",
     [activeTab]
   );
 
@@ -185,6 +186,19 @@ export function ModelRoutingDrawer({
     );
   }
 
+  function updateDiverse(index: number, patch: Partial<AionRouteSlot>) {
+    setDraft((settings) =>
+      settings
+        ? {
+            ...settings,
+            diverse: settings.diverse.map((slot, slotIndex) =>
+              slotIndex === index ? { ...slot, ...patch } : slot
+            )
+          }
+        : settings
+    );
+  }
+
   return (
     <div className="routing-drawer-root">
       <button
@@ -238,9 +252,11 @@ export function ModelRoutingDrawer({
                   activeTab={activeTab}
                   settings={draft}
                   providers={payload.providerStatus}
+                  instantModelChoices={payload.instantModelChoices}
                   onUpdatePrimary={updatePrimary}
                   onUpdateCandidate={updateCandidate}
                   onUpdateJudge={updateJudge}
+                  onUpdateDiverse={updateDiverse}
                 />
               ) : null}
             </section>
@@ -296,13 +312,16 @@ function RoutePanel({
   activeTab,
   settings,
   providers,
+  instantModelChoices,
   onUpdatePrimary,
   onUpdateCandidate,
-  onUpdateJudge
+  onUpdateJudge,
+  onUpdateDiverse
 }: {
   activeTab: RoutingTab;
   settings: AionRoutingSettings;
   providers: AionProviderStatus[];
+  instantModelChoices: Array<{ label: string; value: string }>;
   onUpdatePrimary: (patch: Partial<AionRouteSlot>) => void;
   onUpdateCandidate: (
     route: "pro" | "analyzer",
@@ -310,14 +329,37 @@ function RoutePanel({
     patch: Partial<AionRouteSlot>
   ) => void;
   onUpdateJudge: (route: "pro" | "analyzer", patch: Partial<AionRouteSlot>) => void;
+  onUpdateDiverse: (index: number, patch: Partial<AionRouteSlot>) => void;
 }) {
   if (activeTab === "aion") {
     return (
-      <SlotEditor
-        slot={settings.aion.primary}
-        providers={providers}
-        onChange={onUpdatePrimary}
-      />
+      <div className="routing-slot-stack">
+        <div className="routing-group-title">Aria Instant model</div>
+        <SlotEditor
+          slot={settings.aion.primary}
+          providers={providers}
+          lockProvider
+          modelChoices={instantModelChoices}
+          onChange={onUpdatePrimary}
+        />
+      </div>
+    );
+  }
+
+  if (activeTab === "diverse") {
+    return (
+      <div className="routing-slot-stack">
+        <div className="routing-group-title">Model per provider</div>
+        {settings.diverse.map((slot, index) => (
+          <SlotEditor
+            key={slot.id}
+            slot={slot}
+            providers={providers}
+            lockProvider
+            onChange={(patch) => onUpdateDiverse(index, patch)}
+          />
+        ))}
+      </div>
     );
   }
 
@@ -326,23 +368,25 @@ function RoutePanel({
   return (
     <div className="routing-slot-stack">
       <div className="routing-group-title">
-        {activeTab === "pro" ? "Research engines" : "Candidate models"}
+        {activeTab === "pro" ? "Models compared side by side" : "Models combined by the judge"}
       </div>
       {route.candidates.map((slot, index) => (
         <SlotEditor
           key={slot.id}
           slot={slot}
           providers={providers}
+          lockProvider
           onChange={(patch) => onUpdateCandidate(activeTab, index, patch)}
         />
       ))}
 
       {activeTab === "analyzer" ? (
         <>
-          <div className="routing-group-title">Judge</div>
+          <div className="routing-group-title">Judge / router (picks &amp; combines)</div>
           <SlotEditor
             slot={route.judge}
             providers={providers}
+            lockProvider
             onChange={(patch) => onUpdateJudge(activeTab, patch)}
           />
         </>
@@ -354,13 +398,18 @@ function RoutePanel({
 function SlotEditor({
   slot,
   providers,
+  lockProvider = false,
+  modelChoices,
   onChange
 }: {
   slot: AionRouteSlot;
   providers: AionProviderStatus[];
+  lockProvider?: boolean;
+  modelChoices?: Array<{ label: string; value: string }>;
   onChange: (patch: Partial<AionRouteSlot>) => void;
 }) {
   const modelListId = `models-${slot.id}`;
+  const datalistModels = modelChoices ?? getProviderDefaults(providers, slot.provider);
 
   function handleProviderChange(provider: AionRoutingProvider) {
     onChange({
@@ -383,17 +432,21 @@ function SlotEditor({
       <div className="routing-slot-grid">
         <label className="field-label">
           Provider
-          <select
-            className="field-input"
-            value={slot.provider}
-            onChange={(event) => handleProviderChange(event.target.value as AionRoutingProvider)}
-          >
-            {AION_ROUTING_PROVIDERS.map((provider) => (
-              <option value={provider} key={provider}>
-                {getAionRoutingProviderLabel(provider)}
-              </option>
-            ))}
-          </select>
+          {lockProvider ? (
+            <span className="field-input is-static">{getAionRoutingProviderLabel(slot.provider)}</span>
+          ) : (
+            <select
+              className="field-input"
+              value={slot.provider}
+              onChange={(event) => handleProviderChange(event.target.value as AionRoutingProvider)}
+            >
+              {AION_ROUTING_PROVIDERS.map((provider) => (
+                <option value={provider} key={provider}>
+                  {getAionRoutingProviderLabel(provider)}
+                </option>
+              ))}
+            </select>
+          )}
         </label>
 
         <label className="field-label">
@@ -406,7 +459,7 @@ function SlotEditor({
             placeholder="Use server default"
           />
           <datalist id={modelListId}>
-            {getProviderDefaults(providers, slot.provider).map((model) => (
+            {datalistModels.map((model) => (
               <option key={`${slot.id}-${model.label}`} value={model.value}>
                 {model.label}
               </option>

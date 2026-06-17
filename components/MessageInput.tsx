@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import type { ClipboardEvent, DragEvent, FormEvent, KeyboardEvent, RefObject } from "react";
+import type { ClipboardEvent, DragEvent, FormEvent, KeyboardEvent, ReactNode, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUp,
@@ -29,6 +29,7 @@ type MessageInputProps = {
   attachmentError?: string;
   promptEnhanceError?: string;
   canUndoPromptEnhance?: boolean;
+  modelControl?: ReactNode;
   inputRef: RefObject<HTMLTextAreaElement | null>;
   onChange: (value: string) => void;
   onSubmit: (event?: FormEvent) => void;
@@ -85,6 +86,7 @@ export function MessageInput({
   attachmentError,
   promptEnhanceError,
   canUndoPromptEnhance,
+  modelControl,
   inputRef,
   onChange,
   onSubmit,
@@ -300,104 +302,110 @@ export function MessageInput({
             })}
           </div>
         ) : null}
-        <div className="composer-input-row">
-          <label
-            className={clsx("input-plus", (disabled || isReadingFiles) && "is-disabled")}
-            aria-label="Attach files"
-            title="Attach files"
-            aria-disabled={disabled || isReadingFiles}
-          >
-            <input
-              className="file-input"
-              type="file"
-              multiple
-              disabled={disabled || isReadingFiles}
-              onChange={(event) => {
-                if (event.currentTarget.files) {
-                  attachFiles(event.currentTarget.files);
-                }
-
-                event.currentTarget.value = "";
-              }}
-            />
-            {isReadingFiles ? <Paperclip size={17} /> : <Plus size={18} />}
-          </label>
-          <TextareaAutosize
-            ref={inputRef}
-            className="composer-textarea"
-            value={value}
-            minRows={1}
-            maxRows={6}
-            onChange={(event) => onChange(event.target.value)}
-            onKeyDown={onKeyDown}
-            onPaste={handlePaste}
-            placeholder="Ask Aria Mind"
-            disabled={disabled}
-            aria-label="Message"
-          />
-          <button
-            className={clsx("input-plus", !canEnhancePrompt && "is-disabled")}
-            type="button"
-            onClick={onEnhancePrompt}
-            disabled={!canEnhancePrompt}
-            aria-label={isEnhancingPrompt ? "Enhancing prompt" : "Enhance prompt"}
-            title={isEnhancingPrompt ? "Enhancing prompt" : "Enhance prompt"}
-          >
-            {isEnhancingPrompt ? <Loader2 className="spin" size={17} /> : <Sparkles size={17} />}
-          </button>
-          <button
-            className={clsx("input-plus", (disabled || isReadingFiles) && "is-disabled")}
-            type="button"
-            onClick={toggleVoiceInput}
-            disabled={disabled || isReadingFiles}
-            aria-label={isListening ? "Stop voice input" : "Start voice input"}
-            aria-pressed={isListening}
-            title={isListening ? "Stop voice input" : "Start voice input"}
-            style={
-              isListening
-                ? {
-                    background: "color-mix(in srgb, var(--accent) 22%, transparent)",
-                    color: "var(--accent)"
+        <TextareaAutosize
+          ref={inputRef}
+          className="composer-textarea"
+          value={value}
+          minRows={1}
+          maxRows={7}
+          onChange={(event) => onChange(event.target.value)}
+          onKeyDown={onKeyDown}
+          onPaste={handlePaste}
+          placeholder="Ask Aria Mind"
+          disabled={disabled}
+          aria-label="Message"
+        />
+        <div className="composer-actions-row">
+          <div className="composer-actions-left">
+            <label
+              className={clsx("input-plus", (disabled || isReadingFiles) && "is-disabled")}
+              aria-label="Attach files"
+              title="Attach files"
+              aria-disabled={disabled || isReadingFiles}
+            >
+              <input
+                className="file-input"
+                type="file"
+                multiple
+                disabled={disabled || isReadingFiles}
+                onChange={(event) => {
+                  if (event.currentTarget.files) {
+                    attachFiles(event.currentTarget.files);
                   }
-                : undefined
-            }
-          >
-            <Mic size={18} />
-          </button>
-          <button
-            className="send-button"
-            type={disabled ? "button" : "submit"}
-            onClick={disabled ? onStop : undefined}
-            disabled={!disabled && (!canSend || isReadingFiles)}
-            aria-label={disabled ? "Stop generating" : "Send message"}
-            title={disabled ? "Stop generating" : "Send message"}
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {disabled ? (
-                <motion.span
-                  key="stop"
-                  layoutId="send-icon"
-                  initial={{ opacity: 0, scale: 0.7 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.7 }}
-                  transition={{ duration: 0.14 }}
-                >
-                  <Square size={14} fill="currentColor" />
-                </motion.span>
-              ) : (
-                <motion.span
-                  key="arrow"
-                  layoutId="send-icon"
-                  initial={{ opacity: 0, scale: 0.7 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.7 }}
-                  transition={{ duration: 0.14 }}
-                >
-                  <ArrowUp size={16} />
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </button>
+
+                  event.currentTarget.value = "";
+                }}
+              />
+              {isReadingFiles ? <Paperclip size={17} /> : <Plus size={18} />}
+            </label>
+          </div>
+
+          <div className="composer-actions-right">
+            {modelControl ? <div className="composer-model-control">{modelControl}</div> : null}
+            <button
+              className={clsx("input-plus", !canEnhancePrompt && "is-disabled")}
+              type="button"
+              onClick={onEnhancePrompt}
+              disabled={!canEnhancePrompt}
+              aria-label={isEnhancingPrompt ? "Enhancing prompt" : "Enhance prompt"}
+              title={isEnhancingPrompt ? "Enhancing prompt" : "Enhance prompt"}
+            >
+              {isEnhancingPrompt ? <Loader2 className="spin" size={17} /> : <Sparkles size={17} />}
+            </button>
+            <button
+              className={clsx("input-plus", (disabled || isReadingFiles) && "is-disabled")}
+              type="button"
+              onClick={toggleVoiceInput}
+              disabled={disabled || isReadingFiles}
+              aria-label={isListening ? "Stop voice input" : "Start voice input"}
+              aria-pressed={isListening}
+              title={isListening ? "Stop voice input" : "Start voice input"}
+              style={
+                isListening
+                  ? {
+                      background: "color-mix(in srgb, var(--accent) 22%, transparent)",
+                      color: "var(--accent)"
+                    }
+                  : undefined
+              }
+            >
+              <Mic size={18} />
+            </button>
+            <button
+              className="send-button"
+              type={disabled ? "button" : "submit"}
+              onClick={disabled ? onStop : undefined}
+              disabled={!disabled && (!canSend || isReadingFiles)}
+              aria-label={disabled ? "Stop generating" : "Send message"}
+              title={disabled ? "Stop generating" : "Send message"}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {disabled ? (
+                  <motion.span
+                    key="stop"
+                    layoutId="send-icon"
+                    initial={{ opacity: 0, scale: 0.7 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.7 }}
+                    transition={{ duration: 0.14 }}
+                  >
+                    <Square size={14} fill="currentColor" />
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="arrow"
+                    layoutId="send-icon"
+                    initial={{ opacity: 0, scale: 0.7 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.7 }}
+                    transition={{ duration: 0.14 }}
+                  >
+                    <ArrowUp size={16} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+          </div>
         </div>
       </div>
       {composerError ? <p className="composer-error">{composerError}</p> : null}
