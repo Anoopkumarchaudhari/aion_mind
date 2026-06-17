@@ -55,65 +55,65 @@ const modelLogos = [
 const tiers = [
   {
     icon: Zap,
-    name: "Aria Mind",
-    tagline: "Speed · default daily assistant",
-    copy: "The fast route for everyday chat. Instant, useful answers with workspace memory, and live verification that kicks in only when a prompt needs current facts.",
-    points: ["Default fast route for normal chat", "Workspace memory from your saved chats", "Live search when facts need checking"],
-    models: "GPT-5.4 mini · GPT-5.5",
+    name: "Aria Instant",
+    tagline: "Speed · single fast model",
+    copy: "The fast default. One quick model handles everyday chat with instant answers, workspace memory, and live verification that kicks in only when a prompt needs current facts.",
+    points: ["One fast model for everyday chat", "Workspace memory from saved chats", "Live search only when facts need it"],
+    models: "GPT-5.4 mini",
     color: "#22d3ee",
     diagram: {
       main: [
         { icon: MessageSquare, title: "Prompt", sub: "your question" },
-        { icon: Bot, title: "Aria Mind", sub: "fast route agent" },
+        { icon: Bot, title: "Aria Instant", sub: "fast single model" },
         { icon: Sparkles, title: "Answer", sub: "instant reply" }
       ],
       agentIndex: 1,
       subs: [
-        { icon: Cpu, label: "Model", role: "GPT-5.5" },
+        { icon: Cpu, label: "Model", role: "GPT-5.4 mini" },
         { icon: Database, label: "Memory", role: "saved chats" },
         { icon: Globe, label: "Live check", role: "current facts" }
       ]
     }
   },
   {
-    icon: Globe,
-    name: "Aria Research",
-    tagline: "Sources · search-first research",
-    copy: "Turns search evidence into model-written analysis. Aria retrieves sources first, then a specialist model writes from that evidence, keeping citations visible and avoiding unsupported certainty.",
-    points: ["Search-before-generation for current facts", "Sources stay visible in the answer", "Refuses to overclaim when unverifiable"],
-    models: "Claude Opus 4.8 · Gemini 3.1 Pro · DeepSeek V4 Pro",
-    color: "#60a5fa",
+    icon: Layers3,
+    name: "Aria Diverse",
+    tagline: "Choice · you pick the provider",
+    copy: "You choose the engine. Pick ChatGPT, Claude, DeepSeek, or Gemini and Aria sends your prompt straight to that provider's model for a direct single-provider answer.",
+    points: ["Choose ChatGPT, Claude, DeepSeek, or Gemini", "Direct answer from the model you pick", "Switch providers anytime"],
+    models: "ChatGPT · Claude · DeepSeek · Gemini",
+    color: "#a855f7",
     diagram: {
       main: [
-        { icon: MessageSquare, title: "Prompt", sub: "current question" },
-        { icon: Search, title: "Search", sub: "Tavily web" },
-        { icon: Bot, title: "Research", sub: "writes from sources" },
-        { icon: FileText, title: "Cited answer", sub: "sources shown" }
+        { icon: MessageSquare, title: "Prompt", sub: "your question" },
+        { icon: Bot, title: "Aria Diverse", sub: "your chosen provider" },
+        { icon: Sparkles, title: "Answer", sub: "direct reply" }
       ],
-      agentIndex: 2,
+      agentIndex: 1,
       subs: [
-        { icon: Cpu, label: "Model", role: "Claude · Gemini · DeepSeek" },
-        { icon: Globe, label: "Sources", role: "retrieved pack" },
-        { icon: Database, label: "Save", role: "to memory" }
+        { icon: Cpu, label: "ChatGPT", role: "you pick" },
+        { icon: Cpu, label: "Claude", role: "you pick" },
+        { icon: Cpu, label: "DeepSeek", role: "you pick" },
+        { icon: Cpu, label: "Gemini", role: "you pick" }
       ]
     }
   },
   {
-    icon: ScanSearch,
-    name: "Aria Analyzer",
-    tagline: "Judgment · multi-model verdict",
-    copy: "Converts model disagreement into one judged answer. Several models draft independently, then a judge compares strengths, conflicts, and missing evidence to produce the final answer.",
-    points: ["Independent drafts from multiple models", "A judge resolves conflicts and gaps", "Final answer powered by Aria Analyzer"],
-    models: "OpenAI · Anthropic · DeepSeek · Gemini",
+    icon: BrainCircuit,
+    name: "Aria Mind",
+    tagline: "Consensus · all models, one answer",
+    copy: "Every model answers, then a judge merges them. Aria asks all four providers in parallel and a GPT-5.5 judge synthesizes the single strongest answer from their combined output.",
+    points: ["All 4 providers answer in parallel", "GPT-5.5 judge merges the best parts", "One synthesized final answer"],
+    models: "OpenAI · Anthropic · DeepSeek · Gemini → GPT-5.5 judge",
     color: "#34d399",
     diagram: {
       main: [
         { icon: MessageSquare, title: "Prompt", sub: "one question" },
-        { icon: Layers3, title: "Fan out", sub: "candidates" },
-        { icon: Scale, title: "Judge", sub: "compares drafts" },
-        { icon: CheckCircle2, title: "Final", sub: "by Analyzer" }
+        { icon: Layers3, title: "Fan out", sub: "all 4 models" },
+        { icon: Scale, title: "Judge", sub: "merges answers" },
+        { icon: CheckCircle2, title: "Final", sub: "one best answer" }
       ],
-      agentIndex: 1,
+      agentIndex: 2,
       subs: [
         { icon: Cpu, label: "OpenAI", role: "draft A" },
         { icon: Cpu, label: "Anthropic", role: "draft B" },
@@ -121,18 +121,65 @@ const tiers = [
         { icon: Cpu, label: "Gemini", role: "draft D" }
       ]
     }
+  },
+  {
+    icon: Layers3,
+    name: "Aria Research",
+    tagline: "Compare · all models side by side",
+    copy: "See every model's take at once. Aria sends your prompt to all four providers and shows each answer side by side, color-coded by provider, so you can compare them directly.",
+    points: ["All 4 providers answer your prompt", "Every answer shown side by side", "Color-coded by provider"],
+    models: "ChatGPT · Claude · DeepSeek · Gemini",
+    color: "#60a5fa",
+    diagram: {
+      main: [
+        { icon: MessageSquare, title: "Prompt", sub: "your question" },
+        { icon: Layers3, title: "Aria Research", sub: "asks every model" },
+        { icon: FileText, title: "Compare", sub: "side by side" }
+      ],
+      agentIndex: 1,
+      subs: [
+        { icon: Cpu, label: "ChatGPT", role: "answer 1" },
+        { icon: Cpu, label: "Claude", role: "answer 2" },
+        { icon: Cpu, label: "DeepSeek", role: "answer 3" },
+        { icon: Cpu, label: "Gemini", role: "answer 4" }
+      ]
+    }
+  },
+  {
+    icon: ScanSearch,
+    name: "Aria Analyzer",
+    tagline: "Routing · best model per question",
+    copy: "Aria reads your question, picks the single best provider and model for it, then answers — no manual choosing. A GPT-5.5 router classifies intent and routes to the strongest fit.",
+    points: ["Analyzes your question's intent", "GPT-5.5 router picks the best model", "Answers from the chosen model"],
+    models: "Auto · OpenAI · Anthropic · DeepSeek · Gemini",
+    color: "#f59e0b",
+    diagram: {
+      main: [
+        { icon: MessageSquare, title: "Prompt", sub: "your question" },
+        { icon: ScanSearch, title: "Router", sub: "reads intent" },
+        { icon: Bot, title: "Best model", sub: "picked for you" },
+        { icon: Sparkles, title: "Answer", sub: "from that model" }
+      ],
+      agentIndex: 1,
+      subs: [
+        { icon: Cpu, label: "OpenAI", role: "candidate" },
+        { icon: Cpu, label: "Anthropic", role: "candidate" },
+        { icon: Cpu, label: "DeepSeek", role: "candidate" },
+        { icon: Cpu, label: "Gemini", role: "candidate" }
+      ]
+    }
   }
 ];
 
 const capabilities = [
-  { icon: MessageSquare, title: "Text", copy: "Chat, write, brainstorm, and reason with the right model for each task." },
-  { icon: ImageIcon, title: "Image", copy: "Turn prompts, references, and concepts into polished visual assets." },
-  { icon: Video, title: "Video", copy: "Create short clips, social cuts, and cinematic experiments from one place." },
-  { icon: Mic2, title: "Voice", copy: "Plan scripts, narration, podcasts, and voiceover workflows beside your work." },
-  { icon: Search, title: "Research", copy: "Live web search with sources and a transparent step-by-step work log." },
-  { icon: Languages, title: "Translate", copy: "Fast, accurate translation across languages without leaving the workspace." },
-  { icon: NotebookPen, title: "Notebooks", copy: "Capture useful ideas and build structured notebooks from your chats." },
-  { icon: Library, title: "Library", copy: "Save outputs, organize history, and return to anything you have created." }
+  { icon: MessageSquare, title: "Text", accent: "#22d3ee", copy: "Chat, write, brainstorm, and reason with the right model for each task." },
+  { icon: ImageIcon, title: "Image", accent: "#a855f7", copy: "Turn prompts, references, and concepts into polished visual assets." },
+  { icon: Video, title: "Video", accent: "#fb7185", copy: "Create short clips, social cuts, and cinematic experiments from one place." },
+  { icon: Mic2, title: "Voice", accent: "#f59e0b", copy: "Plan scripts, narration, podcasts, and voiceover workflows beside your work." },
+  { icon: Search, title: "Research", accent: "#60a5fa", copy: "Live web search with sources and a transparent step-by-step work log." },
+  { icon: Languages, title: "Translate", accent: "#34d399", copy: "Fast, accurate translation across languages without leaving the workspace." },
+  { icon: NotebookPen, title: "Notebooks", accent: "#f97316", copy: "Capture useful ideas and build structured notebooks from your chats." },
+  { icon: Library, title: "Library", accent: "#2dd4bf", copy: "Save outputs, organize history, and return to anything you have created." }
 ];
 
 const benefits = [
@@ -141,6 +188,18 @@ const benefits = [
   "Simple credit wallet with plans that scale from trial work to high-volume production.",
   "Organize chats, save outputs to Library, and build notebooks from useful ideas."
 ];
+
+const PLAN_PERKS: Record<string, string[]> = {
+  free: ["Every Aria mode", "Pay-as-you-go top-ups", "Community support"],
+  starter: ["Every Aria mode", "Top-ups anytime", "Email support"],
+  plus: ["Everything in Starter", "Priority model routing", "Email support"],
+  pro: ["Everything in Plus", "Highest throughput", "Priority support"],
+  power: ["Everything in Pro", "Maximum monthly credits", "Priority support"]
+};
+
+function getPlanPerks(planId: string) {
+  return PLAN_PERKS[planId] ?? ["Every Aria mode", "Top-ups anytime", "Email support"];
+}
 
 const aboutStats = [
   { icon: Layers3, value: "8+", label: "Leading models" },
@@ -245,8 +304,8 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
       <section className="landing-section landing-model-section" id="models">
         <SectionHeading
           eyebrow="Model tiers"
-          title="Three branded modes turn provider routing into user intent"
-          copy="You pick the work you want done; Aria maps it to a mode and routes to the right model behind the surface. Speed, sources, or a judged verdict, all metered by one credit wallet."
+          title="Five modes turn provider routing into simple user intent"
+          copy="You pick the kind of answer you want; Aria maps it to a mode and routes to the right model behind the surface. Instant speed, a chosen provider, a merged consensus, a side-by-side comparison, or an auto-routed pick, all metered by one credit wallet."
         />
         <div className="landing-tier-rows">
           {tiers.map((tier, index) => (
@@ -300,17 +359,22 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
             <motion.article
               className="landing-feature-card"
               key={item.title}
+              style={{ "--feature-accent": item.accent } as CSSProperties}
               initial={{ opacity: 0, y: 28 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.35 }}
               transition={{ delay: (index % 4) * 0.08, duration: 0.52 }}
-              whileHover={{ y: -10 }}
+              whileHover={{ y: -8 }}
             >
+              <span className="landing-feature-glow" aria-hidden="true" />
               <span className="landing-card-icon">
                 <item.icon size={22} />
               </span>
               <h3>{item.title}</h3>
               <p>{item.copy}</p>
+              <span className="landing-feature-arrow" aria-hidden="true">
+                <ArrowRight size={16} />
+              </span>
             </motion.article>
           ))}
         </div>
@@ -354,7 +418,7 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
           </p>
           <p>
             Modern teams switch constantly between separate AI tools, each with its own login, billing, and
-            quirks. AriamindX brings the leading models together behind three clear tiers, so you reach for the
+            quirks. AriamindX brings the leading models together behind five clear modes, so you reach for the
             right capability instead of the right app.
           </p>
           <p>
@@ -389,27 +453,51 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
           copy="Pick a monthly credit wallet. Every plan unlocks the full workspace: chat, research, image, video, translate, notebooks, and library."
         />
         <div className="landing-plan-grid">
-          {catalog.plans.map((plan, index) => (
-            <motion.article
-              className={`landing-plan-card ${plan.id === "pro" ? "is-featured" : ""}`}
-              key={plan.id}
-              style={{ "--plan-color": plan.accent } as CSSProperties}
-              initial={{ opacity: 0, y: 26 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.25 }}
-              transition={{ delay: index * 0.05, duration: 0.48 }}
-              whileHover={{ y: -9 }}
-            >
-              <span>{plan.name}</span>
-              <strong>{inrFormatter.format(plan.priceInr)}</strong>
-              <p>{plan.monthlyCredits.toLocaleString("en-IN")} credits / month</p>
-              <small>{plan.note}</small>
-              <Link href={getPlanAuthHref(plan.id)}>
-                Choose plan
-                <ArrowRight size={16} />
-              </Link>
-            </motion.article>
-          ))}
+          {catalog.plans.map((plan, index) => {
+            const isPopular = plan.id === "pro";
+
+            return (
+              <motion.article
+                className={`landing-plan-card ${isPopular ? "is-featured" : ""}`}
+                key={plan.id}
+                style={{ "--plan-color": plan.accent } as CSSProperties}
+                initial={{ opacity: 0, y: 26 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ delay: index * 0.05, duration: 0.48 }}
+                whileHover={{ y: -9 }}
+              >
+                <span className="landing-plan-accent" aria-hidden="true" />
+                {isPopular ? <span className="landing-plan-badge">Most popular</span> : null}
+
+                <span className="landing-plan-name">{plan.name}</span>
+
+                <div className="landing-plan-price">
+                  <strong>{inrFormatter.format(plan.priceInr)}</strong>
+                  <span>{plan.priceInr === 0 ? "free forever" : "/ month"}</span>
+                </div>
+
+                <p className="landing-plan-credits">
+                  <Zap size={14} aria-hidden="true" />
+                  {plan.monthlyCredits.toLocaleString("en-IN")} credits / month
+                </p>
+
+                <ul className="landing-plan-features">
+                  {getPlanPerks(plan.id).map((perk) => (
+                    <li key={perk}>
+                      <CheckCircle2 size={14} aria-hidden="true" />
+                      {perk}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link href={getPlanAuthHref(plan.id)}>
+                  Choose plan
+                  <ArrowRight size={16} />
+                </Link>
+              </motion.article>
+            );
+          })}
         </div>
       </section>
 
@@ -537,8 +625,10 @@ type TierDiagram = { main: DiagramNode[]; agentIndex: number; subs: DiagramSub[]
 
 const WORKFLOW_COLOR_B: Record<string, string> = {
   "#22d3ee": "#25d59b",
+  "#a855f7": "#22d3ee",
+  "#34d399": "#a3e635",
   "#60a5fa": "#22d3ee",
-  "#34d399": "#a3e635"
+  "#f59e0b": "#fb7185"
 };
 
 function TierWorkflow({ diagram, color }: { diagram: TierDiagram; color: string }) {
@@ -546,14 +636,14 @@ function TierWorkflow({ diagram, color }: { diagram: TierDiagram; color: string 
   const colorB = WORKFLOW_COLOR_B[color] ?? "#eafffb";
   const gradId = `n8nGrad-${color.replace("#", "")}`;
 
-  const NODE_W = 150;
-  const NODE_H = 58;
-  const GAP_X = 50;
-  const ZIG = 30;
-  const TOOL_W = 134;
-  const TOOL_H = 52;
-  const TOOL_GAP = 14;
-  const PAD = 10;
+  const NODE_W = 162;
+  const NODE_H = 64;
+  const GAP_X = 58;
+  const ZIG = 40;
+  const TOOL_W = 150;
+  const TOOL_H = 60;
+  const TOOL_GAP = 18;
+  const PAD = 16;
 
   const mainContentW = main.length * NODE_W + (main.length - 1) * GAP_X;
   const toolsContentW = subs.length * TOOL_W + (subs.length - 1) * TOOL_GAP;
@@ -569,7 +659,7 @@ function TierWorkflow({ diagram, color }: { diagram: TierDiagram; color: string 
     y: PAD + (i % 2 === 0 ? 0 : ZIG)
   }));
 
-  const toolsTop = PAD + ZIG + NODE_H + 50;
+  const toolsTop = PAD + ZIG + NODE_H + 92;
   const height = toolsTop + TOOL_H + PAD;
   const toolNodes = subs.map((sub, k) => ({
     sub,

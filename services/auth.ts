@@ -12,14 +12,22 @@ export type AuthUser = {
   id: string;
   name: string;
   email: string;
+  avatar?: string | null;
 };
 
-type UserRow = AuthUser & {
+type UserRow = {
+  id: string;
+  name: string;
+  email: string;
   password_hash: string;
   is_active: boolean | string;
 };
 
-type SessionUserRow = AuthUser & {
+type SessionUserRow = {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string | null;
   expires_at: string | number;
   is_active: boolean | string;
 };
@@ -118,7 +126,7 @@ export async function getUserFromSession(sessionId: string | undefined) {
   }
 
   const result = await query<SessionUserRow>(
-    `SELECT app_users.id, app_users.name, app_users.email, app_users.is_active, app_sessions.expires_at
+    `SELECT app_users.id, app_users.name, app_users.email, app_users.avatar, app_users.is_active, app_sessions.expires_at
      FROM app_sessions
      INNER JOIN app_users ON app_users.id = app_sessions.user_id
      WHERE app_sessions.id = $1`,
@@ -143,8 +151,53 @@ export async function getUserFromSession(sessionId: string | undefined) {
   return {
     id: row.id,
     name: row.name,
-    email: row.email
+    email: row.email,
+    avatar: row.avatar
   };
+}
+
+/** Update the signed-in user's editable profile fields (display name + avatar). */
+export async function updateUserProfile(
+  userId: string,
+  changes: { name?: string; avatar?: string }
+): Promise<AuthUser> {
+  assertAuthConfigured();
+
+  const sets: string[] = [];
+  const params: unknown[] = [userId];
+
+  if (typeof changes.name === "string") {
+    const cleanName = changes.name.trim().slice(0, 80);
+
+    if (cleanName.length < 2) {
+      throw new AuthError("Name must be at least 2 characters.");
+    }
+
+    params.push(cleanName);
+    sets.push(`name = $${params.length}`);
+  }
+
+  if (typeof changes.avatar === "string") {
+    params.push(changes.avatar.trim().slice(0, 40));
+    sets.push(`avatar = $${params.length}`);
+  }
+
+  if (sets.length === 0) {
+    throw new AuthError("No profile changes were provided.");
+  }
+
+  const result = await query<{ id: string; name: string; email: string; avatar: string | null }>(
+    `UPDATE app_users SET ${sets.join(", ")} WHERE id = $1
+     RETURNING id, name, email, avatar`,
+    params
+  );
+  const row = result.rows[0];
+
+  if (!row) {
+    throw new AuthError("User not found.", 404);
+  }
+
+  return { id: row.id, name: row.name, email: row.email, avatar: row.avatar };
 }
 
 export async function getCurrentUser() {

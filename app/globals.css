@@ -4828,16 +4828,48 @@ select:focus-visible,
 .billing-plan-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
+}
+
+@media (max-width: 1080px) {
+  .billing-plan-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
 }
 
 .billing-plan-card {
   --plan-color: var(--accent);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  gap: 10px;
-  border-radius: 18px;
-  padding: 16px;
+  gap: 12px;
+  border-radius: 20px;
+  padding: 22px 18px 18px;
+}
+
+/* accent bar across the top of each card */
+.billing-plan-accent {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--plan-color), color-mix(in srgb, var(--plan-color) 35%, transparent));
+  opacity: 0.9;
+}
+
+.billing-plan-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #04121a;
+  background: linear-gradient(120deg, var(--plan-color), color-mix(in srgb, var(--plan-color) 55%, #ffffff));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--plan-color) 40%, transparent);
 }
 
 .billing-plan-card:hover,
@@ -4857,32 +4889,80 @@ select:focus-visible,
     0 0 24px color-mix(in srgb, var(--plan-color) 18%, transparent);
 }
 
+.billing-plan-card.is-popular {
+  border-color: color-mix(in srgb, var(--plan-color) 60%, transparent);
+  box-shadow:
+    0 22px 70px rgba(0, 0, 0, 0.34),
+    0 0 30px color-mix(in srgb, var(--plan-color) 22%, transparent);
+}
+
 .billing-plan-topline {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   color: color-mix(in srgb, var(--plan-color) 78%, white);
+  font-size: 1.02rem;
   font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
-.billing-plan-card > strong {
+.billing-plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.billing-plan-price strong {
   color: var(--text-primary);
-  font-size: 1.6rem;
+  font-size: 1.95rem;
+  line-height: 1;
 }
 
-.billing-plan-card p,
-.billing-plan-card small {
+.billing-plan-price span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.billing-plan-credits {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   margin: 0;
-  color: var(--text-secondary);
+  color: color-mix(in srgb, var(--plan-color) 70%, white);
+  font-size: 0.88rem;
+  font-weight: 700;
 }
 
-.billing-plan-card small {
-  min-height: 2.4em;
+.billing-plan-credits svg {
+  flex: 0 0 auto;
+}
+
+.billing-plan-features {
+  display: grid;
+  gap: 8px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.billing-plan-features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.3;
+}
+
+.billing-plan-features li svg {
+  flex: 0 0 auto;
+  color: var(--plan-color);
 }
 
 .billing-plan-card button {
-  margin-top: 4px;
+  margin-top: auto;
 }
 
 .billing-model-table-shell {
@@ -5520,6 +5600,64 @@ select:focus-visible,
   align-items: center;
   gap: 8px;
   color: var(--text-secondary);
+}
+
+/* profile header + avatar picker */
+.settings-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 6px;
+}
+
+.settings-profile-head strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 1.02rem;
+}
+
+.settings-profile-head .muted-copy {
+  font-size: 0.85rem;
+}
+
+.settings-avatar-preview {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  font-size: 30px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.settings-avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.settings-avatar {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  width: 100%;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.settings-avatar:hover {
+  transform: translateY(-2px);
+}
+
+.settings-avatar.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 @keyframes spin {
@@ -7476,7 +7614,7 @@ body:has(.landing-page) {
   bottom: -20%;
   width: 56vw;
   height: 40vw;
-  background: radial-gradient(circle, rgba(96, 165, 250, 0.42), transparent 68%);
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.44), transparent 68%);
 }
 
 .landing-starfield {
@@ -7649,17 +7787,17 @@ body:has(.landing-page) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, #22d3ee, #34d399 55%, #facc15);
+  background: linear-gradient(120deg, #4f46e5 0%, #6366f1 45%, #a855f7 100%);
   box-shadow:
-    0 8px 20px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
-  color: #041014;
+    0 8px 22px rgba(99, 102, 241, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  color: #ffffff;
   padding: 9px 16px;
 }
 
 .landing-nav nav a.landing-nav-cta:hover {
-  background: linear-gradient(135deg, #22d3ee, #34d399 55%, #facc15);
-  color: #041014;
+  background: linear-gradient(120deg, #4f46e5 0%, #6366f1 45%, #a855f7 100%);
+  color: #ffffff;
   transform: translateY(-1px);
 }
 
@@ -7673,10 +7811,10 @@ body:has(.landing-page) {
 
 .landing-eyebrow {
   margin: 0;
-  color: #34f5c5;
-  font-size: 0.82rem;
-  font-weight: 900;
-  letter-spacing: 0.18em;
+  color: #67e8f9;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
 }
 
@@ -7704,11 +7842,10 @@ body:has(.landing-page) {
 .landing-about-copy h2 {
   background: linear-gradient(
     100deg,
-    #22d3ee 0%,
-    #25d59b 30%,
-    #a3e635 52%,
-    #60a5fa 78%,
-    #22d3ee 100%
+    #67e8f9 0%,
+    #22d3ee 22%,
+    #6366f1 60%,
+    #a855f7 100%
   );
   background-size: 220% 100%;
   -webkit-background-clip: text;
@@ -7730,11 +7867,10 @@ body:has(.landing-page) {
 .landing-type-text {
   background: linear-gradient(
     100deg,
-    #22d3ee 0%,
-    #25d59b 28%,
-    #a3e635 50%,
-    #60a5fa 74%,
-    #22d3ee 100%
+    #67e8f9 0%,
+    #22d3ee 26%,
+    #6366f1 62%,
+    #a855f7 100%
   );
   background-size: 240% 100%;
   -webkit-background-clip: text;
@@ -7752,8 +7888,8 @@ body:has(.landing-page) {
   height: 0.92em;
   margin-left: 0.08em;
   border-radius: 2px;
-  background: linear-gradient(180deg, #22d3ee, #25d59b);
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.7);
+  background: linear-gradient(180deg, #22d3ee, #6366f1);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.7);
   transform: translateY(0.08em);
   animation: landingCaretBlink 0.9s steps(1, end) infinite;
 }
@@ -7823,11 +7959,11 @@ body:has(.landing-page) {
 }
 
 .landing-primary-button {
-  background: linear-gradient(135deg, #22d3ee, #34d399 48%, #facc15);
+  background: linear-gradient(120deg, #4f46e5 0%, #6366f1 45%, #a855f7 100%);
   box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
-  color: #031014;
+    0 14px 34px rgba(99, 102, 241, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  color: #ffffff;
 }
 
 .landing-secondary-button {
@@ -8222,6 +8358,91 @@ body:has(.landing-page) {
   line-height: 1.55;
 }
 
+/* ---------- Feature cards: per-feature accent treatment ---------- */
+.landing-feature-card {
+  --feature-accent: #22d3ee;
+  min-height: 250px;
+  padding-bottom: 24px;
+  transition: border-color 240ms ease, box-shadow 240ms ease;
+}
+
+.landing-feature-glow {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    120% 85% at 0% 0%,
+    color-mix(in srgb, var(--feature-accent) 22%, transparent),
+    transparent 55%
+  );
+  opacity: 0.45;
+  transition: opacity 260ms ease;
+}
+
+.landing-feature-card:hover .landing-feature-glow {
+  opacity: 0.95;
+}
+
+/* keep content above the glow */
+.landing-feature-card .landing-card-icon,
+.landing-feature-card h3,
+.landing-feature-card p {
+  position: relative;
+  z-index: 1;
+}
+
+/* accent icon tile (scoped to feature cards only) */
+.landing-feature-card .landing-card-icon {
+  border-color: color-mix(in srgb, var(--feature-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--feature-accent) 14%, transparent);
+  color: color-mix(in srgb, var(--feature-accent) 82%, white);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--feature-accent) 18%, transparent);
+  transition: transform 240ms ease, box-shadow 240ms ease;
+}
+
+.landing-feature-card:hover .landing-card-icon {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--feature-accent) 30%, transparent);
+}
+
+/* solid accent title instead of the generic rainbow gradient */
+.landing-feature-card h3 {
+  background: none;
+  color: color-mix(in srgb, var(--feature-accent) 70%, white);
+  -webkit-text-fill-color: color-mix(in srgb, var(--feature-accent) 70%, white);
+}
+
+.landing-feature-card:hover {
+  border-color: color-mix(in srgb, var(--feature-accent) 46%, rgba(255, 255, 255, 0.09));
+  box-shadow:
+    0 26px 72px rgba(0, 0, 0, 0.36),
+    0 0 30px color-mix(in srgb, var(--feature-accent) 16%, transparent);
+}
+
+.landing-feature-arrow {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  color: color-mix(in srgb, var(--feature-accent) 82%, white);
+  background: color-mix(in srgb, var(--feature-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--feature-accent) 28%, transparent);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 240ms ease, transform 240ms ease;
+}
+
+.landing-feature-card:hover .landing-feature-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
 .landing-benefit-band {
   display: grid;
   grid-template-columns: minmax(0, 0.78fr) minmax(320px, 0.62fr);
@@ -8269,40 +8490,108 @@ body:has(.landing-page) {
 
 .landing-plan-card {
   --plan-color: #22d3ee;
-  display: grid;
-  gap: 12px;
-  min-height: 306px;
-  border-color: color-mix(in srgb, var(--plan-color) 30%, rgba(255, 255, 255, 0.08));
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  min-height: 340px;
+  border-color: color-mix(in srgb, var(--plan-color) 26%, rgba(255, 255, 255, 0.08));
+  padding: 24px 20px 20px;
+}
+
+.landing-plan-accent {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--plan-color), color-mix(in srgb, var(--plan-color) 30%, transparent));
+  opacity: 0.95;
+}
+
+.landing-plan-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #0a0f1a;
+  background: linear-gradient(120deg, var(--plan-color), color-mix(in srgb, var(--plan-color) 55%, #ffffff));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--plan-color) 40%, transparent);
 }
 
 .landing-plan-card.is-featured {
+  border-color: color-mix(in srgb, var(--plan-color) 50%, transparent);
   box-shadow:
-    0 24px 60px rgba(96, 165, 250, 0.16),
-    0 0 0 1px color-mix(in srgb, var(--plan-color) 34%, transparent);
+    0 26px 64px rgba(0, 0, 0, 0.4),
+    0 0 30px color-mix(in srgb, var(--plan-color) 22%, transparent);
 }
 
-.landing-plan-card > span {
+.landing-plan-name {
   color: color-mix(in srgb, var(--plan-color) 76%, white);
   font-size: 1rem;
-  font-weight: 900;
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
-.landing-plan-card > strong {
+.landing-plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.landing-plan-price strong {
   color: #ffffff;
-  font-size: clamp(1.8rem, 2.8vw, 2.45rem);
+  font-size: clamp(1.9rem, 2.8vw, 2.4rem);
   line-height: 1;
 }
 
-.landing-plan-card small {
-  min-height: 26px;
+.landing-plan-price span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.landing-plan-card .landing-plan-credits {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: color-mix(in srgb, var(--plan-color) 72%, white);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.landing-plan-features {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.landing-plan-features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.landing-plan-features li svg {
+  flex: 0 0 auto;
+  color: var(--plan-color);
 }
 
 .landing-plan-card a {
   min-height: 46px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--plan-color) 70%, #22d3ee), #34d399);
-  color: #041015;
   margin-top: auto;
+  background: linear-gradient(120deg, #4f46e5 0%, #6366f1 45%, #a855f7 100%);
+  color: #ffffff;
 }
 
 .landing-rate-grid {
@@ -8361,7 +8650,7 @@ body:has(.landing-page) {
 }
 
 .landing-final-cta > svg {
-  color: #facc15;
+  color: #a855f7;
 }
 
 .landing-final-cta p {
@@ -8647,7 +8936,7 @@ body:has(.landing-page) {
   --model-color: #22d3ee;
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  align-items: center;
+  align-items: stretch;
   gap: 26px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--model-color) 22%, rgba(255, 255, 255, 0.08));
@@ -8702,7 +8991,8 @@ body:has(.landing-page) {
 }
 
 .landing-tier-diagram {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   min-width: 0;
 }
@@ -8711,19 +9001,22 @@ body:has(.landing-page) {
 .n8n {
   --model-color: #22d3ee;
   position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 260px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   background-color: #060a11;
   background-image: radial-gradient(circle, rgba(255, 255, 255, 0.055) 1px, transparent 1.4px);
   background-size: 18px 18px;
-  padding: 14px;
+  padding: 16px;
 }
 
 .n8n-svg {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   overflow: visible;
 }
 
@@ -8950,8 +9243,8 @@ body:has(.landing-page) {
 }
 
 .landing-quote-mark {
-  color: color-mix(in srgb, var(--accent-2) 70%, white);
-  opacity: 0.6;
+  color: #fdba74;
+  opacity: 0.7;
 }
 
 .landing-quote blockquote {
@@ -8963,7 +9256,7 @@ body:has(.landing-page) {
 
 .landing-quote blockquote p {
   margin: 0;
-  background: linear-gradient(100deg, #f43f5e 0%, #fb923c 50%, #fde047 100%);
+  background: linear-gradient(100deg, #fcd34d 0%, #fb923c 50%, #f97316 100%);
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -8983,15 +9276,15 @@ body:has(.landing-page) {
   height: 0.92em;
   margin-left: 0.06em;
   border-radius: 2px;
-  background: linear-gradient(180deg, #f43f5e, #fde047);
-  box-shadow: 0 0 12px rgba(244, 63, 94, 0.7);
+  background: linear-gradient(180deg, #fbbf24, #f97316);
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.7);
   transform: translateY(0.1em);
   -webkit-text-fill-color: initial;
   animation: landingCaretBlink 0.9s steps(1, end) infinite;
 }
 
 .landing-quote blockquote cite {
-  color: color-mix(in srgb, var(--accent) 76%, white);
+  color: #fb923c;
   font-size: 0.92rem;
   font-style: normal;
   font-weight: 800;
@@ -9004,7 +9297,7 @@ body:has(.landing-page) {
   width: clamp(120px, 18vw, 220px);
   height: 3px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  background: linear-gradient(90deg, #fbbf24, #f97316);
   transform-origin: center;
 }
 

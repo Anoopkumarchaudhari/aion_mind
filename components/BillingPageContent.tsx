@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { openRazorpayCheckout } from "@/lib/razorpayCheckout";
 import {
   Activity,
+  Check,
   CheckCircle2,
   CreditCard,
   Plus,
@@ -38,6 +39,20 @@ const inrFormatter = new Intl.NumberFormat("en-IN", {
   currency: "INR",
   maximumFractionDigits: 0
 });
+
+const POPULAR_PLAN_ID = "pro";
+
+const PLAN_FEATURES: Record<string, string[]> = {
+  free: ["Every Aria mode", "Pay-as-you-go top-ups", "Community support"],
+  starter: ["Every Aria mode", "Top-ups anytime", "Email support"],
+  plus: ["Everything in Starter", "Priority model routing", "Email support"],
+  pro: ["Everything in Plus", "Highest throughput", "Priority support"],
+  power: ["Everything in Pro", "Maximum monthly credits", "Priority support"]
+};
+
+function getPlanFeatures(planId: string) {
+  return PLAN_FEATURES[planId] ?? ["Every Aria mode", "Top-ups anytime", "Email support"];
+}
 
 export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalog }) {
   const billing = useBillingStore();
@@ -292,22 +307,43 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
           >
             {catalog.plans.map((plan) => {
               const isActive = plan.id === billing.planId;
+              const isPopular = plan.id === POPULAR_PLAN_ID;
 
               return (
                 <motion.article
-                  className={`billing-plan-card ${isActive ? "is-active" : ""}`}
+                  className={`billing-plan-card ${isActive ? "is-active" : ""} ${isPopular ? "is-popular" : ""}`}
                   key={plan.id}
                   style={{ "--plan-color": plan.accent } as CSSProperties}
                   variants={scrollItemVariants}
                   whileHover={hoverLift}
                 >
+                  <span className="billing-plan-accent" aria-hidden="true" />
+                  {isPopular ? <span className="billing-plan-badge">Most popular</span> : null}
+
                   <div className="billing-plan-topline">
                     <span>{plan.name}</span>
                     {isActive ? <CheckCircle2 size={16} /> : null}
                   </div>
-                  <strong>{inrFormatter.format(plan.priceInr)}</strong>
-                  <p>{plan.monthlyCredits.toLocaleString("en-IN")} credits / month</p>
-                  <small>{plan.note}</small>
+
+                  <div className="billing-plan-price">
+                    <strong>{inrFormatter.format(plan.priceInr)}</strong>
+                    <span>{plan.priceInr === 0 ? "free forever" : "/ month"}</span>
+                  </div>
+
+                  <p className="billing-plan-credits">
+                    <Zap size={14} aria-hidden="true" />
+                    {plan.monthlyCredits.toLocaleString("en-IN")} credits / month
+                  </p>
+
+                  <ul className="billing-plan-features">
+                    {getPlanFeatures(plan.id).map((feature) => (
+                      <li key={feature}>
+                        <Check size={13} aria-hidden="true" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
                   <button
                     className={isActive ? "ghost-button full" : "primary-button full"}
                     type="button"
@@ -337,31 +373,6 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
           whileInView="show"
           viewport={scrollRevealViewport}
         >
-          <motion.section
-            id="billing-rates"
-            className="billing-panel"
-            aria-labelledby="credit-rates-heading"
-            variants={scrollItemVariants}
-          >
-            <div className="billing-panel-heading">
-              <span className="billing-icon small">
-                <Zap size={17} />
-              </span>
-              <div>
-                <p className="eyebrow">Rates</p>
-                <h3 id="credit-rates-heading">Feature credit costs</h3>
-              </div>
-            </div>
-            <div className="billing-rate-list">
-              {catalog.featureRates.map((item) => (
-                <motion.div className="billing-rate-row" key={item.id} whileHover={hoverLift}>
-                  <span style={{ background: item.color }} />
-                  <strong>{item.label}</strong>
-                  <em>{item.credits} credits</em>
-                </motion.div>
-              ))}
-            </div>
-          </motion.section>
 
           <motion.section
             id="billing-topups"

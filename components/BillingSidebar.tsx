@@ -11,8 +11,7 @@ import {
   Home,
   Plus,
   Receipt,
-  Wallet,
-  Zap
+  Wallet
 } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
 import type { AppFrameSidebarProps } from "@/components/AppFrame";
@@ -119,10 +118,6 @@ export function BillingSidebar({
             <a className="sidebar-action" href="#billing-plans" onClick={onClose}>
               <CreditCard size={17} />
               <span className="sidebar-action-label">Plans</span>
-            </a>
-            <a className="sidebar-action" href="#billing-rates" onClick={onClose}>
-              <Zap size={17} />
-              <span className="sidebar-action-label">Feature rates</span>
             </a>
             <a className="sidebar-action" href="#billing-topups" onClick={onClose}>
               <Plus size={17} />

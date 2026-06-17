@@ -1,12 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { AppFrame } from "@/components/AppFrame";
+import { DEFAULT_AVATAR_ID, PROFILE_AVATARS, getProfileAvatar } from "@/lib/avatars";
 
-const tabs = ["profile", "api-keys", "appearance", "privacy", "billing", "help"] as const;
+const tabs = ["profile", "appearance", "privacy", "billing", "help"] as const;
 type SettingsTab = (typeof tabs)[number];
+
+const WORKSPACE_STORAGE_KEY = "aion-mind-workspace";
 
 export function SettingsPageContent() {
   const searchParams = useSearchParams();
@@ -43,33 +47,7 @@ export function SettingsPageContent() {
 
 function SettingsPanel({ tab }: { tab: SettingsTab }) {
   if (tab === "profile") {
-    return (
-      <div className="settings-card">
-        <label className="field-label">
-          Display name
-          <input className="field-input" defaultValue="Anoop Kumar" />
-        </label>
-        <label className="field-label">
-          Workspace
-          <input className="field-input" defaultValue="Aria workspace" />
-        </label>
-        <button className="primary-button" type="button">Save profile</button>
-      </div>
-    );
-  }
-
-  if (tab === "api-keys") {
-    return (
-      <div className="settings-card">
-        {["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "GROK_API_KEY"].map((key) => (
-          <label className="field-label" key={key}>
-            {key}
-            <input className="field-input" type="password" placeholder="Stored in .env on the server" readOnly />
-          </label>
-        ))}
-        <p className="muted-copy">API keys stay server-side in `.env`; this page documents what the app expects.</p>
-      </div>
-    );
+    return <ProfilePanel />;
   }
 
   if (tab === "appearance") {
@@ -133,10 +111,139 @@ function SettingsPanel({ tab }: { tab: SettingsTab }) {
   );
 }
 
+function ProfilePanel() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [workspace, setWorkspace] = useState("Aria workspace");
+  const [avatarId, setAvatarId] = useState(DEFAULT_AVATAR_ID);
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const storedWorkspace = window.localStorage.getItem(WORKSPACE_STORAGE_KEY);
+    if (storedWorkspace) {
+      setWorkspace(storedWorkspace);
+    }
+
+    void fetch("/api/auth/me")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { user?: { name?: string; email?: string; avatar?: string | null } } | null) => {
+        if (data?.user) {
+          setName(data.user.name ?? "");
+          setEmail(data.user.email ?? "");
+          if (data.user.avatar) {
+            setAvatarId(data.user.avatar);
+          }
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => setLoaded(true));
+  }, []);
+
+  async function handleSave() {
+    if (saving) {
+      return;
+    }
+
+    if (name.trim().length < 2) {
+      toast.error("Display name must be at least 2 characters.");
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const response = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), avatar: avatarId })
+      });
+      const data = (await response.json()) as { error?: string; user?: { name?: string } };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not save your profile.");
+      }
+
+      window.localStorage.setItem(WORKSPACE_STORAGE_KEY, workspace.trim());
+      // Let the rest of the app pick up the new name/avatar without a full reload.
+      window.dispatchEvent(new Event("aion:profile-updated"));
+      toast.success("Profile saved.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save your profile.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const selectedAvatar = getProfileAvatar(avatarId);
+
+  return (
+    <div className="settings-card">
+      <div className="settings-profile-head">
+        <span
+          className="settings-avatar-preview"
+          style={{ background: selectedAvatar.gradient }}
+          aria-hidden="true"
+        >
+          {selectedAvatar.emoji}
+        </span>
+        <div>
+          <strong>{name || "Your name"}</strong>
+          <span className="muted-copy">{email || "Signed-in account"}</span>
+        </div>
+      </div>
+
+      <div className="field-label">
+        Profile avatar
+        <div className="settings-avatar-grid" role="radiogroup" aria-label="Choose an avatar">
+          {PROFILE_AVATARS.map((avatar) => (
+            <button
+              key={avatar.id}
+              type="button"
+              role="radio"
+              aria-checked={avatar.id === avatarId}
+              aria-label={avatar.label}
+              title={avatar.label}
+              className={`settings-avatar ${avatar.id === avatarId ? "is-active" : ""}`}
+              style={{ background: avatar.gradient }}
+              onClick={() => setAvatarId(avatar.id)}
+            >
+              {avatar.emoji}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label className="field-label">
+        Display name
+        <input
+          className="field-input"
+          value={name}
+          maxLength={80}
+          placeholder="Your name"
+          disabled={!loaded}
+          onChange={(event) => setName(event.target.value)}
+        />
+      </label>
+      <label className="field-label">
+        Workspace
+        <input
+          className="field-input"
+          value={workspace}
+          maxLength={60}
+          placeholder="Workspace name"
+          onChange={(event) => setWorkspace(event.target.value)}
+        />
+      </label>
+      <button className="primary-button" type="button" onClick={() => void handleSave()} disabled={saving || !loaded}>
+        {saving ? "Saving..." : "Save profile"}
+      </button>
+    </div>
+  );
+}
+
 function getTabLabel(tab: SettingsTab) {
   switch (tab) {
-    case "api-keys":
-      return "API Keys";
     case "privacy":
       return "Data & Privacy";
     default:

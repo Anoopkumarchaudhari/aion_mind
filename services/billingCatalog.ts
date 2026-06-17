@@ -33,7 +33,7 @@ export const BILLING_PLANS: BillingPlan[] = [
     priceInr: 0,
     monthlyCredits: 40,
     accent: "#94a3b8",
-    note: "Trial wallet"
+    note: ""
   },
   {
     id: "starter",
@@ -41,7 +41,7 @@ export const BILLING_PLANS: BillingPlan[] = [
     priceInr: 199,
     monthlyCredits: 220,
     accent: "#22d3ee",
-    note: "Light daily use"
+    note: ""
   },
   {
     id: "plus",
@@ -49,7 +49,7 @@ export const BILLING_PLANS: BillingPlan[] = [
     priceInr: 499,
     monthlyCredits: 620,
     accent: "#34d399",
-    note: "Regular AI work"
+    note: ""
   },
   {
     id: "pro",
@@ -57,7 +57,7 @@ export const BILLING_PLANS: BillingPlan[] = [
     priceInr: 999,
     monthlyCredits: 1350,
     accent: "#60a5fa",
-    note: "Research and creation"
+    note: ""
   },
   {
     id: "power",
@@ -65,7 +65,7 @@ export const BILLING_PLANS: BillingPlan[] = [
     priceInr: 1999,
     monthlyCredits: 3000,
     accent: "#f59e0b",
-    note: "High-volume workspace"
+    note: ""
   }
 ];
 
