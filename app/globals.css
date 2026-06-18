@@ -6046,6 +6046,9 @@ select:focus-visible,
 }
 
 .model-menu-item-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 0.9rem;
   font-weight: 650;
   color: var(--text-primary);
@@ -6053,6 +6056,28 @@ select:focus-visible,
 
 .model-menu-item-main.is-active .model-menu-item-label {
   color: #a7f3d0;
+}
+
+/* hero "Aria Mind" — recommended emphasis */
+.model-menu-rec {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #04121a;
+  background: linear-gradient(120deg, #34d399, #22d3ee);
+  box-shadow: 0 2px 10px rgba(34, 211, 238, 0.3);
+}
+
+.model-menu-item-main.is-recommended {
+  background: linear-gradient(120deg, color-mix(in srgb, #34d399 12%, transparent), color-mix(in srgb, #22d3ee 10%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #34d399 28%, transparent);
+}
+
+.model-menu-item-main.is-recommended:hover {
+  background: linear-gradient(120deg, color-mix(in srgb, #34d399 18%, transparent), color-mix(in srgb, #22d3ee 14%, transparent));
 }
 
 .model-menu-item-tagline {
@@ -8960,6 +8985,31 @@ body:has(.landing-page) {
   display: grid;
   align-content: start;
   gap: 11px;
+}
+
+.landing-tier-toprow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.landing-tier-hero-badge {
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #04121a;
+  background: linear-gradient(120deg, var(--model-color), color-mix(in srgb, var(--model-color) 55%, #ffffff));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--model-color) 40%, transparent);
+}
+
+.landing-tier-row.is-hero {
+  border-color: color-mix(in srgb, var(--model-color) 50%, transparent);
+  box-shadow:
+    0 26px 72px rgba(0, 0, 0, 0.42),
+    0 0 38px color-mix(in srgb, var(--model-color) 22%, transparent);
 }
 
 .landing-tier-info > strong {

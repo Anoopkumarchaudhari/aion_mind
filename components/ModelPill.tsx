@@ -20,13 +20,16 @@ type ModelPillProps = {
   onOpenRouting?: () => void;
 };
 
+// Menu order: simple entry point first, hero "Aria Mind" last and highlighted.
 const MODES: AionModelId[] = [
   "aria-instant",
-  "aria-diverse",
-  "aion-mind",
   "aion-mind-pro",
-  "aion-mind-analyzer"
+  "aria-diverse",
+  "aion-mind-analyzer",
+  "aion-mind"
 ];
+
+const RECOMMENDED_MODE: AionModelId = "aion-mind";
 
 export function ModelPill({
   active,
@@ -154,11 +157,20 @@ export function ModelPill({
                   key={model}
                   type="button"
                   role="menuitem"
-                  className={clsx("model-menu-item-main model-menu-item", active === model && "is-active")}
+                  className={clsx(
+                    "model-menu-item-main model-menu-item",
+                    active === model && "is-active",
+                    model === RECOMMENDED_MODE && "is-recommended"
+                  )}
                   onClick={() => selectMode(model)}
                 >
                   <span className="model-menu-item-text">
-                    <span className="model-menu-item-label">{getAionModelLabel(model)}</span>
+                    <span className="model-menu-item-label">
+                      {getAionModelLabel(model)}
+                      {model === RECOMMENDED_MODE ? (
+                        <span className="model-menu-rec">Recommended</span>
+                      ) : null}
+                    </span>
                     <span className="model-menu-item-tagline">{getAionModelTagline(model)}</span>
                   </span>
                   {active === model ? <Check size={16} aria-hidden="true" /> : null}

@@ -171,6 +171,19 @@ const tiers = [
   }
 ];
 
+// Menu order: simple entry point first, hero "Aria Mind" last and highlighted.
+const HERO_TIER_NAME = "Aria Mind";
+const ORDERED_TIER_NAMES = [
+  "Aria Instant",
+  "Aria Research",
+  "Aria Diverse",
+  "Aria Analyzer",
+  "Aria Mind"
+];
+const orderedTiers = ORDERED_TIER_NAMES.map((name) =>
+  tiers.find((tier) => tier.name === name)
+).filter((tier): tier is (typeof tiers)[number] => Boolean(tier));
+
 const capabilities = [
   { icon: MessageSquare, title: "Text", accent: "#22d3ee", copy: "Chat, write, brainstorm, and reason with the right model for each task." },
   { icon: ImageIcon, title: "Image", accent: "#a855f7", copy: "Turn prompts, references, and concepts into polished visual assets." },
@@ -308,9 +321,12 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
           copy="You pick the kind of answer you want; Aria maps it to a mode and routes to the right model behind the surface. Instant speed, a chosen provider, a merged consensus, a side-by-side comparison, or an auto-routed pick, all metered by one credit wallet."
         />
         <div className="landing-tier-rows">
-          {tiers.map((tier, index) => (
+          {orderedTiers.map((tier, index) => {
+            const isHero = tier.name === HERO_TIER_NAME;
+
+            return (
             <motion.div
-              className={`landing-tier-row ${index % 2 === 0 ? "is-flipped" : ""}`}
+              className={`landing-tier-row ${index % 2 === 0 ? "is-flipped" : ""} ${isHero ? "is-hero" : ""}`}
               style={{ "--model-color": tier.color } as CSSProperties}
               key={tier.name}
               initial={{ opacity: 0, y: 28 }}
@@ -319,8 +335,11 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
               transition={{ duration: 0.55 }}
             >
               <div className="landing-tier-info">
-                <span className="landing-tier-icon">
-                  <tier.icon size={22} />
+                <span className="landing-tier-toprow">
+                  <span className="landing-tier-icon">
+                    <tier.icon size={22} />
+                  </span>
+                  {isHero ? <span className="landing-tier-hero-badge">Recommended · Hero mode</span> : null}
                 </span>
                 <strong>{tier.name}</strong>
                 <em>{tier.tagline}</em>
@@ -340,7 +359,8 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
                 <TierWorkflow diagram={tier.diagram} color={tier.color} />
               </div>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
         <p className="landing-tier-note">
           Users see intent, not model names. Providers, routing, and pricing stay configurable in admin, so the consumer
