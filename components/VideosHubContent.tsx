@@ -13,7 +13,7 @@ import {
   scrollRevealVariants,
   scrollRevealViewport
 } from "@/lib/motion";
-import { getAvailableCredits, getVideoCreditCharge, useBillingStore } from "@/store/useBillingStore";
+import { getVideoCreditCharge, useBillingStore } from "@/store/useBillingStore";
 import { useVideoStore } from "@/store/useVideoStore";
 import type {
   VideoGenerationMode,
@@ -86,14 +86,14 @@ export function VideosHubContent() {
     }
 
     const creditCharge = getVideoCreditCharge(provider, modelKey, duration, mode);
-    const billingState = useBillingStore.getState();
 
-    if (getAvailableCredits(billingState) < creditCharge.credits) {
+    const charged = await useBillingStore.getState().spendCredits(creditCharge);
+
+    if (!charged) {
       setError(`Need ${creditCharge.credits} credits for ${creditCharge.label}.`);
       return;
     }
 
-    billingState.spendCredits(creditCharge);
     setIsGenerating(true);
     setError("");
 

@@ -23,7 +23,7 @@ import {
   scrollRevealVariants,
   scrollRevealViewport
 } from "@/lib/motion";
-import { getAvailableCredits, getImageCreditCharge, useBillingStore } from "@/store/useBillingStore";
+import { getImageCreditCharge, useBillingStore } from "@/store/useBillingStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import type {
   GeneratedImage,
@@ -240,14 +240,14 @@ export function ImagesHubContent() {
     }
 
     const creditCharge = getImageCreditCharge(modelKey, quality);
-    const billingState = useBillingStore.getState();
 
-    if (getAvailableCredits(billingState) < creditCharge.credits) {
+    const charged = await useBillingStore.getState().spendCredits(creditCharge);
+
+    if (!charged) {
       setError(`Need ${creditCharge.credits} credits for ${creditCharge.label}.`);
       return;
     }
 
-    billingState.spendCredits(creditCharge);
     setIsGenerating(true);
     setError("");
 

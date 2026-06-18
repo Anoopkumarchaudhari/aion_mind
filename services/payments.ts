@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { query } from "@/services/db";
+import { grantCredits } from "@/services/credits";
 import { getResolvedBillingCatalog } from "@/services/adminSettings";
 import {
   RazorpayError,
@@ -208,14 +209,22 @@ export async function settlePayment(orderId: string, paymentId: string): Promise
     return { ...result, alreadyProcessed: true };
   }
 
+  // Credit the account and record the grant in the ledger (server-authoritative).
   if (result.kind === "plan" && result.planId) {
-    await query("UPDATE app_users SET plan_id = $2, credits = credits + $3 WHERE id = $1", [
-      row.user_id,
-      result.planId,
-      result.credits
-    ]);
+    await grantCredits(row.user_id, {
+      kind: "plan",
+      label: result.label,
+      credits: result.credits,
+      planId: result.planId,
+      amountInr: result.amountInr
+    });
   } else {
-    await query("UPDATE app_users SET credits = credits + $2 WHERE id = $1", [row.user_id, result.credits]);
+    await grantCredits(row.user_id, {
+      kind: "topup",
+      label: result.label,
+      credits: result.credits,
+      amountInr: result.amountInr
+    });
   }
 
   return result;

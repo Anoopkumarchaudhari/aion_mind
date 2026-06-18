@@ -1,6 +1,7 @@
 import { randomBytes, randomInt, randomUUID, scrypt, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { AuthError, normalizeEmail, type AuthUser } from "@/services/auth";
+import { ensureInitialCredits } from "@/services/credits";
 import { getDatabaseConfigIssue, query } from "@/services/db";
 import { isEmailConfigured, sendSignupCode } from "@/services/email";
 
@@ -159,6 +160,7 @@ export async function confirmSignup(email: string, code: string): Promise<AuthUs
     [user.id, user.name, user.email, row.password_hash, Date.now()]
   );
 
+  await ensureInitialCredits(user.id);
   await clearVerification(cleanEmail);
   return user;
 }

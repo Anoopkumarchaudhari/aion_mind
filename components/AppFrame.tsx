@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "@/components/Sidebar";
+import { ThemeToggleButton } from "@/components/ThemeToggle";
 import { pageShellVariants } from "@/lib/motion";
 import { sortThreads, useChatStore } from "@/store/useChatStore";
 import { useNotebookStore } from "@/store/useNotebookStore";
+import { useBillingStore } from "@/store/useBillingStore";
 
 type AppFrameProps = {
   children: ReactNode;
@@ -48,6 +50,8 @@ export function AppFrame({ children, title, sidebar }: AppFrameProps) {
   const threads = useMemo(() => sortThreads(rawThreads), [rawThreads]);
 
   useEffect(() => {
+    void useBillingStore.getState().loadAccount();
+
     function toggleSidebar() {
       setSidebarCollapsed((value) => !value);
     }
@@ -128,6 +132,7 @@ export function AppFrame({ children, title, sidebar }: AppFrameProps) {
             ☰
           </button>
           {title ? <h1>{title}</h1> : <span />}
+          <ThemeToggleButton className="route-header-theme" />
         </header>
         <AnimatePresence mode="wait">
           <motion.div

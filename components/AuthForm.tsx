@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent, type MouseEvent } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, Chrome, Eye, EyeOff, Facebook, KeyRound, MailCheck } from "lucide-react";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
+import { ThemeToggleButton } from "@/components/ThemeToggle";
 
 type AuthFormProps = {
   mode: "login" | "signup";
@@ -254,6 +255,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         <span className="auth-shooting auth-shooting-one" />
         <span className="auth-shooting auth-shooting-two" />
       </div>
+
+      <ThemeToggleButton className="auth-theme-toggle" />
 
       <motion.section
         className={`auth-shell ${isSignup ? "is-signup" : "is-login"}${isSwitchingMode ? " is-switching" : ""}`}

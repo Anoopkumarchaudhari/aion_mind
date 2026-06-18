@@ -20,8 +20,7 @@ import { gentleSpring, sidebarBackdropVariants } from "@/lib/motion";
 type BillingSidebarProps = AppFrameSidebarProps & {
   planName: string;
   availableCredits: number;
-  monthlyRemaining: number;
-  topUpCredits: number;
+  monthlyAllotment: number;
   usedPercent: number;
   nextRenewalDate: string;
   autoTopUpEnabled: boolean;
@@ -34,8 +33,7 @@ export function BillingSidebar({
   onToggleCollapsed,
   planName,
   availableCredits,
-  monthlyRemaining,
-  topUpCredits,
+  monthlyAllotment,
   usedPercent,
   nextRenewalDate,
   autoTopUpEnabled
@@ -96,12 +94,12 @@ export function BillingSidebar({
               <strong>{planName}</strong>
             </div>
             <div>
-              <span>Monthly left</span>
-              <strong>{monthlyRemaining.toLocaleString("en-IN")}</strong>
+              <span>Balance</span>
+              <strong>{availableCredits.toLocaleString("en-IN")}</strong>
             </div>
             <div>
-              <span>Top-up</span>
-              <strong>{topUpCredits.toLocaleString("en-IN")}</strong>
+              <span>Plan allotment</span>
+              <strong>{monthlyAllotment.toLocaleString("en-IN")}/mo</strong>
             </div>
             <div>
               <span>Auto top-up</span>

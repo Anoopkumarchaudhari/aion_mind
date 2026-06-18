@@ -56,7 +56,8 @@ export type ModelRouteRequest = {
   searchQuery?: string;
   selectedModel: AionModelId;
   researchModel?: AionResearchModelId;
-  diverseProvider?: AriaDiverseProvider;
+  diverseProviders?: AriaDiverseProvider[];
+  researchProvider?: AriaDiverseProvider;
   history: ChatMessage[];
   attachments?: ChatAttachment[];
   debug: boolean;

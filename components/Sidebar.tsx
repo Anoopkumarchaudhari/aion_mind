@@ -18,15 +18,18 @@ import {
   Keyboard,
   Languages,
   LogOut,
+  Moon,
   NotebookTabs,
   Pin,
   Podcast,
   Plus,
   Search,
   Settings,
+  Sun,
   Volume2
 } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
+import { useThemeStore } from "@/store/useThemeStore";
 import { ChatRowMenu } from "@/components/ChatRowMenu";
 import { RenameInline } from "@/components/RenameInline";
 import { cardItemVariants, gentleSpring, sidebarBackdropVariants } from "@/lib/motion";
@@ -107,6 +110,8 @@ export function Sidebar({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [showVideoNew, setShowVideoNew] = useState(false);
   const [account, setAccount] = useState({ name: ACCOUNT_NAME, plan: ACCOUNT_PLAN });
+  const resolvedTheme = useThemeStore((state) => state.resolved);
+  const toggleTheme = useThemeStore((state) => state.toggle);
   const pinnedThreads = useMemo(() => threads.filter((thread) => thread.pinned), [threads]);
   const recentThreads = useMemo(() => threads.filter((thread) => !thread.pinned), [threads]);
   const isChatRoute = pathname === "/chat" || pathname.startsWith("/chat/");
@@ -384,6 +389,16 @@ export function Sidebar({
                   <Settings size={16} />
                   Settings
                 </Link>
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                className="chat-menu-item"
+                onSelect={(event) => {
+                  event.preventDefault();
+                  toggleTheme();
+                }}
+              >
+                {resolvedTheme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+                {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
               </DropdownMenu.Item>
               <DropdownMenu.Item className="chat-menu-item" onSelect={onOpenShortcuts}>
                 <Keyboard size={16} />

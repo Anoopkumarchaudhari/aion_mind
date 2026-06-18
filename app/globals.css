@@ -21,6 +21,31 @@
     BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+/* ============================================================
+   LIGHT THEME — applied when <html data-theme="light">
+   Warm off-white surfaces, deeper green accent for contrast.
+   Core token overrides live here; component-specific light
+   overrides are grouped at the end of this file.
+   ============================================================ */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg-base: #f6f5f2;
+  --bg-sidebar: #efede8;
+  --bg-elevated: #ffffff;
+  --bg-input: #ffffff;
+  --hover: #e9e7e1;
+  --border: rgba(23, 23, 20, 0.12);
+  --text-primary: #1d1c19;
+  --text-secondary: #3b3a35;
+  --text-muted: #6c6a62;
+  --accent: #0e9f74;
+  --accent-2: #0e8fb0;
+  --accent-glow: rgba(14, 159, 116, 0.22);
+  --grid-tint: rgba(14, 143, 176, 0.06);
+  --hero-glow: rgba(14, 159, 116, 0.14);
+  --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+}
+
 .mode-root {
   height: 100dvh;
   min-height: 0;
@@ -1234,14 +1259,26 @@ a {
 }
 
 .app-shell {
+  /* Refined Claude-style dashboard palette: calm warm-neutral surfaces,
+     soft hairline borders, one restrained accent. Scoped here so the auth
+     and landing pages keep their own identities. */
+  --bg-base: #1b1b19;
+  --bg-elevated: #262624;
+  --bg-input: #2b2b28;
+  --hover: #302f2c;
+  --border: rgba(255, 255, 255, 0.085);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text-secondary: #e4e3df;
+  --text-muted: #a3a29b;
+  --accent-glow: rgba(37, 213, 155, 0.22);
+
   display: grid;
   grid-template-columns: var(--sidebar-width, 240px) minmax(0, 1fr);
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
   background:
-    radial-gradient(circle at 60% 0%, color-mix(in srgb, var(--accent-2) 8%, transparent), transparent 36%),
-    radial-gradient(circle at 10% 100%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 32%),
+    radial-gradient(120% 90% at 50% -10%, rgba(255, 255, 255, 0.022), transparent 55%),
     var(--bg-base);
   transition:
     grid-template-columns 200ms ease,
@@ -1253,27 +1290,24 @@ a {
 }
 
 .sidebar {
-  --sidebar-accent: #38bdf8;
-  --sidebar-accent-2: #2dd4bf;
-  --sidebar-accent-glow: rgba(34, 211, 238, 0.34);
-  --sidebar-panel: #111820;
-  --sidebar-panel-soft: #192331;
-  --sidebar-panel-hover: #223241;
-  --sidebar-panel-active: #123c44;
+  --sidebar-accent: #34d399;
+  --sidebar-accent-2: #25d59b;
+  --sidebar-accent-glow: rgba(37, 213, 155, 0.22);
+  --sidebar-panel: #171715;
+  --sidebar-panel-soft: #201f1d;
+  --sidebar-panel-hover: #2a2a27;
+  --sidebar-panel-active: #2f3a33;
   position: relative;
   z-index: 30;
   display: flex;
   height: 100dvh;
   min-height: 0;
   flex-direction: column;
-  border-right: 1px solid rgba(204, 251, 241, 0.15);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.038), transparent 28%),
-    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--sidebar-accent) 10%, transparent), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent 24%),
     var(--sidebar-panel);
-  box-shadow:
-    inset -1px 0 0 rgba(255, 255, 255, 0.06),
-    18px 0 48px rgba(0, 0, 0, 0.2);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04);
   isolation: isolate;
 }
 
@@ -1740,7 +1774,7 @@ a {
   min-width: 200px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  background: rgba(31, 31, 36, 0.98);
+  background: rgba(38, 38, 36, 0.98);
   padding: 6px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(18px);
@@ -1767,6 +1801,8 @@ a {
   font-size: 0.88rem;
   line-height: 1.3;
   text-align: left;
+  text-decoration: none;
+  cursor: pointer;
   outline: none;
   transition:
     background-color 150ms ease,
@@ -2170,7 +2206,8 @@ a {
   min-height: 0;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
-  background: var(--bg-base);
+  /* Deep night-sky black so the top bar blends seamlessly into the StarSky below. */
+  background: #04060d;
   transition:
     background 400ms ease,
     color 300ms ease;
@@ -2215,19 +2252,18 @@ a {
   width: auto;
   min-width: 38px;
   gap: 7px;
-  border: 1px solid color-mix(in srgb, var(--accent-2) 28%, transparent);
-  background: color-mix(in srgb, var(--accent-2) 11%, transparent);
-  color: color-mix(in srgb, var(--accent-2) 86%, white);
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: color-mix(in srgb, var(--accent) 84%, white);
   padding: 0 11px;
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 700;
   text-decoration: none;
-  box-shadow: 0 0 18px color-mix(in srgb, var(--accent-2) 12%, transparent);
 }
 
 .top-billing-button:hover {
-  border-color: color-mix(in srgb, var(--accent-2) 42%, transparent);
-  background: color-mix(in srgb, var(--accent-2) 16%, var(--hover));
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 15%, var(--hover));
 }
 
 .top-billing-balance {
@@ -2372,6 +2408,148 @@ a {
   background: linear-gradient(to top, rgba(5, 9, 14, 0.96), transparent);
 }
 
+/* ---------- Chat night sky: deep black + drifting, twinkling stars ---------- */
+.star-sky {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.star-sky-base,
+.star-sky-nebula,
+.star-sky-readability,
+.star-sky-edge {
+  position: absolute;
+  inset: 0;
+}
+
+.star-sky-base {
+  background:
+    radial-gradient(120% 90% at 50% 0%, #0a1018 0%, #05070d 46%, #020308 100%);
+}
+
+.star-sky-nebula {
+  inset: -10%;
+  background:
+    radial-gradient(36% 28% at 24% 22%, rgba(56, 72, 160, 0.16), transparent 60%),
+    radial-gradient(30% 24% at 78% 30%, rgba(96, 52, 140, 0.13), transparent 62%),
+    radial-gradient(48% 38% at 60% 84%, rgba(37, 213, 155, 0.08), transparent 64%);
+  filter: blur(46px);
+  opacity: 0.8;
+  animation: authNebulaDrift 32s ease-in-out infinite;
+  will-change: transform;
+}
+
+.star-sky-layer {
+  position: absolute;
+  inset: -50%;
+  background-repeat: repeat;
+  will-change: transform, opacity;
+}
+
+.star-sky-far {
+  background-image:
+    radial-gradient(1px 1px at 20px 30px, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 90px 120px, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 160px 70px, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 130px 180px, rgba(190, 215, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 50px 220px, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 230px 40px, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 280px 150px, rgba(255, 245, 220, 0.6), transparent);
+  background-size: 300px 300px;
+  opacity: 0.55;
+  animation: authStarDrift 160s linear infinite, authTwinkle 5s ease-in-out infinite;
+}
+
+.star-sky-mid {
+  background-image:
+    radial-gradient(1.5px 1.5px at 60px 50px, rgba(255, 255, 255, 0.9), transparent),
+    radial-gradient(1.5px 1.5px at 180px 200px, rgba(210, 225, 255, 0.85), transparent),
+    radial-gradient(1.5px 1.5px at 320px 120px, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1.5px 1.5px at 250px 320px, rgba(255, 240, 215, 0.85), transparent),
+    radial-gradient(1.5px 1.5px at 420px 260px, rgba(255, 255, 255, 0.8), transparent),
+    radial-gradient(1.5px 1.5px at 120px 380px, rgba(200, 220, 255, 0.85), transparent);
+  background-size: 480px 480px;
+  opacity: 0.72;
+  animation: authStarDrift 110s linear infinite, authTwinkle 4s ease-in-out infinite 1s;
+}
+
+.star-sky-near {
+  background-image:
+    radial-gradient(2px 2px at 130px 90px, #ffffff, transparent),
+    radial-gradient(2.5px 2.5px at 400px 300px, #ffffff, transparent),
+    radial-gradient(2px 2px at 620px 160px, rgba(255, 244, 224, 0.95), transparent),
+    radial-gradient(2px 2px at 300px 520px, rgba(214, 230, 255, 0.95), transparent),
+    radial-gradient(2.5px 2.5px at 700px 440px, #ffffff, transparent);
+  background-size: 760px 640px;
+  opacity: 0.9;
+  animation: authStarDrift 78s linear infinite, authTwinkle 3.4s ease-in-out infinite 0.5s;
+}
+
+.star-sky-shooting {
+  position: absolute;
+  top: 10%;
+  width: 150px;
+  height: 1.5px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.95), transparent);
+  border-radius: 999px;
+  opacity: 0;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+}
+
+.star-sky-shooting-one {
+  left: 16%;
+  animation: authShoot 12s ease-in infinite 3s;
+}
+
+.star-sky-shooting-two {
+  left: 62%;
+  animation: authShoot 15s ease-in infinite 9s;
+}
+
+/* Soft central vignette so messages and the composer stay readable. */
+.star-sky-readability {
+  background:
+    radial-gradient(
+      ellipse 60% 50% at 50% 50%,
+      rgba(2, 4, 9, 0.62) 0%,
+      rgba(2, 4, 9, 0.32) 46%,
+      transparent 78%
+    );
+}
+
+.star-sky-edge.is-top {
+  bottom: auto;
+  height: 90px;
+  background: linear-gradient(to bottom, rgba(2, 4, 9, 0.92), transparent);
+}
+
+.star-sky-edge.is-bottom {
+  top: auto;
+  height: 140px;
+  background: linear-gradient(to top, rgba(2, 4, 9, 0.96), transparent);
+}
+
+/* When a conversation is open, calm the stars so text stays the focus. */
+.star-sky.is-dimmed .star-sky-layer {
+  opacity: 0.3;
+}
+
+.star-sky.is-dimmed .star-sky-readability {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%, rgba(2, 4, 9, 0.74) 0%, rgba(2, 4, 9, 0.4) 55%, transparent 82%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star-sky-layer,
+  .star-sky-nebula,
+  .star-sky-shooting {
+    animation: none;
+  }
+}
+
 .chat-content-layer {
   position: relative;
   z-index: 10;
@@ -2428,7 +2606,7 @@ a {
   overflow-y: auto;
   padding: 12px 28px 48px;
   scroll-behavior: smooth;
-  scrollbar-color: color-mix(in srgb, var(--accent-2) 35%, transparent) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
   scrollbar-gutter: stable;
 }
 
@@ -2442,12 +2620,12 @@ a {
   border: 3px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
-  background-color: color-mix(in srgb, var(--accent-2) 30%, transparent);
+  background-color: rgba(255, 255, 255, 0.14);
 }
 
 .route-content::-webkit-scrollbar-thumb:hover,
 .chat-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: color-mix(in srgb, var(--accent-2) 46%, transparent);
+  background-color: rgba(255, 255, 255, 0.24);
 }
 
 button:focus-visible,
@@ -2463,6 +2641,14 @@ select:focus-visible,
 .auth-form input:focus-visible,
 .composer-textarea:focus-visible {
   outline: none;
+}
+
+/* Calm, restrained focus ring inside the dashboard shell. */
+.app-shell button:focus-visible,
+.app-shell a:focus-visible,
+.app-shell [role="button"]:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, white);
+  outline-offset: 2px;
 }
 
 .page-toolbar {
@@ -5694,25 +5880,24 @@ select:focus-visible,
 }
 
 .hero-glow-primary {
-  width: min(600px, 90vw);
-  height: min(600px, 90vw);
+  width: min(560px, 88vw);
+  height: min(560px, 88vw);
   border-radius: 999px;
   background: radial-gradient(
     circle,
-    var(--hero-glow) 0%,
-    color-mix(in srgb, var(--accent-2) 12%, transparent) 40%,
-    transparent 70%
+    color-mix(in srgb, var(--accent) 9%, transparent) 0%,
+    transparent 68%
   );
-  filter: blur(36px);
-  animation: pulse-slow 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  filter: blur(48px);
+  animation: pulse-slow 7s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .hero-glow-secondary {
-  width: min(900px, 120vw);
-  height: min(900px, 120vw);
+  width: min(820px, 110vw);
+  height: min(820px, 110vw);
   border-radius: 999px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 60%);
-  filter: blur(56px);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.018) 0%, transparent 62%);
+  filter: blur(64px);
 }
 
 .hero-content {
@@ -5745,49 +5930,49 @@ select:focus-visible,
 
 .dashboard-hero-heading h1 {
   margin: 0;
-  color: #f4f4f5;
-  font-size: clamp(1.85rem, 3vw, 2.15rem);
-  font-weight: 720;
-  letter-spacing: 0;
-  line-height: 1.1;
+  color: #f5f4f0;
+  font-size: clamp(1.9rem, 3vw, 2.3rem);
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  line-height: 1.12;
 }
 
 .dashboard-hero-heading p {
-  margin: 6px 0 0;
-  color: #b7b7b9;
-  font-size: clamp(1rem, 1.8vw, 1.16rem);
-  font-weight: 620;
-  line-height: 1.35;
+  margin: 9px 0 0;
+  color: var(--text-muted);
+  font-size: clamp(1rem, 1.8vw, 1.12rem);
+  font-weight: 450;
+  line-height: 1.4;
 }
 
 .dashboard-action-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin: clamp(28px, 5vh, 36px) 0 34px;
+  gap: 14px;
+  margin: clamp(30px, 5.5vh, 40px) 0 36px;
 }
 
 .dashboard-action-card {
   display: grid;
-  min-height: 150px;
+  min-height: 152px;
   grid-template-rows: auto 1fr auto;
   align-content: start;
-  gap: 7px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 10px;
-  background: rgba(42, 42, 40, 0.9);
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #232321;
   color: var(--text-primary);
-  padding: 22px 20px 20px;
+  padding: 20px 18px 18px;
   text-align: left;
   transition:
-    border-color 160ms ease,
-    background-color 160ms ease,
-    transform 160ms ease;
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
 }
 
 .dashboard-action-card:hover {
-  border-color: rgba(255, 255, 255, 0.26);
-  background: rgba(52, 52, 49, 0.94);
+  border-color: var(--border-strong, rgba(255, 255, 255, 0.16));
+  background: #2a2a27;
   transform: translateY(-2px);
 }
 
@@ -5865,10 +6050,11 @@ select:focus-visible,
 
 .hero-controls .composer-field {
   min-height: 58px;
-  border-color: rgba(255, 255, 255, 0.14);
-  border-radius: 14px;
-  background: rgba(31, 31, 30, 0.92);
-  box-shadow: none;
+  border-radius: 18px;
+  background: #2a2a27;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 18px 44px rgba(0, 0, 0, 0.3);
 }
 
 .hero-controls .composer-textarea {
@@ -5991,7 +6177,7 @@ select:focus-visible,
   gap: 2px;
   border: 1px solid var(--border);
   border-radius: 16px;
-  background: rgba(17, 24, 33, 0.96);
+  background: rgba(36, 36, 34, 0.97);
   backdrop-filter: blur(22px);
   padding: 8px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
@@ -6102,7 +6288,7 @@ select:focus-visible,
   gap: 2px;
   border: 1px solid var(--border);
   border-radius: 14px;
-  background: rgba(17, 24, 33, 0.98);
+  background: rgba(40, 40, 38, 0.98);
   backdrop-filter: blur(22px);
   padding: 6px;
   box-shadow: 0 22px 50px rgba(0, 0, 0, 0.5);
@@ -6146,6 +6332,52 @@ select:focus-visible,
 
 .model-submenu-item svg {
   color: var(--accent);
+}
+
+.model-submenu-hint {
+  margin: 2px 8px 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  color: var(--text-tertiary, rgba(255, 255, 255, 0.45));
+}
+
+.model-submenu-item.is-checkbox {
+  justify-content: flex-start;
+}
+
+.model-submenu-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.model-submenu-item:disabled:hover {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.model-submenu-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: #04130c;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.model-submenu-check.is-checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.model-submenu-check svg {
+  color: #04130c;
 }
 
 .field-input.is-static {
@@ -6602,14 +6834,13 @@ select:focus-visible,
 .composer-field {
   display: grid;
   gap: 10px;
-  border: 1px solid rgba(204, 251, 241, 0.17);
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.14));
   border-radius: 24px;
-  background: rgba(30, 39, 50, 0.92);
+  background: #2a2a27;
   padding: 12px 14px;
   box-shadow:
-    0 12px 42px rgba(0, 0, 0, 0.34),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(12px);
+    0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 18px 40px rgba(0, 0, 0, 0.28);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease;
@@ -6624,10 +6855,10 @@ select:focus-visible,
 }
 
 .composer-field:focus-within {
-  border-color: color-mix(in srgb, var(--accent-2) 52%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, rgba(255, 255, 255, 0.14));
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--accent-2) 16%, transparent),
-    0 10px 36px rgba(0, 0, 0, 0.3);
+    0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent),
+    0 18px 40px rgba(0, 0, 0, 0.3);
 }
 
 .composer-field.is-pulsing {
@@ -8852,6 +9083,44 @@ body:has(.landing-page) {
   content: "";
 }
 
+.landing-tier-bestfor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  border: 1px solid color-mix(in srgb, var(--model-color) 38%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--model-color) 12%, rgba(8, 12, 18, 0.55));
+  padding: 12px 14px;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--model-color) 18%, transparent);
+}
+
+.landing-tier-bestfor-label {
+  color: color-mix(in srgb, var(--model-color) 88%, white);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.landing-tier-bestfor-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.landing-tier-bestfor-tag {
+  border: 1px solid color-mix(in srgb, var(--model-color) 32%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--model-color) 16%, transparent);
+  padding: 4px 11px;
+  color: color-mix(in srgb, var(--model-color) 92%, white);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .landing-tier-flow {
   position: relative;
   display: grid;
@@ -11040,4 +11309,1030 @@ body:has(.landing-page) {
   .admin-search input {
     width: 100%;
   }
+}
+
+/* ============================================================
+   LIGHT THEME — component overrides
+   Token flips happen via [data-theme="light"] at the top of this
+   file; below we re-theme the surfaces that ship hardcoded dark
+   colors. Selectors use [data-theme="light"] .x so they win on
+   specificity regardless of source order.
+   ============================================================ */
+
+/* ---------- Theme controls (toggle button + segmented) ---------- */
+.theme-toggle-button {
+  display: inline-grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.theme-toggle-button:hover {
+  background: var(--hover);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+/* Push the theme button to the right edge of app/landing/auth headers. */
+.route-header-theme {
+  margin-left: auto;
+}
+
+.landing-nav-theme {
+  position: absolute;
+  top: 50%;
+  right: clamp(14px, 4vw, 40px);
+  transform: translateY(-50%);
+  z-index: 31;
+  width: 36px;
+  height: 36px;
+}
+
+/* On mobile the hamburger sits at the right edge — keep the toggle clear of it. */
+@media (max-width: 720px) {
+  .landing-nav-theme {
+    right: 64px;
+  }
+}
+
+/* Mobile hamburger ships white-on-dark — make it readable on the light bar. */
+[data-theme="light"] .landing-nav-toggle {
+  border-color: rgba(23, 23, 20, 0.16);
+  background: rgba(23, 23, 20, 0.04);
+  color: #1d1c19;
+}
+
+[data-theme="light"] .landing-nav-toggle:hover,
+[data-theme="light"] .landing-nav.is-open .landing-nav-toggle {
+  border-color: rgba(23, 23, 20, 0.28);
+  background: rgba(23, 23, 20, 0.08);
+}
+
+/* The open mobile menu + solidified bar are dark glass — light them too. */
+@media (max-width: 720px) {
+  [data-theme="light"] .landing-nav.is-open {
+    background: rgba(255, 255, 255, 0.97);
+    border-bottom-color: rgba(23, 23, 20, 0.1);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  }
+
+  [data-theme="light"] .landing-nav nav {
+    border-color: rgba(23, 23, 20, 0.1);
+    background: rgba(255, 255, 255, 0.99);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  }
+
+  [data-theme="light"] .landing-nav nav a:hover {
+    background: rgba(23, 23, 20, 0.05);
+    color: #1d1c19;
+  }
+}
+
+.auth-theme-toggle {
+  position: absolute;
+  top: clamp(16px, 4vw, 26px);
+  right: clamp(16px, 4vw, 26px);
+  z-index: 6;
+}
+
+[data-theme="light"] .theme-toggle-button {
+  background: rgba(23, 23, 20, 0.03);
+}
+
+.theme-segmented {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="light"] .theme-segmented {
+  background: rgba(23, 23, 20, 0.04);
+}
+
+.theme-segmented-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.theme-segmented-option:hover {
+  color: var(--text-primary);
+}
+
+.theme-segmented-option.is-active {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+}
+
+[data-theme="light"] .theme-segmented-option.is-active {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ---------- App shell + chrome ---------- */
+[data-theme="light"] .app-shell {
+  --bg-base: #f6f5f2;
+  --bg-elevated: #ffffff;
+  --bg-input: #ffffff;
+  --hover: #e9e7e1;
+  --border: rgba(23, 23, 20, 0.1);
+  --border-strong: rgba(23, 23, 20, 0.18);
+  --text-secondary: #3b3a35;
+  --text-muted: #6c6a62;
+  --accent-glow: rgba(14, 159, 116, 0.16);
+  background:
+    radial-gradient(120% 90% at 50% -10%, rgba(14, 159, 116, 0.04), transparent 55%),
+    #f6f5f2;
+}
+
+[data-theme="light"] .sidebar {
+  --sidebar-accent: #0e9f74;
+  --sidebar-accent-2: #0e8fb0;
+  --sidebar-accent-glow: rgba(14, 159, 116, 0.16);
+  --sidebar-panel: #efede8;
+  --sidebar-panel-soft: #e7e5de;
+  --sidebar-panel-hover: #ded9cf;
+  --sidebar-panel-active: #d2ebe0;
+  border-right: 1px solid rgba(23, 23, 20, 0.1);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.018), transparent 24%),
+    var(--sidebar-panel);
+  box-shadow: inset -1px 0 0 rgba(23, 23, 20, 0.05);
+}
+
+[data-theme="light"] .sidebar::after {
+  background: linear-gradient(180deg, transparent, rgba(23, 23, 20, 0.08), transparent);
+}
+
+[data-theme="light"] .sidebar::before {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.015), transparent 44%);
+}
+
+[data-theme="light"] .main-panel {
+  background: #f6f5f2;
+}
+
+/* The night sky has no place in light mode — show a calm light wash instead. */
+[data-theme="light"] .star-sky-base {
+  background: radial-gradient(120% 90% at 50% 0%, #ffffff 0%, #f3f2ee 60%, #eeece7 100%);
+}
+
+[data-theme="light"] .star-sky-layer,
+[data-theme="light"] .star-sky-nebula,
+[data-theme="light"] .star-sky-shooting,
+[data-theme="light"] .star-sky-readability,
+[data-theme="light"] .star-sky-edge {
+  display: none;
+}
+
+/* ---------- Top bar ---------- */
+[data-theme="light"] .top-edit-button,
+[data-theme="light"] .mobile-menu,
+[data-theme="light"] .temp-toggle,
+[data-theme="light"] .hero-more-button,
+[data-theme="light"] .model-routing-trigger,
+[data-theme="light"] .routing-icon-button {
+  background: rgba(23, 23, 20, 0.04);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .top-edit-button:hover,
+[data-theme="light"] .mobile-menu:hover,
+[data-theme="light"] .hero-more-button:hover {
+  background: rgba(23, 23, 20, 0.08);
+  color: var(--text-primary);
+}
+
+/* ---------- Empty state ---------- */
+[data-theme="light"] .dashboard-hero-heading h1 {
+  color: #1d1c19;
+}
+
+[data-theme="light"] .dashboard-action-card {
+  background: #ffffff;
+  border-color: rgba(23, 23, 20, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .dashboard-action-card:hover {
+  background: #fbfbf9;
+  border-color: rgba(23, 23, 20, 0.18);
+}
+
+/* ---------- Composer ---------- */
+[data-theme="light"] .composer-field,
+[data-theme="light"] .hero-controls .composer-field {
+  background: #ffffff;
+  border-color: rgba(23, 23, 20, 0.14);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 14px 32px rgba(0, 0, 0, 0.07);
+}
+
+[data-theme="light"] .composer-field:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 50%, rgba(23, 23, 20, 0.16));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent),
+    0 14px 32px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .model-menu-trigger {
+  background: rgba(23, 23, 20, 0.03);
+}
+
+[data-theme="light"] .model-menu-trigger:hover {
+  background: rgba(23, 23, 20, 0.06);
+}
+
+/* ---------- Messages ---------- */
+[data-theme="light"] .user-bubble {
+  background: #ffffff;
+  border-color: rgba(23, 23, 20, 0.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .message-attachment,
+[data-theme="light"] .message-image-attachment {
+  background: #f3f2ee;
+  border-color: rgba(23, 23, 20, 0.1);
+}
+
+[data-theme="light"] .route-content {
+  scrollbar-color: rgba(23, 23, 20, 0.22) transparent;
+}
+
+[data-theme="light"] .route-content::-webkit-scrollbar-thumb,
+[data-theme="light"] .chat-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(23, 23, 20, 0.2);
+}
+
+/* ---------- Popover menus ---------- */
+[data-theme="light"] .model-menu-panel {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
+}
+
+[data-theme="light"] .model-submenu {
+  background: rgba(255, 255, 255, 0.99);
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.16);
+}
+
+[data-theme="light"] .chat-menu-content {
+  background: rgba(255, 255, 255, 0.99);
+  border-color: rgba(23, 23, 20, 0.1);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="light"] .chat-menu-item {
+  color: #1d1c19;
+}
+
+[data-theme="light"] .chat-menu-item svg {
+  color: #6c6a62;
+}
+
+[data-theme="light"] .chat-menu-item:hover,
+[data-theme="light"] .chat-menu-item[data-highlighted] {
+  background: rgba(23, 23, 20, 0.05);
+}
+
+[data-theme="light"] .chat-menu-item.is-danger,
+[data-theme="light"] .chat-menu-item.is-danger svg {
+  color: #c2410c;
+}
+
+[data-theme="light"] .model-menu-item:hover,
+[data-theme="light"] .model-menu-item-main:hover,
+[data-theme="light"] .model-submenu-item:hover {
+  background: rgba(23, 23, 20, 0.05);
+}
+
+/* Pale-mint active text is unreadable on the light panel — deepen it. */
+[data-theme="light"] .model-menu-item-main.is-active .model-menu-item-label,
+[data-theme="light"] .model-submenu-item.is-active {
+  color: #0a6f53;
+}
+
+/* ---------- App text legibility on light surfaces ---------- */
+/* Near-white headings/body that ship hardcoded for dark backgrounds. */
+[data-theme="light"] .dashboard-action-title,
+[data-theme="light"] .podcast-heading h2,
+[data-theme="light"] .podcast-card h3,
+[data-theme="light"] .translate-output,
+[data-theme="light"] .translate-panel-heading,
+[data-theme="light"] .translate-panel textarea,
+[data-theme="light"] .podcast-compose textarea,
+[data-theme="light"] .image-prompt-input,
+[data-theme="light"] .notes-area,
+[data-theme="light"] .note-title-input {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .dashboard-action-description,
+[data-theme="light"] .translate-language-row,
+[data-theme="light"] .translate-muted,
+[data-theme="light"] .podcast-card p {
+  color: var(--text-muted);
+}
+
+[data-theme="light"] .translate-icon,
+[data-theme="light"] .translate-swap {
+  color: var(--accent);
+}
+
+[data-theme="light"] .sidebar-action.is-primary {
+  color: #14463a;
+}
+
+/* Pale status text needs darker tints to read on white. */
+[data-theme="light"] .auth-error,
+[data-theme="light"] .translate-error,
+[data-theme="light"] .composer-error,
+[data-theme="light"] .field-error,
+[data-theme="light"] .work-log-item.is-error,
+[data-theme="light"] .work-log-status.is-error {
+  color: #b42318;
+}
+
+/* Side-by-side provider headings (Aria Diverse): darken the chip text/fill. */
+[data-theme="light"] .model-answer-heading {
+  color: color-mix(in srgb, var(--model-color, var(--accent)) 55%, #121212);
+}
+
+[data-theme="light"] .model-answer-chip {
+  background: color-mix(in srgb, var(--model-color, var(--accent)) 12%, #ffffff);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--model-color, var(--accent)) 28%, transparent);
+  color: color-mix(in srgb, var(--model-color, var(--accent)) 58%, #121212);
+}
+
+/* Chat progress panels (Aria Research work-log + live web-search) were dark
+   glass — muddy grey on light. Light them so the step text reads. */
+[data-theme="light"] .work-log-panel,
+[data-theme="light"] .web-search-activity {
+  border-color: rgba(23, 23, 20, 0.1);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.015), transparent 70%),
+    #f5f4f0;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 12px 30px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .work-log-list,
+[data-theme="light"] .web-search-results {
+  border-top-color: rgba(23, 23, 20, 0.08);
+}
+
+[data-theme="light"] .web-search-result:hover {
+  background: rgba(23, 23, 20, 0.05);
+}
+
+/* Sidebar "New" / "Soon" badges used pale blue text — deepen on light. */
+[data-theme="light"] .new-pill {
+  border-color: color-mix(in srgb, var(--sidebar-accent) 42%, transparent);
+  background: color-mix(in srgb, var(--sidebar-accent) 13%, #ffffff);
+  color: color-mix(in srgb, var(--sidebar-accent) 48%, #0a0a0a);
+}
+
+/* ---------- Shared app cards / panels (settings, billing, routing) ---------- */
+[data-theme="light"] .settings-card,
+[data-theme="light"] .research-model-option,
+[data-theme="light"] .routing-slot {
+  background: #ffffff;
+  border-color: rgba(23, 23, 20, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 30px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .billing-overview,
+[data-theme="light"] .billing-panel {
+  background: #ffffff;
+  border: 1px solid rgba(23, 23, 20, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 14px 34px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .billing-meter-block {
+  border-inline-color: rgba(23, 23, 20, 0.1);
+}
+
+[data-theme="light"] .sidebar-action.is-active,
+[data-theme="light"] .history-item.is-active {
+  color: #163f33;
+}
+
+[data-theme="light"] .square-icon,
+[data-theme="light"] .new-pill,
+[data-theme="light"] .route-search {
+  background: rgba(23, 23, 20, 0.04);
+}
+
+/* ---------- Landing page (light) ---------- */
+[data-theme="light"] .landing-space {
+  background: #eef0f4;
+}
+
+[data-theme="light"] .landing-space-base {
+  background: radial-gradient(120% 90% at 50% -10%, #ffffff 0%, #f3f4f7 46%, #e9ebf0 100%);
+}
+
+/* The dark space artwork doesn't translate to light — hide it. */
+[data-theme="light"] .landing-nebula,
+[data-theme="light"] .landing-starfield,
+[data-theme="light"] .landing-hero::before,
+[data-theme="light"] .landing-hero::after {
+  display: none;
+}
+
+[data-theme="light"] .landing-nav.is-scrolled {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom-color: rgba(23, 23, 20, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .landing-feature-card,
+[data-theme="light"] .landing-audience-card,
+[data-theme="light"] .landing-plan-card {
+  border-color: rgba(23, 23, 20, 0.1);
+  background:
+    linear-gradient(135deg, rgba(0, 0, 0, 0.02), transparent 52%),
+    #ffffff;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .landing-feature-card h3 {
+  color: color-mix(in srgb, var(--feature-accent) 60%, #0c0c0c);
+  -webkit-text-fill-color: color-mix(in srgb, var(--feature-accent) 60%, #0c0c0c);
+}
+
+[data-theme="light"] .landing-feature-card p,
+[data-theme="light"] .landing-audience-card p,
+[data-theme="light"] .landing-plan-card p {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .landing-tier-row {
+  border-color: color-mix(in srgb, var(--model-color) 30%, rgba(23, 23, 20, 0.1));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--model-color) 8%, transparent), transparent 56%),
+    #ffffff;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .landing-footer {
+  border-top-color: rgba(23, 23, 20, 0.1);
+}
+
+/* Landing — light-mode text legibility (white-on-light fixes) */
+[data-theme="light"] .landing-hero h1 {
+  color: #15151a;
+}
+
+[data-theme="light"] .landing-section-heading h2,
+[data-theme="light"] .landing-benefit-band h2,
+[data-theme="light"] .landing-final-cta h2,
+[data-theme="light"] .landing-about-copy h2 {
+  background: linear-gradient(100deg, #0e7490 0%, #0891b2 24%, #4f46e5 62%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+[data-theme="light"] .landing-rate-pill {
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--rate-color) 38%, rgba(23, 23, 20, 0.12));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .landing-rate-pill strong {
+  color: #1d1c19;
+}
+
+[data-theme="light"] .landing-rate-pill em {
+  color: color-mix(in srgb, var(--rate-color) 52%, #0b0b0b);
+}
+
+[data-theme="light"] .landing-model-card strong,
+[data-theme="light"] .landing-tier-card strong,
+[data-theme="light"] .landing-audience-card strong,
+[data-theme="light"] .landing-plan-card strong,
+[data-theme="light"] .landing-about-stat strong,
+[data-theme="light"] .landing-tier-info strong {
+  color: #1d1c19;
+}
+
+[data-theme="light"] .landing-tier-node-label {
+  background: #f3f2ee;
+  border-color: rgba(23, 23, 20, 0.1);
+}
+
+[data-theme="light"] .landing-footer nav a:hover {
+  color: #1d1c19;
+}
+
+/* Hero: secondary button, eyebrow, and mode pills were built for dark. */
+[data-theme="light"] .landing-secondary-button {
+  border-color: rgba(23, 23, 20, 0.18);
+  background: #ffffff;
+  color: #1d1c19;
+}
+
+[data-theme="light"] .landing-eyebrow {
+  color: #0e7490;
+}
+
+[data-theme="light"] .landing-word-row span {
+  border-color: rgba(23, 23, 20, 0.12);
+  background: #ffffff;
+  color: color-mix(in srgb, var(--text-primary) 86%, #0e7490);
+}
+
+/* Model logo cards (the marquee strip) — dark glass → clean white cards. */
+[data-theme="light"] .landing-mcard {
+  border-color: color-mix(in srgb, var(--model-color) 30%, rgba(23, 23, 20, 0.12));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--model-color) 8%, transparent), transparent 56%),
+    #ffffff;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .landing-mcard-name {
+  border-color: color-mix(in srgb, var(--model-color) 34%, rgba(23, 23, 20, 0.12));
+  background: #f3f2ee;
+  color: #1d1c19;
+}
+
+[data-theme="light"] .landing-mcard-latest {
+  color: color-mix(in srgb, var(--model-color) 50%, #0b0b0b);
+}
+
+[data-theme="light"] .landing-mcard-desc {
+  border-color: rgba(23, 23, 20, 0.1);
+  background: #f7f6f3;
+  color: var(--text-secondary);
+}
+
+/* Plan cards: price + credits were white / accent-on-white. */
+[data-theme="light"] .landing-plan-price strong {
+  color: #1d1c19;
+}
+
+[data-theme="light"] .landing-plan-card .landing-plan-credits {
+  color: color-mix(in srgb, var(--plan-color) 48%, #0b0b0b);
+}
+
+/* Tier cards: name, tagline, models line. */
+[data-theme="light"] .landing-tier-card strong {
+  color: #1d1c19;
+}
+
+[data-theme="light"] .landing-tier-card em,
+[data-theme="light"] .landing-tier-info em,
+[data-theme="light"] .landing-tier-models strong {
+  color: color-mix(in srgb, var(--model-color) 50%, #0b0b0b);
+}
+
+/* Tier "Best for" box: dark base → light tinted card; pale text → deep. */
+[data-theme="light"] .landing-tier-bestfor {
+  border-color: color-mix(in srgb, var(--model-color) 32%, rgba(23, 23, 20, 0.1));
+  background: color-mix(in srgb, var(--model-color) 8%, #ffffff);
+  box-shadow: none;
+}
+
+[data-theme="light"] .landing-tier-bestfor-label {
+  color: color-mix(in srgb, var(--model-color) 50%, #0b0b0b);
+}
+
+[data-theme="light"] .landing-tier-bestfor-tag {
+  border-color: color-mix(in srgb, var(--model-color) 30%, rgba(23, 23, 20, 0.1));
+  background: color-mix(in srgb, var(--model-color) 12%, #ffffff);
+  color: color-mix(in srgb, var(--model-color) 54%, #0b0b0b);
+}
+
+/* Tier workflow diagram (the lighter variant, if rendered). */
+[data-theme="light"] .landing-tier-flow {
+  border-color: rgba(23, 23, 20, 0.08);
+  background: #f3f2ee;
+}
+
+[data-theme="light"] .landing-tier-node-dot {
+  border-color: color-mix(in srgb, var(--model-color) 30%, rgba(23, 23, 20, 0.1));
+  background: color-mix(in srgb, var(--model-color) 16%, #ffffff);
+  color: color-mix(in srgb, var(--model-color) 54%, #0b0b0b);
+}
+
+/* About stats. */
+[data-theme="light"] .landing-about-stat {
+  border-color: rgba(23, 23, 20, 0.1);
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .landing-about-stat strong {
+  color: #1d1c19;
+}
+
+/* Final CTA is a deliberate dark band — keep it, but make its text read.
+   Re-apply the bright heading gradient (the deep one is for light backgrounds)
+   and lighten the subtext. */
+[data-theme="light"] .landing-final-cta h2 {
+  background: linear-gradient(100deg, #67e8f9 0%, #22d3ee 22%, #6366f1 60%, #a855f7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+[data-theme="light"] .landing-final-cta p {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* ============================================================
+   LIGHT THEME — Billing page
+   ============================================================ */
+[data-theme="light"] .billing-plan-card,
+[data-theme="light"] .billing-ledger {
+  background: #ffffff;
+  border-color: rgba(23, 23, 20, 0.1);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 14px 34px rgba(0, 0, 0, 0.07);
+}
+
+/* The white-on-dark sheen overlay is wrong on light cards — calm it down. */
+[data-theme="light"] .billing-overview::before,
+[data-theme="light"] .billing-panel::before,
+[data-theme="light"] .billing-plan-card::before,
+[data-theme="light"] .admin-panel::before,
+[data-theme="light"] .admin-stat-card::before {
+  opacity: 0.1;
+}
+
+[data-theme="light"] .billing-plan-topline,
+[data-theme="light"] .billing-plan-credits {
+  color: color-mix(in srgb, var(--plan-color) 48%, #0b0b0b);
+}
+
+[data-theme="light"] .billing-plan-card:hover,
+[data-theme="light"] .billing-panel:hover,
+[data-theme="light"] .admin-panel:hover,
+[data-theme="light"] .admin-stat-card:hover {
+  border-color: color-mix(in srgb, var(--accent-2) 28%, rgba(23, 23, 20, 0.12));
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 20px 50px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .billing-plan-card.is-active,
+[data-theme="light"] .billing-plan-card.is-popular {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.05),
+    0 20px 50px color-mix(in srgb, var(--plan-color) 14%, rgba(0, 0, 0, 0.08));
+}
+
+[data-theme="light"] .billing-model-table-shell {
+  background: #ffffff;
+  border-color: rgba(23, 23, 20, 0.1);
+}
+
+/* ============================================================
+   LIGHT THEME — Admin dashboard
+   ============================================================ */
+[data-theme="light"] .admin-stat-card,
+[data-theme="light"] .admin-panel {
+  background: #ffffff;
+  border-color: rgba(23, 23, 20, 0.1);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 14px 34px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .admin-list-row,
+[data-theme="light"] .admin-route-row,
+[data-theme="light"] .admin-mini-panel {
+  background: #f7f6f3;
+  border-color: rgba(23, 23, 20, 0.1);
+}
+
+[data-theme="light"] .admin-table th,
+[data-theme="light"] .admin-table td {
+  border-bottom-color: rgba(23, 23, 20, 0.1);
+}
+
+[data-theme="light"] .admin-table tbody tr:hover,
+[data-theme="light"] .billing-model-table tbody tr:hover {
+  background: rgba(23, 23, 20, 0.04);
+}
+
+[data-theme="light"] .admin-table tbody tr.is-inactive-user {
+  background: rgba(220, 38, 38, 0.07);
+}
+
+/* Admin form controls that ship translucent-white fills. */
+[data-theme="light"] .admin-panel input,
+[data-theme="light"] .admin-panel select,
+[data-theme="light"] .admin-panel textarea,
+[data-theme="light"] .admin-search input {
+  background: #ffffff;
+  border-color: rgba(23, 23, 20, 0.14);
+  color: var(--text-primary);
+}
+
+/* Admin verification gate is a deliberately dark "restricted" screen. Its text
+   uses theme tokens, which flip dark in light mode and vanish on the dark card.
+   Re-light the tokens within the gate so the heading, copy, and input read. */
+[data-theme="light"] .admin-gate-page {
+  --text-primary: #f6f6f4;
+  --text-secondary: rgba(255, 255, 255, 0.74);
+  --text-muted: rgba(255, 255, 255, 0.55);
+}
+
+/* Inner admin cards ship rgba(0,0,0,0.3–0.5) fills that turn muddy grey on the
+   white panel. Replace with a clean light palette: soft off-white cards, a faint
+   accent wash, status tints, and real light toggle switches. */
+[data-theme="light"] .admin-flag-row,
+[data-theme="light"] .admin-announcement,
+[data-theme="light"] .admin-provider-card {
+  border-color: rgba(23, 23, 20, 0.1);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 4%, transparent), transparent 60%),
+    #f5f4f0;
+}
+
+[data-theme="light"] .admin-flag-row.is-danger {
+  border-color: color-mix(in srgb, var(--admin-red) 30%, transparent);
+  background: color-mix(in srgb, var(--admin-red) 5%, #ffffff);
+}
+
+/* Toggle switch — off state needs a visible light track + white knob. */
+[data-theme="light"] .admin-switch {
+  border-color: rgba(23, 23, 20, 0.14);
+  background: #d7d5cd;
+}
+
+[data-theme="light"] .admin-switch span {
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .admin-switch.is-on {
+  border-color: color-mix(in srgb, var(--admin-green) 55%, transparent);
+  background: color-mix(in srgb, var(--admin-green) 70%, #ffffff);
+}
+
+/* Tone chips — unselected were dark; make them light. Selected keep accents. */
+[data-theme="light"] .admin-tone-chip {
+  border-color: rgba(23, 23, 20, 0.14);
+  background: #eceae3;
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .admin-budget-field {
+  color: color-mix(in srgb, var(--admin-gold) 55%, #0b0b0b);
+}
+
+[data-theme="light"] .admin-balance-field {
+  color: color-mix(in srgb, var(--admin-green) 52%, #0b0b0b);
+}
+
+/* Search pill, inputs, stepper, editor/member cards, and the edit-user modal
+   all ship rgba(0,0,0,…) fills. Light them up. */
+[data-theme="light"] .admin-search {
+  background: #ffffff;
+  border-color: rgba(23, 23, 20, 0.14);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .admin-input,
+[data-theme="light"] .admin-credit-stepper button {
+  background: #ffffff;
+  border-color: rgba(23, 23, 20, 0.14);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .admin-credit-stepper button:hover {
+  background: #f1efea;
+}
+
+[data-theme="light"] .admin-editor-card,
+[data-theme="light"] .admin-member-row {
+  background: #f5f4f0;
+  border-color: rgba(23, 23, 20, 0.1);
+}
+
+[data-theme="light"] .admin-modal {
+  border-color: rgba(23, 23, 20, 0.12);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--admin-gold) 6%, transparent), transparent 40%),
+    #ffffff;
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .admin-route-row:hover,
+[data-theme="light"] .admin-list-row:hover {
+  background: rgba(23, 23, 20, 0.05);
+}
+
+/* ---------- Status pills & badges (light) ----------
+   Dark-mode pills use pale tints (#8ff0c8 / #fecaca / #bae6fd / #fde68a) that
+   wash out on white. Use deep, saturated text with a clear tint + border. */
+
+/* Green: Active / Ready / Live / success */
+[data-theme="light"] .admin-status-pill.is-ready,
+[data-theme="light"] .admin-status-pill.is-active,
+[data-theme="light"] .billing-status-pill.is-available {
+  color: #047857;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.42);
+}
+
+/* Red: Inactive / Missing / error */
+[data-theme="light"] .admin-status-pill.is-missing,
+[data-theme="light"] .admin-status-pill.is-inactive,
+[data-theme="light"] .billing-status-pill.is-api-error {
+  color: #c01919;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.38);
+}
+
+/* Amber: not-found / warning */
+[data-theme="light"] .billing-status-pill.is-not-found {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.13);
+  border-color: rgba(245, 158, 11, 0.42);
+}
+
+/* Blue: plan tags / sub-admin / missing-key */
+[data-theme="light"] .admin-plan-tag,
+[data-theme="light"] .admin-role-pill.is-sub,
+[data-theme="light"] .billing-status-pill.is-missing-key {
+  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.38);
+}
+
+/* Gold/amber: Primary (super admin) */
+[data-theme="light"] .admin-role-pill.is-super {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.13);
+  border-color: rgba(245, 158, 11, 0.46);
+}
+
+/* Neutral: not-supported */
+[data-theme="light"] .billing-status-pill.is-not-supported {
+  color: #57534e;
+  background: rgba(120, 113, 108, 0.1);
+  border-color: rgba(120, 113, 108, 0.3);
+}
+
+/* Action icon buttons (disable/delete) + "Log out" danger ghost button */
+[data-theme="light"] .admin-table-action.is-danger-action:not(:disabled),
+[data-theme="light"] .admin-toolbar-actions .ghost-button.is-danger-action:not(:disabled) {
+  color: #c01919;
+  border-color: rgba(239, 68, 68, 0.42);
+}
+
+[data-theme="light"] .admin-table-action.is-success-action:not(:disabled) {
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.42);
+}
+
+[data-theme="light"] .admin-balance-live {
+  color: #047857;
+}
+
+/* ---------- Auth pages (light) ---------- */
+[data-theme="light"] .auth-page {
+  background:
+    radial-gradient(120% 80% at 50% -10%, #ffffff 0%, #f1f2f6 48%, #e7e9ef 100%);
+}
+
+/* Night-sky layers off; the desktop showcase keeps its own dark identity. */
+[data-theme="light"] .auth-bg {
+  display: none;
+}
+
+/* The split card itself was dark glass — that's what made the form side read
+   grey. Give it a light card surface; the showcase keeps its own dark bg. */
+[data-theme="light"] .auth-shell {
+  border-color: rgba(23, 23, 20, 0.12);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 40px 110px rgba(0, 0, 0, 0.18),
+    0 0 0 1px rgba(0, 0, 0, 0.04) inset;
+}
+
+[data-theme="light"] .auth-panel {
+  background: transparent;
+}
+
+[data-theme="light"] .auth-heading h1 {
+  background: none;
+  -webkit-text-fill-color: #1d1c19;
+  color: #1d1c19;
+}
+
+[data-theme="light"] .auth-heading p {
+  color: #5b5a52;
+}
+
+[data-theme="light"] .auth-field {
+  border-color: rgba(23, 23, 20, 0.14);
+  background: #ffffff;
+}
+
+[data-theme="light"] .auth-field:focus-within {
+  background: #ffffff;
+}
+
+[data-theme="light"] .auth-field-label {
+  color: #6c6a62;
+}
+
+[data-theme="light"] .auth-form input,
+[data-theme="light"] .auth-code-field .auth-field-control input {
+  color: #1d1c19;
+}
+
+[data-theme="light"] .auth-back-button {
+  color: #1d1c19;
+  background: rgba(23, 23, 20, 0.05);
+  border-color: rgba(23, 23, 20, 0.12);
+}
+
+[data-theme="light"] .auth-back-button:hover {
+  background: rgba(23, 23, 20, 0.1);
+}
+
+[data-theme="light"] .auth-divider {
+  color: #6c6a62;
+}
+
+[data-theme="light"] .auth-divider::before,
+[data-theme="light"] .auth-divider::after {
+  background: rgba(23, 23, 20, 0.14);
+}
+
+[data-theme="light"] .auth-social-button {
+  border-color: rgba(23, 23, 20, 0.14);
+  background: #ffffff;
+  color: #1d1c19;
+}
+
+[data-theme="light"] .auth-social-button:hover {
+  border-color: rgba(23, 23, 20, 0.26);
+  background: #f7f6f3;
+}
+
+/* Base dark text for the whole form side, then tune the muted/link bits. */
+[data-theme="light"] .auth-panel {
+  color: #1d1c19;
+}
+
+[data-theme="light"] .auth-password-toggle,
+[data-theme="light"] .auth-checkbox,
+[data-theme="light"] .auth-switch,
+[data-theme="light"] .auth-back-link,
+[data-theme="light"] .auth-forgot,
+[data-theme="light"] .auth-success p,
+[data-theme="light"] .auth-dots,
+[data-theme="light"] .auth-mode-switch {
+  color: #5b5a52;
+}
+
+[data-theme="light"] .auth-success h1 {
+  color: #1d1c19;
+}
+
+[data-theme="light"] .auth-password-toggle:hover,
+[data-theme="light"] .auth-back-link:hover,
+[data-theme="light"] .auth-switch a {
+  color: #1d1c19;
+}
+
+[data-theme="light"] .auth-info {
+  color: color-mix(in srgb, var(--auth-accent) 52%, #141414);
+}
+
+[data-theme="light"] .auth-error {
+  color: #b42318;
 }

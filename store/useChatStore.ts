@@ -48,7 +48,8 @@ type SendMessageOptions = {
   attachments?: ChatAttachment[];
   selectedModel?: AionModelId;
   researchModel?: AionResearchModelId;
-  diverseProvider?: AriaDiverseProvider;
+  diverseProviders?: AriaDiverseProvider[];
+  researchProvider?: AriaDiverseProvider;
 };
 
 type ChatState = {
@@ -271,7 +272,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
   },
 
-  async sendMessage(content, { debug, attachments = [], selectedModel: modelOverride, researchModel, diverseProvider }) {
+  async sendMessage(
+    content,
+    { debug, attachments = [], selectedModel: modelOverride, researchModel, diverseProviders, researchProvider }
+  ) {
     const trimmed = content.trim();
     const state = get();
     const messageText = trimmed || (attachments.length > 0 ? "Please review the attached file(s)." : "");
@@ -379,7 +383,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
           message: messageText,
           selectedModel,
           researchModel: selectedModel === "aion-mind-pro" ? researchModel : undefined,
-          diverseProvider: selectedModel === "aria-diverse" ? diverseProvider : undefined,
+          researchProvider: selectedModel === "aion-mind-pro" ? researchProvider : undefined,
+          diverseProviders: selectedModel === "aria-diverse" ? diverseProviders : undefined,
           history: toModelHistory(targetThread.messages),
           attachments: toModelAttachments(attachments),
           debug,

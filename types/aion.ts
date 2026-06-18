@@ -9,7 +9,8 @@ export const AION_MODELS = [
 export type AionModelId = (typeof AION_MODELS)[number];
 
 /**
- * Aria Diverse lets the user pick one provider directly.
+ * Provider picks shared by Aria Diverse (multi-select, 1–5 side by side) and
+ * Aria Research (single provider deep-dive).
  * Labels are user-facing brand names; ids match the routing provider keys.
  */
 export const ARIA_DIVERSE_PROVIDERS = ["openai", "anthropic", "deepseek", "gemini"] as const;

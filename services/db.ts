@@ -1,7 +1,7 @@
 import { Pool, type PoolConfig, type QueryResultRow } from "pg";
 
 const globalKey = "__aionMindPgPool";
-const schemaKey = "__aionMindPgSchemaReady_v10";
+const schemaKey = "__aionMindPgSchemaReady_v12";
 const splitConfigPrefixes = ["AION_PG", "JBTALLY_PG"] as const;
 const requiredSplitConfigKeys = ["HOST", "DATABASE", "USER", "PASSWORD"] as const;
 
@@ -169,6 +169,34 @@ async function createSchema() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments(user_id);
+
+    -- Per-user credit history. The authoritative balance is app_users.credits;
+    -- this table records every grant/spend so the wallet survives logout/login
+    -- and is never shared across accounts on the same browser.
+    CREATE TABLE IF NOT EXISTS credit_ledger (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      feature_id TEXT,
+      label TEXT NOT NULL,
+      credits INTEGER NOT NULL,
+      balance_after INTEGER NOT NULL,
+      amount_inr INTEGER,
+      status TEXT NOT NULL DEFAULT 'recorded',
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_credit_ledger_user_id ON credit_ledger(user_id, created_at DESC);
+
+    -- Tracks whether a user already received their initial free-plan grant, so a
+    -- re-login never re-grants or resets the balance.
+    ALTER TABLE app_users
+      ADD COLUMN IF NOT EXISTS credits_initialized BOOLEAN NOT NULL DEFAULT FALSE;
+
+    -- One-time flag: align legacy balances (written before the ledger existed)
+    -- with the ledger so the wallet can never show unexplained "phantom" credits.
+    ALTER TABLE app_users
+      ADD COLUMN IF NOT EXISTS ledger_reconciled BOOLEAN NOT NULL DEFAULT FALSE;
 
     CREATE TABLE IF NOT EXISTS admin_sessions (
       id TEXT PRIMARY KEY,

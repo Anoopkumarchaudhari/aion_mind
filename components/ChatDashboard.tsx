@@ -9,7 +9,7 @@ import { MessageInput } from "@/components/MessageInput";
 import { ModelRoutingDrawer } from "@/components/ModelRoutingDrawer";
 import { MessageList } from "@/components/MessageList";
 import { ModelPill } from "@/components/ModelPill";
-import { NeuralBackdrop } from "@/components/NeuralBackdrop";
+import { StarSky } from "@/components/StarSky";
 import { ResearchModelDialog } from "@/components/ResearchModelDialog";
 import { ShareLinkToast } from "@/components/ShareLinkToast";
 import { Sidebar } from "@/components/Sidebar";
@@ -17,7 +17,7 @@ import { TempBanner } from "@/components/TempBanner";
 import { TopBar } from "@/components/TopBar";
 import { useAutoScroll } from "@/hooks/useAutoScroll";
 import { fadeThroughVariants, gentleSpring } from "@/lib/motion";
-import { getAvailableCredits, getChatCreditCharge, useBillingStore } from "@/store/useBillingStore";
+import { getChatCreditCharge, useBillingStore } from "@/store/useBillingStore";
 import { sortThreads, useChatStore } from "@/store/useChatStore";
 import { useNotebookStore } from "@/store/useNotebookStore";
 import type { AionModelId, AionResearchModelId, AriaDiverseProvider, ChatAttachment } from "@/types/aion";
@@ -53,7 +53,8 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
   const [routingOpen, setRoutingOpen] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
   const [researchModel, setResearchModel] = useState<AionResearchModelId>("gpt-5.5");
-  const [diverseProvider, setDiverseProvider] = useState<AriaDiverseProvider>("openai");
+  const [diverseProviders, setDiverseProviders] = useState<AriaDiverseProvider[]>(["openai"]);
+  const [researchProvider, setResearchProvider] = useState<AriaDiverseProvider>("openai");
   const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
   const [promptEnhanceError, setPromptEnhanceError] = useState("");
   const [promptEnhanceUndo, setPromptEnhanceUndo] = useState<string | null>(null);
@@ -102,6 +103,7 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
 
   useEffect(() => {
     void useChatStore.getState().hydrate();
+    void useBillingStore.getState().loadAccount();
   }, []);
 
   useEffect(() => {
@@ -176,20 +178,27 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
     const content = input.trim();
     const outgoingAttachments = attachments;
     const requestModel = options.selectedModel ?? selectedModel;
-    const creditCharge = getChatCreditCharge(requestModel, outgoingAttachments.length);
-    const billingState = useBillingStore.getState();
+    const creditCharge = getChatCreditCharge(requestModel, {
+      attachmentCount: outgoingAttachments.length,
+      inputChars: content.length,
+      diverseProviders,
+      researchProvider
+    });
 
     if ((!content && attachments.length === 0) || isLoading || isReadingFiles) {
       return;
     }
 
-    if (getAvailableCredits(billingState) < creditCharge.credits) {
+    // Deduct credits server-side (authoritative, per-account, recorded in the
+    // ledger). Returns false when the balance is insufficient.
+    const charged = await useBillingStore.getState().spendCredits(creditCharge);
+
+    if (!charged) {
       sonnerToast.error(`Need ${creditCharge.credits} credits for ${creditCharge.label}.`);
       router.push("/billing");
       return;
     }
 
-    billingState.spendCredits(creditCharge);
     setInput("");
     setAttachments([]);
     setAttachmentError("");
@@ -200,9 +209,15 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
       attachments: outgoingAttachments,
       selectedModel: requestModel,
       researchModel: options.researchModel ?? researchModel,
-      diverseProvider
+      diverseProviders,
+      researchProvider
     });
     window.setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  function handleResearchModelChange(model: AionResearchModelId) {
+    setResearchModel(model);
+    setResearchProvider(researchModelToProvider(model));
   }
 
   function handleUseResearchModel() {
@@ -376,9 +391,11 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
         modelControl={
           <ModelPill
             active={selectedModel}
-            diverseProvider={diverseProvider}
+            diverseProviders={diverseProviders}
+            researchProvider={researchProvider}
             onChange={setSelectedModel}
-            onDiverseProviderChange={setDiverseProvider}
+            onDiverseProvidersChange={setDiverseProviders}
+            onResearchProviderChange={setResearchProvider}
           />
         }
         inputRef={inputRef}
@@ -443,7 +460,7 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
         />
 
         <section className="chat-stage">
-          <NeuralBackdrop dimmed={hasMessages} />
+          <StarSky dimmed={hasMessages} />
           <div className="chat-content-layer">
             <AnimatePresence mode="wait">
               {!hasMessages ? (
@@ -491,12 +508,26 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
         canSubmit={Boolean(input.trim() || attachments.length > 0)}
         disabled={isLoading || isReadingFiles}
         onOpenChange={setResearchOpen}
-        onModelChange={setResearchModel}
+        onModelChange={handleResearchModelChange}
         onUseModel={handleUseResearchModel}
         onRunResearch={handleRunResearch}
       />
     </div>
   );
+}
+
+function researchModelToProvider(model: AionResearchModelId): AriaDiverseProvider {
+  switch (model) {
+    case "opus-4.8":
+      return "anthropic";
+    case "deepseek":
+      return "deepseek";
+    case "gemini-3.1":
+      return "gemini";
+    case "gpt-5.5":
+    default:
+      return "openai";
+  }
 }
 
 function getRoutingTab(model: AionModelId) {

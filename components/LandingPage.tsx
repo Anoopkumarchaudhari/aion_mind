@@ -35,6 +35,7 @@ import {
   Zap
 } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
+import { ThemeToggleButton } from "@/components/ThemeToggle";
 import { type BillingPlanId, type ResolvedBillingCatalog } from "@/services/billingCatalog";
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -44,12 +45,12 @@ const inrFormatter = new Intl.NumberFormat("en-IN", {
 });
 
 const modelLogos = [
-  { label: "OpenAI", src: "/model logo/openai.webp", color: "#22d3ee", latest: "GPT-5.5", intro: "GPT models for fast, versatile reasoning and writing." },
-  { label: "Claude", src: "/model logo/claude-ai.webp", color: "#f59e0b", latest: "Claude Opus 4.8", intro: "Deep reasoning and long-context analysis." },
-  { label: "Gemini", src: "/model logo/gemini.jpg", color: "#8b5cf6", latest: "Gemini 3.1 Pro", intro: "Multimodal answers across text and vision." },
-  { label: "DeepSeek", src: "/model logo/DeepSeek-Emblem.png", color: "#34d399", latest: "DeepSeek V4 Pro", intro: "Efficient open reasoning and strong coding." },
-  { label: "Runware", src: "/model logo/Runware.jpg", color: "#fb7185", latest: "FLUX.1 image engine", intro: "Fast, low-cost AI image generation." },
-  { label: "Tavily", src: "/model logo/tavily.png", color: "#60a5fa", latest: "Live Search API", intro: "Live web search behind Aria Research." }
+  { label: "OpenAI", src: "/model logo/openai.webp", color: "#22d3ee", latest: "Latest OpenAI model", intro: "Fast, versatile reasoning and writing." },
+  { label: "Claude", src: "/model logo/claude-ai.webp", color: "#f59e0b", latest: "Latest Claude model", intro: "Deep reasoning and long-context analysis." },
+  { label: "Gemini", src: "/model logo/gemini.jpg", color: "#8b5cf6", latest: "Latest Gemini model", intro: "Multimodal answers across text and vision." },
+  { label: "DeepSeek", src: "/model logo/DeepSeek-Emblem.png", color: "#34d399", latest: "Latest DeepSeek model", intro: "Efficient open reasoning and strong coding." },
+  { label: "Runware", src: "/model logo/Runware.jpg", color: "#fb7185", latest: "Latest image engine", intro: "Fast, low-cost AI image generation." },
+  { label: "Tavily", src: "/model logo/tavily.png", color: "#60a5fa", latest: "Live web search", intro: "Live web search behind Aria Research." }
 ];
 
 const tiers = [
@@ -59,7 +60,7 @@ const tiers = [
     tagline: "Speed · single fast model",
     copy: "The fast default. One quick model handles everyday chat with instant answers, workspace memory, and live verification that kicks in only when a prompt needs current facts.",
     points: ["One fast model for everyday chat", "Workspace memory from saved chats", "Live search only when facts need it"],
-    models: "GPT-5.4 mini",
+    models: "Latest fast model",
     color: "#22d3ee",
     diagram: {
       main: [
@@ -69,7 +70,7 @@ const tiers = [
       ],
       agentIndex: 1,
       subs: [
-        { icon: Cpu, label: "Model", role: "GPT-5.4 mini" },
+        { icon: Cpu, label: "Model", role: "latest fast model" },
         { icon: Database, label: "Memory", role: "saved chats" },
         { icon: Globe, label: "Live check", role: "current facts" }
       ]
@@ -78,23 +79,23 @@ const tiers = [
   {
     icon: Layers3,
     name: "Aria Diverse",
-    tagline: "Choice · you pick the provider",
-    copy: "You choose the engine. Pick ChatGPT, Claude, DeepSeek, or Gemini and Aria sends your prompt straight to that provider's model for a direct single-provider answer.",
-    points: ["Choose ChatGPT, Claude, DeepSeek, or Gemini", "Direct answer from the model you pick", "Switch providers anytime"],
+    tagline: "Compare · pick 1–5 models side by side",
+    copy: "You choose the lineup. Select 1 to 5 of ChatGPT, Claude, DeepSeek, and Gemini, and Aria asks each one in parallel — then shows every answer side by side, color-coded by provider, so you can compare them directly.",
+    points: ["Pick 1–5 providers with checkboxes", "Every chosen model answers in parallel", "Answers shown side by side, color-coded"],
     models: "ChatGPT · Claude · DeepSeek · Gemini",
     color: "#a855f7",
     diagram: {
       main: [
         { icon: MessageSquare, title: "Prompt", sub: "your question" },
-        { icon: Bot, title: "Aria Diverse", sub: "your chosen provider" },
-        { icon: Sparkles, title: "Answer", sub: "direct reply" }
+        { icon: Layers3, title: "Aria Diverse", sub: "your chosen models" },
+        { icon: FileText, title: "Compare", sub: "side by side" }
       ],
       agentIndex: 1,
       subs: [
-        { icon: Cpu, label: "ChatGPT", role: "you pick" },
-        { icon: Cpu, label: "Claude", role: "you pick" },
-        { icon: Cpu, label: "DeepSeek", role: "you pick" },
-        { icon: Cpu, label: "Gemini", role: "you pick" }
+        { icon: Cpu, label: "ChatGPT", role: "you select" },
+        { icon: Cpu, label: "Claude", role: "you select" },
+        { icon: Cpu, label: "DeepSeek", role: "you select" },
+        { icon: Cpu, label: "Gemini", role: "you select" }
       ]
     }
   },
@@ -102,15 +103,16 @@ const tiers = [
     icon: BrainCircuit,
     name: "Aria Mind",
     tagline: "Consensus · all models, one answer",
-    copy: "Every model answers, then a judge merges them. Aria asks all four providers in parallel and a GPT-5.5 judge synthesizes the single strongest answer from their combined output.",
-    points: ["All 4 providers answer in parallel", "GPT-5.5 judge merges the best parts", "One synthesized final answer"],
-    models: "OpenAI · Anthropic · DeepSeek · Gemini → GPT-5.5 judge",
+    copy: "Every model answers, then the Aria Mind judge merges them. Aria asks all four providers in parallel and the Aria Mind judge synthesizes the single strongest answer from their combined output.",
+    points: ["All 4 providers answer in parallel", "The Aria Mind judge merges the best parts", "One synthesized final answer"],
+    bestFor: ["Trade analysis", "Fundamental research", "Science", "Study", "News research", "& more"],
+    models: "OpenAI · Anthropic · DeepSeek · Gemini → Aria Mind judge",
     color: "#34d399",
     diagram: {
       main: [
         { icon: MessageSquare, title: "Prompt", sub: "one question" },
         { icon: Layers3, title: "Fan out", sub: "all 4 models" },
-        { icon: Scale, title: "Judge", sub: "merges answers" },
+        { icon: Scale, title: "Aria Mind", sub: "judges & merges" },
         { icon: CheckCircle2, title: "Final", sub: "one best answer" }
       ],
       agentIndex: 2,
@@ -123,25 +125,25 @@ const tiers = [
     }
   },
   {
-    icon: Layers3,
+    icon: FileText,
     name: "Aria Research",
-    tagline: "Compare · all models side by side",
-    copy: "See every model's take at once. Aria sends your prompt to all four providers and shows each answer side by side, color-coded by provider, so you can compare them directly.",
-    points: ["All 4 providers answer your prompt", "Every answer shown side by side", "Color-coded by provider"],
+    tagline: "Deep dive · one provider you choose",
+    copy: "Pick a single engine for a focused deep dive. Choose ChatGPT, Claude, DeepSeek, or Gemini and Aria sends your prompt straight to that provider for one in-depth, structured answer.",
+    points: ["Choose one provider for the deep dive", "Focused, structured single answer", "Switch providers anytime"],
     models: "ChatGPT · Claude · DeepSeek · Gemini",
     color: "#60a5fa",
     diagram: {
       main: [
         { icon: MessageSquare, title: "Prompt", sub: "your question" },
-        { icon: Layers3, title: "Aria Research", sub: "asks every model" },
-        { icon: FileText, title: "Compare", sub: "side by side" }
+        { icon: Bot, title: "Aria Research", sub: "your chosen model" },
+        { icon: FileText, title: "Deep dive", sub: "in-depth answer" }
       ],
       agentIndex: 1,
       subs: [
-        { icon: Cpu, label: "ChatGPT", role: "answer 1" },
-        { icon: Cpu, label: "Claude", role: "answer 2" },
-        { icon: Cpu, label: "DeepSeek", role: "answer 3" },
-        { icon: Cpu, label: "Gemini", role: "answer 4" }
+        { icon: Cpu, label: "ChatGPT", role: "you pick" },
+        { icon: Cpu, label: "Claude", role: "you pick" },
+        { icon: Cpu, label: "DeepSeek", role: "you pick" },
+        { icon: Cpu, label: "Gemini", role: "you pick" }
       ]
     }
   },
@@ -149,14 +151,14 @@ const tiers = [
     icon: ScanSearch,
     name: "Aria Analyzer",
     tagline: "Routing · best model per question",
-    copy: "Aria reads your question, picks the single best provider and model for it, then answers — no manual choosing. A GPT-5.5 router classifies intent and routes to the strongest fit.",
-    points: ["Analyzes your question's intent", "GPT-5.5 router picks the best model", "Answers from the chosen model"],
+    copy: "Aria reads your question, picks the single best provider for it, then answers — no manual choosing. Aria Mind classifies the intent and routes to the strongest fit.",
+    points: ["Analyzes your question's intent", "Aria Mind picks the best model", "Answers from the chosen model"],
     models: "Auto · OpenAI · Anthropic · DeepSeek · Gemini",
     color: "#f59e0b",
     diagram: {
       main: [
         { icon: MessageSquare, title: "Prompt", sub: "your question" },
-        { icon: ScanSearch, title: "Router", sub: "reads intent" },
+        { icon: ScanSearch, title: "Aria Mind", sub: "reads & routes" },
         { icon: Bot, title: "Best model", sub: "picked for you" },
         { icon: Sparkles, title: "Answer", sub: "from that model" }
       ],
@@ -224,7 +226,7 @@ const aboutStats = [
 const quotes = [
   { text: "Stop switching tabs. Start building with one AI command center.", who: "The AriamindX Team" },
   { text: "One subscription, every powerful model, zero context switching.", who: "AriamindX" },
-  { text: "Ask once, let every model answer, and get one verified result.", who: "Aria Analyzer" }
+  { text: "Ask once, let every model answer, and get one verified result.", who: "Aria Mind" }
 ];
 
 const audiences = [
@@ -349,6 +351,18 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
                     <li key={point}>{point}</li>
                   ))}
                 </ul>
+                {"bestFor" in tier && tier.bestFor ? (
+                  <div className="landing-tier-bestfor">
+                    <span className="landing-tier-bestfor-label">Best for</span>
+                    <span className="landing-tier-bestfor-tags">
+                      {tier.bestFor.map((use) => (
+                        <span className="landing-tier-bestfor-tag" key={use}>
+                          {use}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="landing-tier-models">
                   <span>Routes to</span>
                   <strong>{tier.models}</strong>
@@ -820,6 +834,7 @@ function LandingNav({ scrolled }: { scrolled: boolean }) {
           </Link>
         </nav>
       </div>
+      <ThemeToggleButton className="landing-nav-theme" />
     </header>
   );
 }

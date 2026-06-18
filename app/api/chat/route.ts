@@ -27,7 +27,8 @@ type RawChatBody = {
   message?: unknown;
   selectedModel?: unknown;
   researchModel?: unknown;
-  diverseProvider?: unknown;
+  diverseProviders?: unknown;
+  researchProvider?: unknown;
   model?: unknown;
   history?: unknown;
   attachments?: unknown;
@@ -77,7 +78,8 @@ export async function POST(request: Request) {
     searchQuery: validation.message,
     selectedModel: validation.selectedModel,
     researchModel: validation.researchModel,
-    diverseProvider: validation.diverseProvider,
+    diverseProviders: validation.diverseProviders,
+    researchProvider: validation.researchProvider,
     history: validation.history,
     attachments: validation.attachments,
     debug
@@ -90,7 +92,8 @@ function validateRequestBody(body: RawChatBody):
       message: string;
       selectedModel: NonNullable<RawChatBody["selectedModel"]> & ReturnType<typeof normalizeModel>;
       researchModel?: NonNullable<RawChatBody["researchModel"]> & ReturnType<typeof normalizeResearchModel>;
-      diverseProvider?: AriaDiverseProvider;
+      diverseProviders?: AriaDiverseProvider[];
+      researchProvider?: AriaDiverseProvider;
       history: ChatMessage[];
       attachments: ChatAttachment[];
       ephemeral: boolean;
@@ -100,7 +103,8 @@ function validateRequestBody(body: RawChatBody):
   const message = typeof body.message === "string" ? body.message.trim() : "";
   const model = normalizeModel(body.selectedModel ?? body.model);
   const researchModel = normalizeResearchModel(body.researchModel);
-  const diverseProvider = normalizeDiverseProvider(body.diverseProvider);
+  const diverseProviders = normalizeDiverseProviders(body.diverseProviders);
+  const researchProvider = normalizeDiverseProvider(body.researchProvider);
   const attachments = normalizeAttachments(body.attachments);
 
   if (!attachments) {
@@ -132,7 +136,9 @@ function validateRequestBody(body: RawChatBody):
     message: message || "Please review the attached file(s).",
     selectedModel: model,
     researchModel: model === "aion-mind-pro" ? researchModel ?? "gpt-5.5" : undefined,
-    diverseProvider: model === "aria-diverse" ? diverseProvider ?? "openai" : undefined,
+    diverseProviders:
+      model === "aria-diverse" ? (diverseProviders.length > 0 ? diverseProviders : ["openai"]) : undefined,
+    researchProvider: model === "aion-mind-pro" ? researchProvider ?? "openai" : undefined,
     history,
     attachments,
     ephemeral,
@@ -150,6 +156,23 @@ function normalizeResearchModel(value: unknown) {
 
 function normalizeDiverseProvider(value: unknown) {
   return isAriaDiverseProvider(value) ? value : null;
+}
+
+function normalizeDiverseProviders(value: unknown): AriaDiverseProvider[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<AriaDiverseProvider>();
+
+  for (const item of value) {
+    if (isAriaDiverseProvider(item)) {
+      seen.add(item);
+    }
+  }
+
+  // Cap at 5 selections (we only have 4 providers, but keep the guard explicit).
+  return Array.from(seen).slice(0, 5);
 }
 
 function normalizeHistory(value: unknown): ChatMessage[] | null {

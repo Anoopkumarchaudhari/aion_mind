@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { AppFrame } from "@/components/AppFrame";
+import { ThemePreferenceControl } from "@/components/ThemeToggle";
 import { DEFAULT_AVATAR_ID, PROFILE_AVATARS, getProfileAvatar } from "@/lib/avatars";
 
 const tabs = ["profile", "appearance", "privacy", "billing", "help"] as const;
@@ -53,13 +54,11 @@ function SettingsPanel({ tab }: { tab: SettingsTab }) {
   if (tab === "appearance") {
     return (
       <div className="settings-card">
-        <label className="field-label">
-          Accent theme
-          <select className="field-input" defaultValue="emerald">
-            <option value="emerald">Emerald / cyan</option>
-            <option value="rose">Temporary chat rose</option>
-          </select>
-        </label>
+        <div className="setting-field">
+          <span className="field-label">Color theme</span>
+          <p className="muted-copy">Choose a light or dark appearance, or follow your system setting.</p>
+          <ThemePreferenceControl />
+        </div>
         <label className="setting-toggle">
           <input type="checkbox" defaultChecked />
           Reduce motion when possible

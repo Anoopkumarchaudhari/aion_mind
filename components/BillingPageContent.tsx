@@ -58,14 +58,17 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
   const billing = useBillingStore();
   // Resolve the active plan from the admin-edited catalog so credits/price reflect edits.
   const currentPlan = catalog.plans.find((plan) => plan.id === billing.planId) ?? getBillingPlan(billing.planId);
-  const monthlyRemaining = Math.max(0, currentPlan.monthlyCredits - billing.usedMonthlyCredits);
-  const availableCredits = monthlyRemaining + billing.topUpCredits;
-  const usedPercent = Math.min(
-    100,
-    Math.round((billing.usedMonthlyCredits / Math.max(1, currentPlan.monthlyCredits)) * 100)
-  );
+  // Server-authoritative single balance — survives logout/login, never shared across accounts.
+  const availableCredits = billing.credits;
+  const monthlyAllotment = currentPlan.monthlyCredits;
+  const monthlyRemaining = Math.min(availableCredits, monthlyAllotment);
+  const usedPercent = Math.min(100, Math.round((availableCredits / Math.max(1, monthlyAllotment)) * 100));
   const usageSummary = getUsageSummary(billing.usage, catalog.featureRates);
   const nextRenewalDate = getNextRenewalDate();
+
+  useEffect(() => {
+    void useBillingStore.getState().loadAccount();
+  }, []);
 
   const [accountName, setAccountName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
@@ -217,8 +220,7 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
           {...sidebarProps}
           planName={currentPlan.name}
           availableCredits={availableCredits}
-          monthlyRemaining={monthlyRemaining}
-          topUpCredits={billing.topUpCredits}
+          monthlyAllotment={monthlyAllotment}
           usedPercent={usedPercent}
           nextRenewalDate={nextRenewalDate}
           autoTopUpEnabled={billing.autoTopUpEnabled}
@@ -272,8 +274,8 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
             </div>
           </motion.div>
           <motion.div className="billing-overview-stat" variants={scrollItemVariants}>
-            <span>Top-up credits</span>
-            <strong>{billing.topUpCredits.toLocaleString("en-IN")}</strong>
+            <span>Plan allotment</span>
+            <strong>{monthlyAllotment.toLocaleString("en-IN")}</strong>
           </motion.div>
           <motion.div className="billing-overview-stat" variants={scrollItemVariants}>
             <span>Target margin</span>

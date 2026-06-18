@@ -1,14 +1,12 @@
 "use client";
 
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 import {
   BILLING_PLANS,
-  BILLING_TOP_UP_PACKS,
   type BillingFeatureId,
   type BillingPlanId
 } from "@/services/billingCatalog";
-import type { AionModelId } from "@/types/aion";
+import type { AionModelId, AriaDiverseProvider } from "@/types/aion";
 
 export { BILLING_PLANS, BILLING_TOP_UP_PACKS, FEATURE_CREDIT_RATES } from "@/services/billingCatalog";
 export type { BillingFeatureId, BillingPlanId } from "@/services/billingCatalog";
@@ -37,238 +35,346 @@ export type BillingLedgerItem = {
   createdAt: number;
 };
 
+// Shape returned by GET /api/billing/account (server-authoritative).
+type ServerLedgerEntry = {
+  id: string;
+  kind: string;
+  featureId: string | null;
+  label: string;
+  credits: number;
+  balanceAfter: number;
+  amountInr: number | null;
+  status: string;
+  createdAt: number;
+};
+
+type ServerAccount = {
+  planId: string;
+  credits: number;
+  ledger: ServerLedgerEntry[];
+};
+
 type BillingState = {
+  /** Wallet is loaded from the server; localStorage is never the source of truth. */
   planId: BillingPlanId;
-  usedMonthlyCredits: number;
-  topUpCredits: number;
+  credits: number;
+  usage: BillingUsageItem[];
+  ledger: BillingLedgerItem[];
+  loaded: boolean;
+  loading: boolean;
   autoTopUpEnabled: boolean;
   invoiceEmailEnabled: boolean;
   paymentMethodLabel: string;
-  usage: BillingUsageItem[];
-  ledger: BillingLedgerItem[];
-  selectPlan: (planId: BillingPlanId) => void;
-  buyTopUp: (packId: string) => void;
-  spendCredits: (charge: BillingCharge) => boolean;
+  loadAccount: () => Promise<void>;
+  applyAccount: (account: ServerAccount) => void;
+  spendCredits: (charge: BillingCharge) => Promise<boolean>;
+  selectPlan: (planId: BillingPlanId) => Promise<void>;
+  buyTopUp: (packId: string) => Promise<void>;
   toggleAutoTopUp: () => void;
   toggleInvoiceEmail: () => void;
-  resetBillingCycle: () => void;
+  reset: () => void;
 };
 
-export const useBillingStore = create<BillingState>()(
-  persist(
-    (set, get) => ({
-      planId: "free",
-      usedMonthlyCredits: 0,
-      topUpCredits: 0,
-      autoTopUpEnabled: false,
-      invoiceEmailEnabled: true,
-      paymentMethodLabel: "No payment method on file",
-      usage: [],
-      ledger: [],
+const LEDGER_KIND_MAP: Record<string, BillingLedgerItem["kind"]> = {
+  plan: "subscription",
+  topup: "top-up",
+  usage: "usage",
+  renewal: "renewal",
+  signup: "renewal",
+  adjust: "usage"
+};
 
-      selectPlan(planId) {
-        const plan = getBillingPlan(planId);
+function mapServerLedger(entry: ServerLedgerEntry): BillingLedgerItem {
+  return {
+    id: entry.id,
+    kind: LEDGER_KIND_MAP[entry.kind] ?? "usage",
+    label: entry.label,
+    credits: entry.credits,
+    amountInr: entry.amountInr ?? undefined,
+    status: entry.status === "paid" ? "paid" : "recorded",
+    createdAt: entry.createdAt
+  };
+}
 
-        set((state) => ({
-          planId,
-          usedMonthlyCredits: Math.min(state.usedMonthlyCredits, plan.monthlyCredits),
-          ledger: [
-            createLedgerItem({
-              kind: "subscription",
-              label: `${plan.name} plan`,
-              credits: plan.monthlyCredits,
-              amountInr: plan.priceInr,
-              status: "paid"
-            }),
-            ...state.ledger
-          ].slice(0, 20)
-        }));
-      },
+function deriveUsage(ledger: ServerLedgerEntry[]): BillingUsageItem[] {
+  return ledger
+    .filter((entry) => entry.kind === "usage")
+    .map((entry) => ({
+      id: entry.id,
+      featureId: (entry.featureId ?? "chat") as BillingFeatureId,
+      label: entry.label,
+      credits: Math.abs(entry.credits),
+      createdAt: entry.createdAt
+    }));
+}
 
-      buyTopUp(packId) {
-        const pack = BILLING_TOP_UP_PACKS.find((item) => item.id === packId);
+const EMPTY_STATE = {
+  planId: "free" as BillingPlanId,
+  credits: 0,
+  usage: [] as BillingUsageItem[],
+  ledger: [] as BillingLedgerItem[],
+  loaded: false,
+  loading: false
+};
 
-        if (!pack) {
-          return;
-        }
+function normalizePlanId(planId: string): BillingPlanId {
+  return BILLING_PLANS.some((plan) => plan.id === planId) ? (planId as BillingPlanId) : "free";
+}
 
-        set((state) => ({
-          topUpCredits: state.topUpCredits + pack.credits,
-          ledger: [
-            createLedgerItem({
-              kind: "top-up",
-              label: `${pack.name} credit pack`,
-              credits: pack.credits,
-              amountInr: pack.priceInr,
-              status: "paid"
-            }),
-            ...state.ledger
-          ].slice(0, 20)
-        }));
-      },
+export const useBillingStore = create<BillingState>()((set, get) => ({
+  ...EMPTY_STATE,
+  autoTopUpEnabled: false,
+  invoiceEmailEnabled: true,
+  paymentMethodLabel: "No payment method on file",
 
-      spendCredits(charge) {
-        const state = get();
-        const available = getAvailableCredits(state);
+  applyAccount(account) {
+    set({
+      planId: normalizePlanId(account.planId),
+      credits: Math.max(0, Math.floor(account.credits)),
+      ledger: account.ledger.map(mapServerLedger),
+      usage: deriveUsage(account.ledger),
+      loaded: true,
+      loading: false
+    });
+  },
 
-        if (available < charge.credits) {
-          return false;
-        }
+  async loadAccount() {
+    if (get().loading) {
+      return;
+    }
 
-        const plan = getBillingPlan(state.planId);
-        const monthlyRemaining = Math.max(0, plan.monthlyCredits - state.usedMonthlyCredits);
-        const monthlySpend = Math.min(monthlyRemaining, charge.credits);
-        const topUpSpend = charge.credits - monthlySpend;
-        const usageItem: BillingUsageItem = {
-          id: createClientId("usage"),
+    set({ loading: true });
+
+    try {
+      const response = await fetch("/api/billing/account", { cache: "no-store" });
+
+      if (!response.ok) {
+        set({ loading: false });
+        return;
+      }
+
+      const account = (await response.json()) as ServerAccount;
+      get().applyAccount(account);
+    } catch {
+      set({ loading: false });
+    }
+  },
+
+  async spendCredits(charge) {
+    try {
+      const response = await fetch("/api/billing/spend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           featureId: charge.featureId,
           label: charge.label,
-          credits: charge.credits,
-          createdAt: Date.now()
-        };
+          credits: charge.credits
+        })
+      });
 
-        set((current) => ({
-          usedMonthlyCredits: current.usedMonthlyCredits + monthlySpend,
-          topUpCredits: Math.max(0, current.topUpCredits - topUpSpend),
-          usage: [usageItem, ...current.usage].slice(0, 80),
-          ledger: [
-            createLedgerItem({
-              kind: "usage",
-              label: charge.label,
-              credits: -charge.credits,
-              status: "recorded"
-            }),
-            ...current.ledger
-          ].slice(0, 20)
-        }));
+      const data = (await response.json().catch(() => null)) as { ok?: boolean; balance?: number } | null;
 
-        return true;
-      },
-
-      toggleAutoTopUp() {
-        set((state) => ({ autoTopUpEnabled: !state.autoTopUpEnabled }));
-      },
-
-      toggleInvoiceEmail() {
-        set((state) => ({ invoiceEmailEnabled: !state.invoiceEmailEnabled }));
-      },
-
-      resetBillingCycle() {
-        const plan = getBillingPlan(get().planId);
-
-        set((state) => ({
-          usedMonthlyCredits: 0,
-          ledger: [
-            createLedgerItem({
-              kind: "renewal",
-              label: `${plan.name} monthly credits renewed`,
-              credits: plan.monthlyCredits,
-              status: "recorded"
-            }),
-            ...state.ledger
-          ].slice(0, 20)
-        }));
+      if (typeof data?.balance === "number") {
+        set({ credits: Math.max(0, Math.floor(data.balance)) });
       }
-    }),
-    {
-      name: "aion-mind-billing",
-      version: 1,
-      storage: createJSONStorage(() => localStorage),
-      // v0 shipped every browser a fabricated "Pro" wallet. Reset stale wallets
-      // to a clean Free state; real purchases are recorded server-side.
-      migrate: (persisted, version) => {
-        if (version < 1) {
-          return {
-            planId: "free",
-            usedMonthlyCredits: 0,
-            topUpCredits: 0,
-            autoTopUpEnabled: false,
-            invoiceEmailEnabled: true,
-            paymentMethodLabel: "No payment method on file",
-            usage: [],
-            ledger: []
-          } as Partial<BillingState> as BillingState;
-        }
 
-        return persisted as BillingState;
+      if (!response.ok || !data?.ok) {
+        return false;
+      }
+
+      // Optimistically reflect the spend in the local history; the server is
+      // still the source of truth and a reload re-syncs from it.
+      set((state) => ({
+        usage: [
+          {
+            id: `usage-${charge.featureId}-${state.ledger.length}-${charge.credits}`,
+            featureId: charge.featureId,
+            label: charge.label,
+            credits: charge.credits,
+            createdAt: 0
+          },
+          ...state.usage
+        ].slice(0, 80)
+      }));
+
+      void get().loadAccount();
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  async selectPlan(planId) {
+    // Paid plans are credited server-side during payment verification, so we
+    // just resync. Free is an explicit downgrade handled by the server.
+    if (planId === "free") {
+      try {
+        const response = await fetch("/api/billing/account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "select-free" })
+        });
+
+        if (response.ok) {
+          get().applyAccount((await response.json()) as ServerAccount);
+          return;
+        }
+      } catch {
+        // fall through to a plain resync
       }
     }
-  )
-);
+
+    await get().loadAccount();
+  },
+
+  async buyTopUp() {
+    await get().loadAccount();
+  },
+
+  toggleAutoTopUp() {
+    set((state) => ({ autoTopUpEnabled: !state.autoTopUpEnabled }));
+  },
+
+  toggleInvoiceEmail() {
+    set((state) => ({ invoiceEmailEnabled: !state.invoiceEmailEnabled }));
+  },
+
+  reset() {
+    set({ ...EMPTY_STATE });
+  }
+}));
 
 export function getBillingPlan(planId: BillingPlanId) {
   return BILLING_PLANS.find((plan) => plan.id === planId) ?? BILLING_PLANS[0];
 }
 
-export function getAvailableCredits(state: Pick<BillingState, "planId" | "usedMonthlyCredits" | "topUpCredits">) {
-  const plan = getBillingPlan(state.planId);
-  return Math.max(0, plan.monthlyCredits - state.usedMonthlyCredits) + state.topUpCredits;
+export function getAvailableCredits(state: Pick<BillingState, "credits">) {
+  return Math.max(0, state.credits);
 }
 
-export function getMonthlyRemainingCredits(
-  state: Pick<BillingState, "planId" | "usedMonthlyCredits">
+// ─── Real, token-based credit pricing ──────────────────────────────────────
+// Credits are billed from the estimated USD cost of the underlying model
+// calls, marked up 2.5x so the platform keeps a 2.5x margin over raw provider
+// spend. 1 credit ≈ $0.0089 (derived from the Pro plan: 1,350 credits = ₹999).
+//
+// USD cost per 1M tokens (input / output) for each Aria Diverse / Research
+// provider. These mirror services/providerModelBalances.ts default rates.
+const PROVIDER_PRICE_USD_PER_MTOK: Record<AriaDiverseProvider, { input: number; output: number }> = {
+  openai: { input: 5, output: 30 }, // GPT-5.5 tier
+  anthropic: { input: 5, output: 25 }, // Opus-4.8 tier
+  deepseek: { input: 1.74, output: 3.48 }, // DeepSeek V4 Pro
+  gemini: { input: 2, output: 12 } // Gemini 3.1 Pro
+};
+
+// Aria Instant runs one fast model (gpt-5.4-mini tier).
+const INSTANT_PRICE_USD_PER_MTOK = { input: 0.75, output: 4.5 };
+// Aria Mind / Analyzer synthesis + routing passes run on the GPT-5.5 judge.
+const JUDGE_PRICE_USD_PER_MTOK = PROVIDER_PRICE_USD_PER_MTOK.openai;
+
+const CREDIT_VALUE_USD = 0.0089;
+const CREDIT_MARKUP = 2.5;
+
+// Pre-send estimates (we bill before we know the real token count).
+const CHARS_PER_TOKEN = 4;
+const EST_OUTPUT_TOKENS = 700;
+const ATTACHMENT_TOKENS_EACH = 1100;
+const ALL_DIVERSE_PROVIDERS: AriaDiverseProvider[] = ["openai", "anthropic", "deepseek", "gemini"];
+
+export type ChatChargeContext = {
+  attachmentCount: number;
+  inputChars: number;
+  diverseProviders?: AriaDiverseProvider[];
+  researchProvider?: AriaDiverseProvider;
+};
+
+function estimateInputTokens(ctx: ChatChargeContext) {
+  const textTokens = Math.ceil(Math.max(0, ctx.inputChars) / CHARS_PER_TOKEN);
+  const attachmentTokens = Math.max(0, ctx.attachmentCount) * ATTACHMENT_TOKENS_EACH;
+  return textTokens + attachmentTokens;
+}
+
+function callCostUsd(
+  price: { input: number; output: number },
+  inputTokens: number,
+  outputTokens: number
 ) {
-  const plan = getBillingPlan(state.planId);
-  return Math.max(0, plan.monthlyCredits - state.usedMonthlyCredits);
+  return (inputTokens / 1_000_000) * price.input + (outputTokens / 1_000_000) * price.output;
 }
 
-export function getCreditUsagePercent(state: Pick<BillingState, "planId" | "usedMonthlyCredits">) {
-  const plan = getBillingPlan(state.planId);
-  return Math.min(100, Math.round((state.usedMonthlyCredits / Math.max(1, plan.monthlyCredits)) * 100));
+function usdToCredits(costUsd: number) {
+  return Math.max(1, Math.ceil((costUsd * CREDIT_MARKUP) / CREDIT_VALUE_USD));
 }
 
-export function getChatCreditCharge(model: AionModelId, attachmentCount: number): BillingCharge {
-  const attachmentCredits = attachmentCount > 0 ? attachmentCount * 2 : 0;
+export function getChatCreditCharge(model: AionModelId, ctx: ChatChargeContext): BillingCharge {
+  const inputTokens = estimateInputTokens(ctx);
+  const hasAttachments = ctx.attachmentCount > 0;
 
   // Aria Mind = ask all 4 providers + GPT-5.5 judge (5 model calls).
   if (model === "aion-mind") {
+    const candidateCost = ALL_DIVERSE_PROVIDERS.reduce(
+      (sum, provider) => sum + callCostUsd(PROVIDER_PRICE_USD_PER_MTOK[provider], inputTokens, EST_OUTPUT_TOKENS),
+      0
+    );
+    // The judge reads every candidate answer as input, then writes one answer.
+    const judgeInputTokens = inputTokens + ALL_DIVERSE_PROVIDERS.length * EST_OUTPUT_TOKENS;
+    const judgeCost = callCostUsd(JUDGE_PRICE_USD_PER_MTOK, judgeInputTokens, EST_OUTPUT_TOKENS);
+
     return {
       featureId: "analyzer",
       label: "Aria Mind answer",
-      credits: 24 + attachmentCredits
+      credits: usdToCredits(candidateCost + judgeCost)
     };
   }
 
-  // Aria Research = all 4 providers side by side (4 model calls).
+  // Aria Research = the single provider the user picked.
   if (model === "aion-mind-pro") {
+    const provider = ctx.researchProvider ?? "openai";
+    const cost = callCostUsd(PROVIDER_PRICE_USD_PER_MTOK[provider], inputTokens, EST_OUTPUT_TOKENS);
+
     return {
       featureId: "research",
       label: "Aria Research answer",
-      credits: 20 + attachmentCredits
+      credits: usdToCredits(cost)
     };
   }
 
-  // Aria Analyzer = router pass + the chosen model (2 calls).
+  // Aria Analyzer = router pass (judge) + the single chosen model.
   if (model === "aion-mind-analyzer") {
+    const routerCost = callCostUsd(JUDGE_PRICE_USD_PER_MTOK, inputTokens + 120, 8);
+    // We do not know which model the router will pick yet; price the most
+    // expensive provider so we never undercharge.
+    const answerCost = callCostUsd(PROVIDER_PRICE_USD_PER_MTOK.openai, inputTokens, EST_OUTPUT_TOKENS);
+
     return {
       featureId: "analyzer",
       label: "Aria Analyzer answer",
-      credits: 8 + attachmentCredits
+      credits: usdToCredits(routerCost + answerCost)
     };
   }
 
-  // Aria Diverse = one provider the user picked.
+  // Aria Diverse = one call per provider the user selected (1–5), side by side.
   if (model === "aria-diverse") {
+    const providers =
+      ctx.diverseProviders && ctx.diverseProviders.length > 0 ? ctx.diverseProviders : ["openai" as AriaDiverseProvider];
+    const cost = providers.reduce(
+      (sum, provider) => sum + callCostUsd(PROVIDER_PRICE_USD_PER_MTOK[provider], inputTokens, EST_OUTPUT_TOKENS),
+      0
+    );
+
     return {
-      featureId: attachmentCount > 0 ? "file-chat" : "chat",
-      label: "Aria Diverse answer",
-      credits: (attachmentCount > 0 ? 4 : 3) + attachmentCredits
+      featureId: hasAttachments ? "file-chat" : "chat",
+      label: providers.length > 1 ? `Aria Diverse answer (${providers.length} models)` : "Aria Diverse answer",
+      credits: usdToCredits(cost)
     };
   }
 
   // Aria Instant = one fast model.
-  if (attachmentCount > 0) {
-    return {
-      featureId: "file-chat",
-      label: "File chat answer",
-      credits: 4 + attachmentCredits
-    };
-  }
+  const cost = callCostUsd(INSTANT_PRICE_USD_PER_MTOK, inputTokens, EST_OUTPUT_TOKENS);
 
   return {
-    featureId: "chat",
-    label: "Aria Instant answer",
-    credits: 2
+    featureId: hasAttachments ? "file-chat" : "chat",
+    label: hasAttachments ? "File chat answer" : "Aria Instant answer",
+    credits: usdToCredits(cost)
   };
 }
 
@@ -317,20 +423,3 @@ export function getTranslateCreditCharge(textLength: number): BillingCharge {
   };
 }
 
-function createLedgerItem(input: Omit<BillingLedgerItem, "id" | "createdAt">): BillingLedgerItem {
-  return {
-    id: createClientId("ledger"),
-    createdAt: Date.now(),
-    ...input
-  };
-}
-
-function createClientId(prefix: string) {
-  const randomUUID = globalThis.crypto?.randomUUID;
-
-  if (typeof randomUUID === "function") {
-    return randomUUID.call(globalThis.crypto);
-  }
-
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}

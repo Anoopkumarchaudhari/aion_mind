@@ -3,6 +3,7 @@ import { promisify } from "util";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getDatabaseConfigIssue, isDatabaseConfigured, query } from "@/services/db";
+import { ensureInitialCredits } from "@/services/credits";
 
 const scryptAsync = promisify(scrypt);
 export const SESSION_COOKIE = "aion_session";
@@ -76,6 +77,8 @@ export async function signupUser({
      VALUES ($1, $2, $3, $4, $5)`,
     [user.id, user.name, user.email, await hashPassword(password), Date.now()]
   );
+
+  await ensureInitialCredits(user.id);
 
   return user;
 }

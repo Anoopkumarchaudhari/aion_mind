@@ -172,6 +172,26 @@ const MODEL_PRICES: Record<string, ModelPrice> = {
     outputUsdPerMillion: 5,
     sourceLabel: "Anthropic standard pricing"
   },
+  "deepseek:deepseek-v4-pro": {
+    inputUsdPerMillion: 1.74,
+    outputUsdPerMillion: 3.48,
+    sourceLabel: "DeepSeek API standard pricing"
+  },
+  "deepseek:deepseek-v4-flash": {
+    inputUsdPerMillion: 0.14,
+    outputUsdPerMillion: 0.28,
+    sourceLabel: "DeepSeek API standard pricing"
+  },
+  "deepseek:deepseek-chat": {
+    inputUsdPerMillion: 0.14,
+    outputUsdPerMillion: 0.28,
+    sourceLabel: "DeepSeek API standard pricing (V4 Flash alias)"
+  },
+  "deepseek:deepseek-reasoner": {
+    inputUsdPerMillion: 0.14,
+    outputUsdPerMillion: 0.28,
+    sourceLabel: "DeepSeek API standard pricing (V4 Flash alias)"
+  },
   "gemini:gemini-3.1-pro-preview": {
     inputUsdPerMillion: 2,
     outputUsdPerMillion: 12,

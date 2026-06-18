@@ -18,7 +18,7 @@ import type {
   ProviderResponse,
   ProviderStreamResponse
 } from "@/services/types";
-import { getAionModelLabel, type AionResearchModelId } from "@/types/aion";
+import { getAionModelLabel, type AionResearchModelId, type AriaDiverseProvider } from "@/types/aion";
 import type { DebugDiagnostic } from "@/types/aion";
 import type { ChatAttachment, ChatMessage } from "@/types/aion";
 import type { WebSearchActivity } from "@/types/aion";
@@ -51,7 +51,8 @@ export async function routeAionStream({
   message,
   searchQuery,
   selectedModel,
-  diverseProvider,
+  diverseProviders,
+  researchProvider,
   history,
   attachments = [],
   debug
@@ -107,20 +108,40 @@ export async function routeAionStream({
     );
   }
 
-  // Aria Diverse — the single provider the user chose
+  // Aria Diverse — the 1–5 providers the user selected
   if (selectedModel === "aria-diverse") {
-    const slot = getDiverseSlot(routing.diverse, diverseProvider);
-    const response = await streamConfiguredModel(slot, {
-      messages: routedMessages,
+    const providers = normalizeSelectedProviders(diverseProviders);
+
+    // One provider → stream a single answer directly (fastest path).
+    if (providers.length === 1) {
+      const slot = getDiverseSlot(routing.diverse, providers[0]);
+      const response = await streamConfiguredModel(slot, {
+        messages: routedMessages,
+        attachments,
+        systemPrompt: BASE_SYSTEM_PROMPT
+      });
+
+      return createStreamResponse(
+        response.ok && response.stream
+          ? response.stream
+          : streamText(getUnavailableAnswer(selectedModel, [response])),
+        debug ? [...preDiagnostics, response] : undefined,
+        webSearchActivity
+      );
+    }
+
+    // Multiple providers → fan out and show every answer side by side.
+    const result = await runDiverseSideBySide(
+      routedMessages,
       attachments,
-      systemPrompt: BASE_SYSTEM_PROMPT
-    });
+      routing.diverse,
+      providers,
+      preDiagnostics
+    );
 
     return createStreamResponse(
-      response.ok && response.stream
-        ? response.stream
-        : streamText(getUnavailableAnswer(selectedModel, [response])),
-      debug ? [...preDiagnostics, response] : undefined,
+      result.stream,
+      debug ? result.diagnostics : undefined,
       webSearchActivity
     );
   }
@@ -152,13 +173,20 @@ export async function routeAionStream({
     );
   }
 
-  // Aria Research — every model side by side, colored headings, no judge
+  // Aria Research — the single provider the user chose, deep-dive answer
   if (selectedModel === "aion-mind-pro") {
-    const result = await runResearchSideBySide(routedMessages, attachments, routing.pro, preDiagnostics);
+    const slot = getDiverseSlot(routing.pro.candidates, researchProvider ?? "openai");
+    const response = await streamConfiguredModel(slot, {
+      messages: routedMessages,
+      attachments,
+      systemPrompt: PRO_SYSTEM_PROMPT
+    });
 
     return createStreamResponse(
-      result.stream,
-      debug ? result.diagnostics : undefined,
+      response.ok && response.stream
+        ? response.stream
+        : streamText(getUnavailableAnswer(selectedModel, [response])),
+      debug ? [...preDiagnostics, response] : undefined,
       webSearchActivity
     );
   }
@@ -178,12 +206,27 @@ export async function routeAionStream({
   );
 }
 
-function getDiverseSlot(slots: AionRouteSlot[], provider: ModelRouteRequest["diverseProvider"]): AionRouteSlot {
+function getDiverseSlot(slots: AionRouteSlot[], provider: AriaDiverseProvider | undefined): AionRouteSlot {
   const wanted = provider ?? "openai";
   return slots.find((slot) => slot.provider === wanted && slot.enabled) ??
     slots.find((slot) => slot.provider === wanted) ??
     slots.find((slot) => slot.enabled) ??
     slots[0];
+}
+
+const DIVERSE_PROVIDER_ORDER: AriaDiverseProvider[] = ["openai", "anthropic", "deepseek", "gemini"];
+
+// Keep at most 5 unique providers in a stable order; default to ChatGPT.
+function normalizeSelectedProviders(providers: AriaDiverseProvider[] | undefined): AriaDiverseProvider[] {
+  const unique = Array.from(new Set(providers ?? [])).filter((provider) =>
+    DIVERSE_PROVIDER_ORDER.includes(provider)
+  );
+
+  if (unique.length === 0) {
+    return ["openai"];
+  }
+
+  return DIVERSE_PROVIDER_ORDER.filter((provider) => unique.includes(provider)).slice(0, 5);
 }
 
 const PROVIDER_BRAND: Record<AionRouteSlot["provider"], string> = {
@@ -194,27 +237,32 @@ const PROVIDER_BRAND: Record<AionRouteSlot["provider"], string> = {
   grok: "Grok"
 };
 
-async function runResearchSideBySide(
+async function runDiverseSideBySide(
   messages: ChatMessage[],
   attachments: ChatAttachment[],
-  route: AionRouteSettings,
+  slots: AionRouteSlot[],
+  providers: AriaDiverseProvider[],
   preDiagnostics: ProviderResponse[] = []
 ): Promise<StreamRouteResult> {
   const candidateResults = await Promise.all(
-    route.candidates.map(async (slot) => ({
-      label: PROVIDER_BRAND[slot.provider] ?? slot.label,
-      response: await callConfiguredModel(slot, {
-        messages,
-        attachments,
-        systemPrompt: PRO_SYSTEM_PROMPT
-      })
-    }))
+    providers.map(async (provider) => {
+      const slot = getDiverseSlot(slots, provider);
+
+      return {
+        label: PROVIDER_BRAND[provider] ?? slot.label,
+        response: await callConfiguredModel(slot, {
+          messages,
+          attachments,
+          systemPrompt: BASE_SYSTEM_PROMPT
+        })
+      };
+    })
   );
   const responses = candidateResults.map((candidate) => candidate.response);
 
   if (responses.every((response) => !hasUsableContent(response))) {
     return {
-      stream: streamText(getUnavailableAnswer("aion-mind-pro", responses)),
+      stream: streamText(getUnavailableAnswer("aria-diverse", responses)),
       diagnostics: [...preDiagnostics, ...responses]
     };
   }
@@ -235,7 +283,7 @@ function buildResearchSideBySideAnswer(candidates: Array<{ label: string; respon
     return [`### ${label}`, "", answer].join("\n");
   });
 
-  return ["## Every model, side by side", "", sections.join("\n\n")].join("\n\n");
+  return ["## Selected models, side by side", "", sections.join("\n\n")].join("\n\n");
 }
 
 async function runAnalyzerAutoRoute(
