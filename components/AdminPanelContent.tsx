@@ -9,6 +9,7 @@ import {
   Coins,
   CreditCard,
   Database,
+  Eye,
   KeyRound,
   LogOut,
   Megaphone,
@@ -608,8 +609,15 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                     visibleUsers.map((user) => (
                       <tr className={user.isActive ? undefined : "is-inactive-user"} key={user.id}>
                         <td>
-                          <strong>{user.name}</strong>
-                          <span>{user.email}</span>
+                          <button
+                            className="admin-user-link"
+                            type="button"
+                            onClick={() => router.push(`/aria-admin-vault/users/${encodeURIComponent(user.id)}`)}
+                            title="View full activity log"
+                          >
+                            <strong>{user.name}</strong>
+                            <span>{user.email}</span>
+                          </button>
                         </td>
                         <td>
                           <span className={`admin-status-pill ${user.isActive ? "is-active" : "is-inactive"}`}>
@@ -627,6 +635,14 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                         <td>{user.activeSessions.toLocaleString("en-IN")}</td>
                         <td>
                           <div className="admin-row-actions">
+                            <button
+                              className="ghost-button admin-table-action"
+                              type="button"
+                              onClick={() => router.push(`/aria-admin-vault/users/${encodeURIComponent(user.id)}`)}
+                              title="View full activity log"
+                            >
+                              <Eye size={14} />
+                            </button>
                             <button
                               className="ghost-button admin-table-action"
                               type="button"

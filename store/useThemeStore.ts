@@ -38,8 +38,23 @@ export function applyTheme(resolved: ResolvedTheme) {
     return;
   }
 
-  document.documentElement.dataset.theme = resolved;
-  document.documentElement.style.colorScheme = resolved;
+  const root = document.documentElement;
+
+  // Suppress the global color/background transitions while flipping the theme.
+  // Without this, hundreds of elements animate at once (the landing page in
+  // particular) and the toggle feels laggy. We re-enable after the new styles
+  // are committed so normal hover/UI transitions keep working.
+  root.classList.add("theme-switching");
+  root.dataset.theme = resolved;
+  root.style.colorScheme = resolved;
+
+  if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => root.classList.remove("theme-switching"));
+    });
+  } else {
+    root.classList.remove("theme-switching");
+  }
 }
 
 export const useThemeStore = create<ThemeState>()(
