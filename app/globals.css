@@ -9472,8 +9472,11 @@ body:has(.landing-page) {
 }
 
 .n8n-node-text small {
-  color: var(--text-muted);
-  font-size: 0.62rem;
+  /* The diagram nodes are dark in both themes, so use a bright fixed tone here
+     instead of var(--text-muted) (which turns dark — and unreadable — in light
+     mode). */
+  color: #e4edfb;
+  font-size: 0.64rem;
   line-height: 1.14;
   overflow-wrap: anywhere;
 }
