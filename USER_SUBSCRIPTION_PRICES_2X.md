@@ -4,6 +4,8 @@ Last reviewed: 2026-06-09
 
 This file uses official provider pricing pages available on 2026-06-09 and calculates user-facing subscription and credit prices for **2x profit on provider API cost**.
 
+> **Note:** Sarvam AI (India) rows are **placeholders** marked "PLACEHOLDER — verify". Replace them with the official Sarvam rates from https://www.sarvam.ai/ before publishing; the 3.0x credit charges will then need recomputing.
+
 Important definition:
 
 ```text
@@ -91,6 +93,8 @@ All amounts are USD.
 | Gemini | Gemini 3.1 Pro Preview paid tier | Input $2 / 1M up to 200k prompt tokens, output $12 / 1M up to 200k prompt tokens | https://ai.google.dev/gemini-api/docs/pricing |
 | Gemini | Gemini 3.1 Flash Image | 1K image output about $0.067/image, 2K about $0.101/image, 4K about $0.151/image | https://ai.google.dev/gemini-api/docs/pricing |
 | Gemini | Gemini 3.1 Flash TTS Preview | Text input $1 / 1M tokens, audio output $20 / 1M tokens, 25 audio tokens/sec | https://ai.google.dev/gemini-api/docs/pricing |
+| Sarvam AI (India) | Sarvam-M | **PLACEHOLDER — verify:** Input $0.50 / 1M tokens, output $2.00 / 1M tokens | https://www.sarvam.ai/ |
+| Sarvam AI (India) | Sarvam-2B | **PLACEHOLDER — verify:** Input $0.20 / 1M tokens, output $0.60 / 1M tokens | https://www.sarvam.ai/ |
 | xAI | Grok 4.3 / 4.20 | Input $1.25 / 1M, cached input $0.20 / 1M, output $2.50 / 1M | https://docs.x.ai/developers/pricing |
 | xAI | Grok Imagine image | Media input $0.002/image, 1K or 2K output $0.02/image | https://docs.x.ai/developers/pricing |
 | xAI | Grok Imagine image quality | Media input $0.01/image, 1K output $0.05/image, 2K output $0.07/image | https://docs.x.ai/developers/pricing |
@@ -123,7 +127,9 @@ no tools
 | Gemini 3.5 Flash | $0.013500 | 5 credits | 6 credits |
 | GPT-5.4 mini | $0.006750 | 3 credits | 5 credits |
 | Grok 4.3 | $0.006250 | 2 credits | 5 credits |
+| Sarvam-M (India, placeholder) | $0.003500 | 2 credits | 3 credits |
 | DeepSeek V4 Pro | $0.002175 | 1 credit | 3 credits |
+| Sarvam-2B (India, placeholder) | $0.001200 | 1 credit | 2 credits |
 
 Recommended rule: charge the higher value of the product minimum or exact metered cost.
 

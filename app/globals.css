@@ -6095,77 +6095,31 @@ select:focus-visible,
 }
 
 /* ============================================================
-   Account hub identity — settings, billing, and the user
-   dashboard (plus their context sidebars) share a distinct
-   blue → indigo accent, separate from the app's green brand.
+   Account hub identity — settings, billing, and the user dashboard
+   (plus their context sidebars) share one refined Claude-style clay
+   accent. Clay sits in the mid-tone range, so it keeps strong, even
+   contrast on both light and dark surfaces.
    ============================================================ */
 .settings-route,
 .billing-route,
 .user-dash,
 .context-sidebar {
-  --accent: #3b82f6;
-  --accent-2: #6366f1;
-  --accent-glow: rgba(59, 130, 246, 0.3);
-  --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  --accent: #d97757;
+  --accent-2: #bf5d3a;
+  --accent-glow: rgba(217, 119, 87, 0.3);
+  --gradient-accent: linear-gradient(135deg, #e08a64 0%, #c2622f 100%);
 }
 
 .context-sidebar {
-  --sidebar-accent: #3b82f6;
-  --sidebar-accent-2: #6366f1;
-  --sidebar-accent-glow: rgba(59, 130, 246, 0.3);
+  --sidebar-accent: #d97757;
+  --sidebar-accent-2: #bf5d3a;
+  --sidebar-accent-glow: rgba(217, 119, 87, 0.3);
 }
 
-/* ============================================================
-   Settings page — black & gold identity (overrides the hub blue).
-   ============================================================ */
-.settings-route,
-.context-sidebar.settings-sidebar {
-  --accent: #e9b949;
-  --accent-2: #c8902a;
-  --accent-glow: rgba(233, 185, 73, 0.32);
-  --gradient-accent: linear-gradient(135deg, #f3cb5f 0%, #c8902a 100%);
-}
-
-.context-sidebar.settings-sidebar {
-  --sidebar-accent: #e9b949;
-  --sidebar-accent-2: #c8902a;
-  --sidebar-accent-glow: rgba(233, 185, 73, 0.3);
-}
-
-/* Black settings cards with gold accents — readable in both themes because the
-   card re-declares its own light text + gold-tinted border tokens. */
-.settings-route .settings-card {
-  --text-primary: #f7f5ef;
-  --text-secondary: rgba(255, 255, 255, 0.78);
-  --text-muted: rgba(255, 255, 255, 0.55);
-  --border: rgba(233, 185, 73, 0.22);
-  --bg-input: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(233, 185, 73, 0.28);
-  background:
-    linear-gradient(180deg, rgba(233, 185, 73, 0.07), transparent 30%),
-    #0d0e12;
-  box-shadow: 0 22px 56px rgba(0, 0, 0, 0.5);
-}
-
-.settings-route .settings-card::before {
-  background: var(--gradient-accent);
-  opacity: 0.9;
-}
-
-/* Gold buttons need dark text. */
-.settings-route .primary-button {
-  color: #1a1303;
-}
-
-/* Inputs on the black card. */
-.settings-route .settings-card .field-input {
-  background: var(--bg-input);
-  border-color: rgba(233, 185, 73, 0.24);
-  color: var(--text-primary);
-}
-
-.settings-route .settings-card .field-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+/* Accent buttons keep light text — white reads cleanly on clay. */
+.settings-route .primary-button,
+.billing-route .primary-button {
+  color: #ffffff;
 }
 
 /* profile header + avatar picker */
