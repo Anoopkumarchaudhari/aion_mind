@@ -8106,7 +8106,10 @@ body:has(.landing-page) {
   font-size: clamp(2.1rem, 4.8vw, 4.3rem);
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 1.02;
+  line-height: 1.14;
+  /* Gradient text is clipped to the glyph box — give it room so ascenders /
+     descenders aren't cut off. */
+  padding-bottom: 0.1em;
   text-wrap: balance;
 }
 
@@ -8159,6 +8162,9 @@ body:has(.landing-page) {
   -webkit-text-fill-color: transparent;
   color: transparent;
   text-shadow: none;
+  /* Padding extends the clip box so the first/last glyph (e.g. the "f" before
+     the caret) and descenders aren't shaved off. */
+  padding: 0.04em 0.1em 0.12em 0.02em;
   animation: landingGradientShift 6s linear infinite;
 }
 
@@ -8525,7 +8531,9 @@ body:has(.landing-page) {
   font-size: clamp(1.65rem, 3.2vw, 2.85rem);
   font-weight: 900;
   letter-spacing: 0;
-  line-height: 1.08;
+  line-height: 1.18;
+  /* Room so gradient-clipped glyphs aren't cut at top/bottom. */
+  padding-bottom: 0.1em;
   text-wrap: balance;
 }
 
