@@ -83,6 +83,46 @@ export async function signupUser({
   return user;
 }
 
+/**
+ * Find an existing account by email or create one for a Google sign-in.
+ * OAuth accounts get a random unusable password (they can set one later via
+ * "forgot password"). New accounts receive the standard welcome credits.
+ */
+export async function findOrCreateGoogleUser(input: { email: string; name: string }): Promise<AuthUser> {
+  assertAuthConfigured();
+
+  const cleanEmail = normalizeEmail(input.email);
+  validateEmail(cleanEmail);
+  const cleanName = (input.name || cleanEmail.split("@")[0] || "Member").trim().slice(0, 80) || "Member";
+
+  const existing = await query<UserRow>(
+    "SELECT id, name, email, password_hash, is_active FROM app_users WHERE email = $1",
+    [cleanEmail]
+  );
+  const found = existing.rows[0];
+
+  if (found) {
+    if (!toBoolean(found.is_active)) {
+      throw new AuthError("This account is inactive. Contact the administrator.", 403);
+    }
+
+    return { id: found.id, name: found.name, email: found.email };
+  }
+
+  const user: AuthUser = { id: randomUUID(), name: cleanName, email: cleanEmail };
+  const randomPassword = randomBytes(32).toString("hex");
+
+  await query(
+    `INSERT INTO app_users (id, name, email, password_hash, created_at)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [user.id, user.name, user.email, await hashPassword(randomPassword), Date.now()]
+  );
+
+  await ensureInitialCredits(user.id);
+
+  return user;
+}
+
 export async function loginUser(email: string, password: string) {
   assertAuthConfigured();
 

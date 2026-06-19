@@ -9,14 +9,14 @@ import {
   Check,
   CheckCircle2,
   CreditCard,
+  Download,
+  IndianRupee,
   Plus,
-  Receipt,
   ShieldCheck,
   Wallet,
   Zap
 } from "lucide-react";
-import { AppFrame } from "@/components/AppFrame";
-import { BillingSidebar } from "@/components/BillingSidebar";
+import { downloadInvoice } from "@/lib/invoice";
 import {
   barFillVariants,
   hoverLift,
@@ -64,7 +64,11 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
   const monthlyRemaining = Math.min(availableCredits, monthlyAllotment);
   const usedPercent = Math.min(100, Math.round((availableCredits / Math.max(1, monthlyAllotment)) * 100));
   const usageSummary = getUsageSummary(billing.usage, catalog.featureRates);
-  const nextRenewalDate = getNextRenewalDate();
+  // The Free plan has no billing/renewal — only paid plans show a renewal date.
+  const isFreePlan = currentPlan.priceInr === 0;
+  const nextRenewalDate = isFreePlan ? "Free forever" : getNextRenewalDate();
+  // Billing shows only successful payments (failed/abandoned attempts are hidden here).
+  const paidPayments = billing.payments.filter((payment) => payment.status === "paid");
 
   useEffect(() => {
     void useBillingStore.getState().loadAccount();
@@ -73,6 +77,9 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
   const [accountName, setAccountName] = useState("");
   const [accountEmail, setAccountEmail] = useState("");
   const [pendingItem, setPendingItem] = useState<string | null>(null);
+  const [payKind, setPayKind] = useState<"all" | "plan" | "topup">("all");
+
+  const filteredPayments = paidPayments.filter((payment) => payKind === "all" || payment.kind === payKind);
 
   useEffect(() => {
     void fetch("/api/auth/me")
@@ -139,7 +146,12 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
             description: label,
             order_id: orderData.orderId,
             prefill: { name: accountName, email: accountEmail },
-            theme: { color: themeColor },
+            theme: {
+              color: themeColor,
+              // Fully transparent backdrop — the app page stays completely
+              // visible behind the checkout, no dim.
+              backdrop_color: "rgba(0, 0, 0, 0)"
+            },
             handler: async (response) => {
               try {
                 const verifyResponse = await fetch("/api/payments/razorpay/verify", {
@@ -208,26 +220,12 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
         useBillingStore.getState().selectPlan(planId);
       }
 
-      window.history.replaceState(null, "", "/billing");
+      window.history.replaceState(null, "", "/settings?tab=billing");
     }
   }, [catalog.plans]);
 
   return (
-    <AppFrame
-      title="Billing"
-      sidebar={(sidebarProps) => (
-        <BillingSidebar
-          {...sidebarProps}
-          planName={currentPlan.name}
-          availableCredits={availableCredits}
-          monthlyAllotment={monthlyAllotment}
-          usedPercent={usedPercent}
-          nextRenewalDate={nextRenewalDate}
-          autoTopUpEnabled={billing.autoTopUpEnabled}
-        />
-      )}
-    >
-      <section className="route-content billing-route">
+    <section className="route-content billing-route">
         <motion.div
           className="page-toolbar billing-toolbar"
           variants={scrollRevealVariants}
@@ -239,7 +237,7 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
             <h2>Billing</h2>
           </div>
           <div className="billing-toolbar-actions">
-            <span className="billing-renewal-pill">Renews {nextRenewalDate}</span>
+            <span className="billing-renewal-pill">{isFreePlan ? "Free forever" : `Renews ${nextRenewalDate}`}</span>
           </div>
         </motion.div>
 
@@ -489,6 +487,74 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
         </motion.div>
 
         <motion.section
+          id="billing-payments"
+          className="billing-section"
+          aria-labelledby="payments-heading"
+          variants={scrollRevealVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={scrollRevealViewport}
+        >
+          <div className="billing-section-heading">
+            <div>
+              <p className="eyebrow">Transactions</p>
+              <h3 id="payments-heading">Payments & invoices</h3>
+            </div>
+            <span>{paidPayments.length} successful</span>
+          </div>
+
+          {paidPayments.length > 0 ? (
+            <div className="admin-detail-filters">
+              <div className="admin-filter-group">
+                {(["all", "plan", "topup"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`admin-filter-chip ${payKind === value ? "is-active" : ""}`}
+                    onClick={() => setPayKind(value)}
+                  >
+                    {value === "all" ? "Any type" : value === "plan" ? "Plans" : "Top-ups"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {paidPayments.length === 0 ? (
+            <p className="muted-copy">No successful payments yet. Buy a plan or top-up to see invoices here.</p>
+          ) : filteredPayments.length === 0 ? (
+            <p className="muted-copy">No payments match this filter.</p>
+          ) : (
+            <motion.div className="billing-ledger" variants={scrollContainerVariants} initial="hidden" animate="show">
+              {filteredPayments.map((payment) => {
+                return (
+                  <motion.div className="billing-ledger-row billing-payment-row" key={payment.id} variants={scrollItemVariants}>
+                    <span className="billing-icon small">
+                      <IndianRupee size={16} />
+                    </span>
+                    <div>
+                      <strong>{payment.label}</strong>
+                      <span>{formatLedgerDate(payment.createdAt)}</span>
+                    </div>
+                    <span className="billing-status-pill is-available">Paid</span>
+                    <strong>{inrFormatter.format(payment.amountInr)}</strong>
+                    <button
+                      className="billing-invoice-button"
+                      type="button"
+                      onClick={() => downloadInvoice(payment, { name: accountName, email: accountEmail })}
+                      title="Download PDF invoice"
+                    >
+                      <Download size={14} />
+                      Invoice
+                    </button>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          )}
+        </motion.section>
+
+        <motion.section
           id="billing-ledger"
           className="billing-section"
           aria-labelledby="ledger-heading"
@@ -513,7 +579,7 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
             {billing.ledger.map((item) => (
               <motion.div className="billing-ledger-row" key={item.id} variants={scrollItemVariants}>
                 <span className="billing-icon small">
-                  <Receipt size={16} />
+                  <IndianRupee size={16} />
                 </span>
                 <div>
                   <strong>{item.label}</strong>
@@ -528,8 +594,7 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
             ))}
           </motion.div>
         </motion.section>
-      </section>
-    </AppFrame>
+    </section>
   );
 }
 

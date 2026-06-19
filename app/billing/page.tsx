@@ -1,10 +1,14 @@
-import { BillingPageContent } from "@/components/BillingPageContent";
-import { getResolvedBillingCatalog } from "@/services/adminSettings";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function BillingPage() {
-  const catalog = await getResolvedBillingCatalog();
-
-  return <BillingPageContent catalog={catalog} />;
+// Billing now lives inside Settings as a tab. Preserve any ?plan= deep link
+// (used by the landing page) so plan selection still works after the redirect.
+export default async function BillingPage({
+  searchParams
+}: {
+  searchParams: Promise<{ plan?: string }>;
+}) {
+  const { plan } = await searchParams;
+  redirect(plan ? `/settings?tab=billing&plan=${encodeURIComponent(plan)}` : "/settings?tab=billing");
 }

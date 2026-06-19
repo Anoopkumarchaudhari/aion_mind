@@ -195,7 +195,7 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
 
     if (!charged) {
       sonnerToast.error(`Need ${creditCharge.credits} credits for ${creditCharge.label}.`);
-      router.push("/billing");
+      router.push("/settings?tab=billing");
       return;
     }
 

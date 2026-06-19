@@ -61,6 +61,16 @@ html.theme-switching *::after {
   transition: none !important;
 }
 
+/* Reduce-motion preference (Settings → Appearance) — near-instant everything. */
+html[data-reduce-motion="true"] *,
+html[data-reduce-motion="true"] *::before,
+html[data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
 /* ============================================================
    AUTH — Login / Signup
    Mobile  -> reference image 1 (pink, floating-label pills)
@@ -589,6 +599,10 @@ html.theme-switching *::after {
   gap: 12px;
 }
 
+.auth-social-row.is-single {
+  grid-template-columns: 1fr;
+}
+
 .auth-social-button {
   display: inline-flex;
   min-width: 0;
@@ -888,9 +902,22 @@ html.theme-switching *::after {
     gap: 10px;
   }
 
+  .auth-showcase-brand span {
+    display: grid;
+    gap: 1px;
+    line-height: 1.15;
+  }
+
   .auth-showcase-brand strong {
     font-size: 1.02rem;
     font-weight: 800;
+    letter-spacing: 0.02em;
+  }
+
+  .auth-showcase-brand small {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.72rem;
+    font-weight: 600;
     letter-spacing: 0.02em;
   }
 
@@ -3148,6 +3175,19 @@ select:focus-visible,
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
 }
 
+.settings-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.settings-dashboard-link {
+  gap: 8px;
+  text-decoration: none;
+}
+
 .empty-panel {
   max-width: 760px;
   margin: 24px auto;
@@ -4956,6 +4996,55 @@ select:focus-visible,
   gap: 14px;
 }
 
+/* Payment rows add a status pill + invoice button, so they need a 5th column
+   (the base ledger row is a 4-column grid). Use both classes so this wins the
+   grid-template regardless of source order. */
+.billing-ledger-row.billing-payment-row {
+  grid-template-columns: 34px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.billing-payment-row > div {
+  min-width: 0;
+}
+
+.billing-invoice-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: auto;
+  height: auto;
+  border: 1px solid color-mix(in srgb, var(--accent-2) 32%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+  color: color-mix(in srgb, var(--accent-2) 88%, white);
+  padding: 7px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.billing-invoice-button:hover {
+  background: color-mix(in srgb, var(--accent-2) 20%, transparent);
+  transform: translateY(-1px);
+}
+
+.billing-invoice-spacer {
+  flex: 0 0 auto;
+  width: 86px;
+}
+
+@media (max-width: 560px) {
+  .billing-invoice-spacer {
+    display: none;
+  }
+}
+
 .billing-meter-copy span,
 .billing-overview-stat span,
 .billing-section-heading span,
@@ -5795,6 +5884,288 @@ select:focus-visible,
   align-items: center;
   gap: 8px;
   color: var(--text-secondary);
+}
+
+/* ---- Independent settings page ---- */
+.settings-route-inner {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+}
+
+.settings-route-head h2 {
+  margin: 4px 0 2px;
+  color: var(--text-primary);
+}
+
+.settings-avatar-initials {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  border-radius: 16px;
+  background: var(--gradient-accent);
+  color: #04130c;
+  font-size: 1.3rem;
+  font-weight: 800;
+  box-shadow: 0 8px 22px var(--accent-glow);
+}
+
+.settings-side-avatar {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 8px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.settings-card > .settings-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.settings-row-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.settings-row-copy strong {
+  color: var(--text-primary);
+  font-size: 0.92rem;
+}
+
+.settings-row-copy span {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.settings-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-primary) 14%, transparent);
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+.settings-switch span {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  transform: translateY(-50%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 180ms ease;
+}
+
+.settings-switch.is-on {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: var(--accent);
+}
+
+.settings-switch.is-on span {
+  transform: translate(20px, -50%);
+}
+
+.settings-help-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.settings-help-actions .ghost-button,
+.setting-field .ghost-button,
+.setting-field .danger-button {
+  gap: 7px;
+}
+
+/* ---- Focused settings GUI (applies in dark + light) ---- */
+.settings-route {
+  padding-top: clamp(16px, 3vh, 30px);
+}
+
+.settings-route-inner {
+  width: min(760px, 100%);
+  gap: 18px;
+}
+
+.settings-route-head {
+  display: grid;
+  gap: 4px;
+  padding: 2px 2px 4px;
+}
+
+.settings-route-head .eyebrow {
+  color: var(--accent);
+  letter-spacing: 0.16em;
+}
+
+.settings-route-head h2 {
+  font-size: clamp(1.5rem, 3vw, 1.95rem);
+  letter-spacing: -0.012em;
+}
+
+/* Richer, more focused cards with a thin accent rail on top. */
+.settings-route .settings-card {
+  position: relative;
+  overflow: hidden;
+  margin-top: 0;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent-2) 7%, transparent), transparent 26%),
+    rgba(255, 255, 255, 0.025);
+  padding: 22px;
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.28);
+  gap: 16px;
+}
+
+.settings-route .settings-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--gradient-accent);
+  opacity: 0.55;
+}
+
+.settings-route .setting-field {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-route .setting-field .field-label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Bigger, premium profile identity. */
+.settings-avatar-initials {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  font-size: 1.5rem;
+}
+
+.settings-route .settings-profile-head {
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-route .settings-profile-head strong {
+  font-size: 1.12rem;
+}
+
+/* Toggle rows as focused, hoverable cells. */
+.settings-route .settings-row {
+  padding: 14px 12px;
+  border-radius: 12px;
+  transition: background-color 140ms ease;
+}
+
+.settings-route .settings-row:hover {
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+
+/* ============================================================
+   Account hub identity — settings, billing, and the user
+   dashboard (plus their context sidebars) share a distinct
+   blue → indigo accent, separate from the app's green brand.
+   ============================================================ */
+.settings-route,
+.billing-route,
+.user-dash,
+.context-sidebar {
+  --accent: #3b82f6;
+  --accent-2: #6366f1;
+  --accent-glow: rgba(59, 130, 246, 0.3);
+  --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+}
+
+.context-sidebar {
+  --sidebar-accent: #3b82f6;
+  --sidebar-accent-2: #6366f1;
+  --sidebar-accent-glow: rgba(59, 130, 246, 0.3);
+}
+
+/* ============================================================
+   Settings page — black & gold identity (overrides the hub blue).
+   ============================================================ */
+.settings-route,
+.context-sidebar.settings-sidebar {
+  --accent: #e9b949;
+  --accent-2: #c8902a;
+  --accent-glow: rgba(233, 185, 73, 0.32);
+  --gradient-accent: linear-gradient(135deg, #f3cb5f 0%, #c8902a 100%);
+}
+
+.context-sidebar.settings-sidebar {
+  --sidebar-accent: #e9b949;
+  --sidebar-accent-2: #c8902a;
+  --sidebar-accent-glow: rgba(233, 185, 73, 0.3);
+}
+
+/* Black settings cards with gold accents — readable in both themes because the
+   card re-declares its own light text + gold-tinted border tokens. */
+.settings-route .settings-card {
+  --text-primary: #f7f5ef;
+  --text-secondary: rgba(255, 255, 255, 0.78);
+  --text-muted: rgba(255, 255, 255, 0.55);
+  --border: rgba(233, 185, 73, 0.22);
+  --bg-input: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(233, 185, 73, 0.28);
+  background:
+    linear-gradient(180deg, rgba(233, 185, 73, 0.07), transparent 30%),
+    #0d0e12;
+  box-shadow: 0 22px 56px rgba(0, 0, 0, 0.5);
+}
+
+.settings-route .settings-card::before {
+  background: var(--gradient-accent);
+  opacity: 0.9;
+}
+
+/* Gold buttons need dark text. */
+.settings-route .primary-button {
+  color: #1a1303;
+}
+
+/* Inputs on the black card. */
+.settings-route .settings-card .field-input {
+  background: var(--bg-input);
+  border-color: rgba(233, 185, 73, 0.24);
+  color: var(--text-primary);
+}
+
+.settings-route .settings-card .field-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* profile header + avatar picker */
@@ -11361,12 +11732,57 @@ body:has(.landing-page) {
    ADMIN — User detail page (full activity log)
    ============================================================ */
 .admin-detail-page {
+  /* Distinct indigo→violet identity for the user-log dashboard, so it reads as
+     a different surface from the green-accented admin panel. */
+  --accent: #7c6cf6;
+  --accent-2: #c084fc;
+  --accent-glow: rgba(124, 108, 246, 0.3);
+  --gradient-accent: linear-gradient(135deg, #7c6cf6 0%, #c084fc 100%);
+
   height: 100dvh;
   overflow-y: auto;
   padding: clamp(20px, 4vw, 44px) clamp(16px, 4vw, 40px) 60px;
   background:
-    radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--accent-2) 6%, transparent), transparent 55%),
+    radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--accent-2) 8%, transparent), transparent 55%),
     var(--bg-base);
+}
+
+.admin-detail-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.admin-filter-group {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  /* Tint derived from text colour so it shows in both dark and light. */
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+}
+
+.admin-filter-chip {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 5px 13px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.admin-filter-chip:hover {
+  color: var(--text-primary);
+}
+
+.admin-filter-chip.is-active {
+  background: var(--gradient-accent);
+  color: #0b0712;
 }
 
 .admin-detail-page-inner {

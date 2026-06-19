@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, type FormEvent, type MouseEvent } from "react";
-import { ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, Chrome, Eye, EyeOff, Facebook, KeyRound, MailCheck } from "lucide-react";
+import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronLeft, Eye, EyeOff, KeyRound, MailCheck } from "lucide-react";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { ThemeToggleButton } from "@/components/ThemeToggle";
 
@@ -15,6 +15,37 @@ type SignupStep = "form" | "verify" | "success";
 
 const ACCOUNT_CREATION_DISABLED = false;
 const ACCOUNT_CREATION_DISABLED_MESSAGE = "New account creation is temporarily disabled.";
+
+const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
+  google_unconfigured: "Google sign-in isn't configured yet. Please use email for now.",
+  google_failed: "Google sign-in failed. Please try again.",
+  google_state: "Google sign-in expired or was interrupted. Please try again.",
+  inactive: "This account is inactive. Contact the administrator."
+};
+
+/** Official multi-colour Google "G" mark. */
+function GoogleLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+      <path
+        fill="#4285F4"
+        d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M11.69 28.18c-.44-1.32-.69-2.73-.69-4.18s.25-2.86.69-4.18v-5.7H4.34A21.99 21.99 0 0 0 2 24c0 3.55.85 6.91 2.34 9.88l7.35-5.7z"
+      />
+      <path
+        fill="#EA4335"
+        d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"
+      />
+    </svg>
+  );
+}
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
@@ -65,6 +96,15 @@ export function AuthForm({ mode }: AuthFormProps) {
   const passwordScore = getPasswordScore(password);
   const redirectPath = getSafeRedirectPath(searchParams.get("redirect"));
   const switchHref = buildAuthModeHref(isSignup ? "/login" : "/signup", redirectPath);
+
+  // Surface OAuth errors handed back via ?error= from the Google callback.
+  useEffect(() => {
+    const code = searchParams.get("error");
+
+    if (code) {
+      setError(GOOGLE_ERROR_MESSAGES[code] ?? "Sign-in failed. Please try again.");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -197,8 +237,9 @@ export function AuthForm({ mode }: AuthFormProps) {
     setInfo("");
   }
 
-  function handleSocialSignIn(provider: "Google" | "Facebook") {
-    setError(`${provider} sign-in is not configured yet. Please use email for now.`);
+  function handleSocialSignIn(_provider: "Google") {
+    // Hand off to the server OAuth flow (sets CSRF state + redirects to Google).
+    window.location.href = "/api/auth/google";
   }
 
   function handleForgotPassword() {
@@ -539,14 +580,10 @@ export function AuthForm({ mode }: AuthFormProps) {
                     <span>{isSignup ? "Or register with" : "Or login with"}</span>
                   </motion.div>
 
-                  <motion.div className="auth-social-row" variants={itemVariants}>
-                    <button className="auth-social-button" type="button" onClick={() => handleSocialSignIn("Facebook")}>
-                      <Facebook aria-hidden="true" size={18} />
-                      <span>Facebook</span>
-                    </button>
+                  <motion.div className="auth-social-row is-single" variants={itemVariants}>
                     <button className="auth-social-button" type="button" onClick={() => handleSocialSignIn("Google")}>
-                      <Chrome aria-hidden="true" size={18} />
-                      <span>Google</span>
+                      <GoogleLogo />
+                      <span>Continue with Google</span>
                     </button>
                   </motion.div>
 

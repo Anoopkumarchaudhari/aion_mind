@@ -210,8 +210,11 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
     }))
     .sort((a, b) => b.credits - a.credits);
 
+  // Plan history = real, completed plan changes only. Razorpay orders that were
+  // created but never paid ("created") are abandoned/failed attempts and belong
+  // under Payments, not here.
   const planHistory = payments
-    .filter((p) => p.kind === "plan")
+    .filter((p) => p.kind === "plan" && p.status === "paid")
     .map((p) => ({
       planId: p.planId,
       label: p.itemLabel,

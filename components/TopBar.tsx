@@ -30,7 +30,7 @@ export function TopBar({ tempMode, onToggleTempMode, onNewChat, onToggleSidebar 
       </button>
       <div />
       <div className="topbar-actions">
-        <Link className="top-billing-button" href="/billing" aria-label="Open billing dashboard" title="Billing">
+        <Link className="top-billing-button" href="/settings?tab=billing" aria-label="Open billing dashboard" title="Billing">
           <CreditCard size={16} />
           <span className="top-billing-balance">{formatCompactCredits(availableCredits)}</span>
         </Link>

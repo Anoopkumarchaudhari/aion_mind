@@ -17,6 +17,7 @@ import {
   Image as ImageIcon,
   Keyboard,
   Languages,
+  LayoutDashboard,
   LogOut,
   Moon,
   NotebookTabs,
@@ -307,9 +308,9 @@ export function Sidebar({
           <div className="sidebar-action-group">
             <div className="sidebar-section-label">Workspace</div>
             <Link
-              className={clsx("sidebar-action", isActiveRoute(pathname, "/billing") && "is-active")}
-              href="/billing"
-              aria-current={isActiveRoute(pathname, "/billing") ? "page" : undefined}
+              className={clsx("sidebar-action", isActiveRoute(pathname, "/settings") && "is-active")}
+              href="/settings?tab=billing"
+              aria-current={isActiveRoute(pathname, "/settings") ? "page" : undefined}
               onClick={onClose}
               title="Billing"
             >
@@ -384,6 +385,12 @@ export function Sidebar({
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content className="chat-menu-content user-menu-content" side="right" align="end" sideOffset={10}>
+              <DropdownMenu.Item className="chat-menu-item" asChild>
+                <Link href="/settings?tab=dashboard">
+                  <LayoutDashboard size={16} />
+                  Dashboard
+                </Link>
+              </DropdownMenu.Item>
               <DropdownMenu.Item className="chat-menu-item" asChild>
                 <Link href="/settings">
                   <Settings size={16} />

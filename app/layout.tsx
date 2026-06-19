@@ -15,6 +15,8 @@ const themeBootstrap = `(() => {
     var resolved = pref === "system" ? sys : pref;
     document.documentElement.dataset.theme = resolved;
     document.documentElement.style.colorScheme = resolved;
+    var prefs = localStorage.getItem("aion-mind-prefs");
+    if (prefs && JSON.parse(prefs).reduceMotion) document.documentElement.dataset.reduceMotion = "true";
   } catch (e) {
     document.documentElement.dataset.theme = "dark";
   }

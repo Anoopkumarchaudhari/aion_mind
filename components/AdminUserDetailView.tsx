@@ -41,6 +41,17 @@ export function AdminUserDetailView({ detail }: { detail: AdminUserDetail }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"ok" | "error">("ok");
+  const [payStatus, setPayStatus] = useState<"all" | "paid" | "failed">("all");
+  const [payKind, setPayKind] = useState<"all" | "plan" | "topup">("all");
+
+  const filteredPayments = detail.payments.filter((payment) => {
+    const statusOk =
+      payStatus === "all" ||
+      (payStatus === "paid" && payment.status === "paid") ||
+      (payStatus === "failed" && payment.status !== "paid");
+    const kindOk = payKind === "all" || payment.kind === payKind;
+    return statusOk && kindOk;
+  });
 
   const netCredits = stats.lifetimeGranted - stats.lifetimeSpent;
   const accountAgeDays = profile.createdAt ? Math.max(0, Math.floor((Date.now() - profile.createdAt) / DAY_MS)) : 0;
@@ -335,10 +346,36 @@ export function AdminUserDetailView({ detail }: { detail: AdminUserDetail }) {
               )}
             </Section>
 
-            <Section icon={<Receipt size={15} />} title={`Payments (${detail.payments.length})`}>
-              {detail.payments.length ? (
+            <Section icon={<Receipt size={15} />} title={`Payments (${filteredPayments.length}/${detail.payments.length})`}>
+              <div className="admin-detail-filters">
+                <div className="admin-filter-group">
+                  {(["all", "paid", "failed"] as const).map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`admin-filter-chip ${payStatus === value ? "is-active" : ""}`}
+                      onClick={() => setPayStatus(value)}
+                    >
+                      {value === "all" ? "All" : value === "paid" ? "Paid" : "Failed"}
+                    </button>
+                  ))}
+                </div>
+                <div className="admin-filter-group">
+                  {(["all", "plan", "topup"] as const).map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`admin-filter-chip ${payKind === value ? "is-active" : ""}`}
+                      onClick={() => setPayKind(value)}
+                    >
+                      {value === "all" ? "Any type" : value === "plan" ? "Plans" : "Top-ups"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {filteredPayments.length ? (
                 <ul className="admin-detail-list">
-                  {detail.payments.map((payment) => (
+                  {filteredPayments.map((payment) => (
                     <li key={payment.id} className="admin-detail-row">
                       <span>
                         <strong>{payment.itemLabel}</strong>
@@ -352,7 +389,9 @@ export function AdminUserDetailView({ detail }: { detail: AdminUserDetail }) {
                   ))}
                 </ul>
               ) : (
-                <p className="admin-detail-empty">No payments yet.</p>
+                <p className="admin-detail-empty">
+                  {detail.payments.length ? "No payments match this filter." : "No payments yet."}
+                </p>
               )}
             </Section>
 
@@ -438,9 +477,11 @@ function MetaLine({ icon, label, value }: { icon: React.ReactNode; label: string
 }
 
 function StatusPill({ status }: { status: string }) {
+  // Anything that isn't a captured payment ("created" = order opened but never
+  // paid, etc.) is a failed/abandoned attempt — never a credit.
   const ok = status === "paid";
   return (
-    <span className={`billing-status-pill ${ok ? "is-available" : "is-api-error"}`}>{ok ? "Paid" : status}</span>
+    <span className={`billing-status-pill ${ok ? "is-available" : "is-api-error"}`}>{ok ? "Paid" : "Failed"}</span>
   );
 }
 

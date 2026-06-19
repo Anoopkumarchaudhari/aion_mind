@@ -827,7 +827,6 @@ function LandingNav({ scrolled }: { scrolled: boolean }) {
           <a href="#features" onClick={closeMenu}>Features</a>
           <a href="#about" onClick={closeMenu}>About</a>
           <a href="#plans" onClick={closeMenu}>Plans</a>
-          <Link href="/login" onClick={closeMenu}>Login</Link>
           <Link className="landing-nav-cta" href="/login" onClick={closeMenu}>
             Get started
             <ArrowRight size={15} />
@@ -1050,7 +1049,7 @@ function useScrolled(threshold: number) {
 }
 
 function getPlanAuthHref(planId: BillingPlanId) {
-  const redirect = `/billing?plan=${planId}`;
+  const redirect = `/settings?tab=billing&plan=${planId}`;
 
   return `/login?redirect=${encodeURIComponent(redirect)}`;
 }

@@ -13,7 +13,7 @@ export type RazorpayCheckoutOptions = {
   order_id: string;
   prefill?: { name?: string; email?: string };
   notes?: Record<string, string>;
-  theme?: { color?: string };
+  theme?: { color?: string; backdrop_color?: string };
   handler: (response: RazorpayHandlerResponse) => void;
   modal?: { ondismiss?: () => void };
 };

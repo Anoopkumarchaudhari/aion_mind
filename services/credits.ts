@@ -16,10 +16,22 @@ export type CreditLedgerEntry = {
   createdAt: number;
 };
 
+export type CreditPayment = {
+  id: string;
+  kind: string;
+  label: string;
+  amountInr: number;
+  credits: number;
+  status: string; // "paid" | "created" | ...
+  paymentId: string | null;
+  createdAt: number;
+};
+
 export type CreditAccount = {
   planId: string;
   credits: number;
   ledger: CreditLedgerEntry[];
+  payments: CreditPayment[];
 };
 
 export type SpendResult = { ok: boolean; balance: number };
@@ -55,6 +67,17 @@ type LedgerRow = {
   balance_after: number;
   amount_inr: number | null;
   status: string;
+  created_at: string | number;
+};
+
+type PaymentRow = {
+  id: string;
+  kind: string;
+  item_label: string;
+  amount_inr: number;
+  credits: number;
+  status: string;
+  payment_id: string | null;
   created_at: string | number;
 };
 
@@ -114,11 +137,17 @@ export async function getCreditAccount(userId: string): Promise<CreditAccount> {
      FROM credit_ledger WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
     [userId, LEDGER_PAGE_SIZE]
   );
+  const payments = await query<PaymentRow>(
+    `SELECT id, kind, item_label, amount_inr, credits, status, payment_id, created_at
+     FROM payments WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`,
+    [userId]
+  );
 
   return {
     planId: row?.plan_id ?? "free",
     credits: Math.max(0, row?.credits ?? 0),
-    ledger: ledger.rows.map(mapLedgerRow)
+    ledger: ledger.rows.map(mapLedgerRow),
+    payments: payments.rows.map(mapPaymentRow)
   };
 }
 
@@ -247,6 +276,19 @@ function mapLedgerRow(row: LedgerRow): CreditLedgerEntry {
     balanceAfter: Number(row.balance_after),
     amountInr: row.amount_inr == null ? null : Number(row.amount_inr),
     status: row.status,
+    createdAt: Number(row.created_at)
+  };
+}
+
+function mapPaymentRow(row: PaymentRow): CreditPayment {
+  return {
+    id: row.id,
+    kind: row.kind,
+    label: row.item_label,
+    amountInr: Number(row.amount_inr),
+    credits: Number(row.credits),
+    status: row.status,
+    paymentId: row.payment_id,
     createdAt: Number(row.created_at)
   };
 }

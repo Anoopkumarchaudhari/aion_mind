@@ -48,10 +48,22 @@ type ServerLedgerEntry = {
   createdAt: number;
 };
 
+export type BillingPayment = {
+  id: string;
+  kind: string;
+  label: string;
+  amountInr: number;
+  credits: number;
+  status: string;
+  paymentId: string | null;
+  createdAt: number;
+};
+
 type ServerAccount = {
   planId: string;
   credits: number;
   ledger: ServerLedgerEntry[];
+  payments?: BillingPayment[];
 };
 
 type BillingState = {
@@ -60,6 +72,7 @@ type BillingState = {
   credits: number;
   usage: BillingUsageItem[];
   ledger: BillingLedgerItem[];
+  payments: BillingPayment[];
   loaded: boolean;
   loading: boolean;
   autoTopUpEnabled: boolean;
@@ -113,6 +126,7 @@ const EMPTY_STATE = {
   credits: 0,
   usage: [] as BillingUsageItem[],
   ledger: [] as BillingLedgerItem[],
+  payments: [] as BillingPayment[],
   loaded: false,
   loading: false
 };
@@ -133,6 +147,7 @@ export const useBillingStore = create<BillingState>()((set, get) => ({
       credits: Math.max(0, Math.floor(account.credits)),
       ledger: account.ledger.map(mapServerLedger),
       usage: deriveUsage(account.ledger),
+      payments: account.payments ?? [],
       loaded: true,
       loading: false
     });
