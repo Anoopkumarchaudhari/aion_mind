@@ -1,6 +1,6 @@
 import { callConfiguredModel, streamConfiguredModel } from "@/services/aionModelCalls";
 import { loadAionRoutingSettings } from "@/services/aionRoutingConfig";
-import { callResearchWebSearch } from "@/providers/webSearchProvider";
+import { callOpenAIWithWebSearch } from "@/providers/openaiProvider";
 import { getTimeoutMs, truncate } from "@/providers/providerUtils";
 import {
   AION_JUDGE_SYSTEM_PROMPT,
@@ -8,7 +8,10 @@ import {
   pickFallbackAnswer
 } from "@/services/aionAnalyzer";
 import { getAionGreetingAnswer } from "@/services/aionGreeting";
-import { needsLiveVerification } from "@/services/liveVerification";
+import {
+  LIVE_VERIFICATION_SYSTEM_PROMPT,
+  needsLiveVerification
+} from "@/services/liveVerification";
 import type {
   ModelRouteRequest,
   ProviderResponse,
@@ -62,6 +65,7 @@ export async function routeAionStream({
   const messages: ChatMessage[] = [...history, { role: "user", content: message }];
   const liveSearchResponse = await getLiveSearchResponse({
     message,
+    messages,
     attachments
   });
 
@@ -364,18 +368,21 @@ function disabledDiagnostic(slot: AionRouteSlot): ProviderResponse {
 
 async function getLiveSearchResponse({
   message,
+  messages,
   attachments
 }: {
   message: string;
+  messages: ChatMessage[];
   attachments: ChatAttachment[];
 }) {
   if (!needsModelWebSearch(message, attachments)) {
     return null;
   }
 
-  // All model tiers use Tavily for live web search.
-  return callResearchWebSearch({
-    query: message,
+  // All model tiers use OpenAI's live web-search model.
+  return callOpenAIWithWebSearch({
+    messages,
+    systemPrompt: LIVE_VERIFICATION_SYSTEM_PROMPT,
     timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
   });
 }
