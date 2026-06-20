@@ -5577,6 +5577,15 @@ select:focus-visible,
   color: #fda4af;
 }
 
+/* Credits added are always green (independent of accent/theme mode). */
+.billing-ledger-row em.is-positive {
+  color: #25d59b;
+}
+
+[data-theme="light"] .billing-ledger-row em.is-positive {
+  color: #0e9f74;
+}
+
 .admin-route {
   display: grid;
   gap: 18px;

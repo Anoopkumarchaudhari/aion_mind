@@ -8,6 +8,7 @@ import {
   Activity,
   Check,
   CheckCircle2,
+  Lock,
   CreditCard,
   Download,
   IndianRupee,
@@ -58,6 +59,9 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
   const billing = useBillingStore();
   // Resolve the active plan from the admin-edited catalog so credits/price reflect edits.
   const currentPlan = catalog.plans.find((plan) => plan.id === billing.planId) ?? getBillingPlan(billing.planId);
+  // Plans are tier-ordered (free → power). The active plan and every lower tier are
+  // already owned, so they stay locked — only higher tiers can be purchased (upgrade).
+  const currentPlanIndex = catalog.plans.findIndex((plan) => plan.id === billing.planId);
   // Server-authoritative single balance — survives logout/login, never shared across accounts.
   const availableCredits = billing.credits;
   const monthlyAllotment = currentPlan.monthlyCredits;
@@ -305,13 +309,15 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
             whileInView="show"
             viewport={scrollRevealViewport}
           >
-            {catalog.plans.map((plan) => {
+            {catalog.plans.map((plan, planIndex) => {
               const isActive = plan.id === billing.planId;
+              // Locked = the active plan itself or any lower tier already included in it.
+              const isLocked = currentPlanIndex >= 0 && planIndex <= currentPlanIndex;
               const isPopular = plan.id === POPULAR_PLAN_ID;
 
               return (
                 <motion.article
-                  className={`billing-plan-card ${isActive ? "is-active" : ""} ${isPopular ? "is-popular" : ""}`}
+                  className={`billing-plan-card ${isActive ? "is-active" : ""} ${isLocked ? "is-locked" : ""} ${isPopular ? "is-popular" : ""}`}
                   key={plan.id}
                   style={{ "--plan-color": plan.accent } as CSSProperties}
                   variants={scrollItemVariants}
@@ -345,20 +351,23 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
                   </ul>
 
                   <button
-                    className={isActive ? "ghost-button full" : "primary-button full"}
+                    className={isLocked ? "ghost-button full" : "primary-button full"}
                     type="button"
                     onClick={() =>
                       purchase("plan", plan.id, `${plan.name} plan`, plan.priceInr, plan.id, plan.accent)
                     }
-                    disabled={isActive || pendingItem === plan.id}
+                    disabled={isLocked || pendingItem === plan.id}
                   >
+                    {isLocked ? <Lock size={13} aria-hidden="true" /> : null}
                     {isActive
                       ? "Current plan"
-                      : pendingItem === plan.id
-                        ? "Processing..."
-                        : plan.priceInr === 0
-                          ? "Choose plan"
-                          : `Pay ${inrFormatter.format(plan.priceInr)}`}
+                      : isLocked
+                        ? "Included"
+                        : pendingItem === plan.id
+                          ? "Processing..."
+                          : plan.priceInr === 0
+                            ? "Choose plan"
+                            : `Pay ${inrFormatter.format(plan.priceInr)}`}
                   </button>
                 </motion.article>
               );
@@ -585,7 +594,7 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
                   <strong>{item.label}</strong>
                   <span>{formatLedgerDate(item.createdAt)} - {item.status}</span>
                 </div>
-                <em className={item.credits < 0 ? "is-negative" : ""}>
+                <em className={item.credits < 0 ? "is-negative" : item.credits > 0 ? "is-positive" : ""}>
                   {item.credits > 0 ? "+" : ""}
                   {item.credits.toLocaleString("en-IN")} credits
                 </em>
