@@ -533,7 +533,15 @@ export function AuthForm({ mode }: AuthFormProps) {
                         />
                         <span className="auth-checkbox" aria-hidden="true" />
                         <span>
-                          I agree to the <a href="#" onClick={(event) => event.preventDefault()}>Terms &amp; Conditions</a>
+                          I agree to the{" "}
+                          <a
+                            href="/terms"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            Terms &amp; Conditions
+                          </a>
                         </span>
                       </motion.label>
                     ) : (

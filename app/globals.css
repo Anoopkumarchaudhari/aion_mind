@@ -13460,7 +13460,7 @@ body:has(.landing-page) {
 }
 
 [data-theme="light"] .auth-field-label {
-  color: #6c6a62;
+  color: #1d1c19;
 }
 
 [data-theme="light"] .auth-form input,
@@ -13479,12 +13479,19 @@ body:has(.landing-page) {
 }
 
 [data-theme="light"] .auth-divider {
-  color: #6c6a62;
+  color: #1d1c19;
 }
 
 [data-theme="light"] .auth-divider::before,
 [data-theme="light"] .auth-divider::after {
   background: rgba(23, 23, 20, 0.14);
+}
+
+/* Dark mode — pure white for the field labels, terms text, and divider. */
+[data-theme="dark"] .auth-field-label,
+[data-theme="dark"] .auth-terms,
+[data-theme="dark"] .auth-divider {
+  color: #ffffff;
 }
 
 [data-theme="light"] .auth-social-button {
@@ -13516,6 +13523,21 @@ body:has(.landing-page) {
 
 [data-theme="light"] .auth-success h1 {
   color: #1d1c19;
+}
+
+/* Terms row — the dark-theme checkbox is white-on-white in light mode,
+   so give it a visible border/fill and a higher-contrast label + link. */
+[data-theme="light"] .auth-terms {
+  color: #1d1c19;
+}
+
+[data-theme="light"] .auth-checkbox {
+  border-color: rgba(23, 23, 20, 0.5);
+  background: #ffffff;
+}
+
+[data-theme="light"] .auth-terms a {
+  color: #1d4ed8;
 }
 
 [data-theme="light"] .auth-password-toggle:hover,

@@ -1,7 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE = "aion_session";
-const PUBLIC_PATHS = new Set(["/", "/login", "/signup"]);
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/login",
+  "/signup",
+  // Public business & legal pages (required for payment-gateway website
+  // verification, e.g. Razorpay). Must stay reachable without a session.
+  "/about",
+  "/contact",
+  "/pricing",
+  "/privacy-policy",
+  "/terms",
+  "/refund-policy",
+  "/shipping-policy"
+]);
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
