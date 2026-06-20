@@ -2675,7 +2675,8 @@ select:focus-visible,
 }
 
 .auth-form input:focus-visible,
-.composer-textarea:focus-visible {
+.composer-textarea:focus-visible,
+.palette-input:focus-visible {
   outline: none;
 }
 
@@ -4278,7 +4279,6 @@ select:focus-visible,
   padding-top: 15vh;
 }
 
-.search-palette,
 .dialog-card {
   width: min(680px, calc(100vw - 28px));
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -4288,13 +4288,28 @@ select:focus-visible,
   backdrop-filter: blur(20px);
 }
 
+.search-palette {
+  width: min(680px, calc(100vw - 28px));
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--bg-elevated);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
 .palette-input-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border);
   color: var(--text-muted);
-  padding: 0 16px;
+  padding: 4px 18px;
+}
+
+.palette-input-row svg {
+  flex-shrink: 0;
+  color: var(--text-muted);
 }
 
 .palette-input {
@@ -4302,50 +4317,96 @@ select:focus-visible,
   border: 0;
   background: transparent;
   color: var(--text-primary);
+  caret-color: var(--accent);
   outline: none;
   padding: 16px 0;
+  font-size: 0.98rem;
+}
+
+.palette-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.85;
 }
 
 .palette-kbd {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border);
   border-radius: 6px;
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
   color: var(--text-muted);
-  padding: 2px 6px;
+  padding: 3px 7px;
   font-size: 0.68rem;
+  line-height: 1;
 }
 
 .palette-list {
   max-height: 420px;
   overflow-y: auto;
   padding: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.palette-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.palette-list::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: color-mix(in srgb, var(--text-primary) 18%, transparent);
 }
 
 .palette-item {
   display: grid;
   gap: 4px;
+  border: 1px solid transparent;
   border-radius: 12px;
   cursor: pointer;
-  padding: 10px 12px;
+  padding: 11px 13px;
   outline: none;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.palette-item:hover,
+.palette-item[aria-selected="true"] {
+  background: var(--hover);
+  border-color: var(--border);
 }
 
 .palette-item[aria-selected="true"] {
-  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .palette-title {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 14px;
   color: var(--text-primary);
-  font-weight: 620;
+  font-weight: 650;
+  font-size: 0.95rem;
 }
 
-.palette-title span:last-child,
-.palette-snippet,
-.palette-empty {
+.palette-title > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-title span:last-child {
+  flex-shrink: 0;
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-weight: 500;
+  font-size: 0.76rem;
+}
+
+.palette-snippet {
+  color: var(--text-secondary);
+  font-size: 0.83rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .palette-title mark {
@@ -4356,6 +4417,8 @@ select:focus-visible,
 }
 
 .palette-empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
   padding: 28px;
   text-align: center;
 }
@@ -12643,6 +12706,86 @@ body:has(.landing-page) {
   color: #b42318;
 }
 
+/* ---------- Podcast & Translate surfaces on light theme ----------
+   These pages hardcode dark routes/shells/inputs. The text overrides
+   above assume light surfaces, so remap every surface to the light
+   tokens (otherwise the darkened text lands on still-dark inputs). */
+[data-theme="light"] .translate-route,
+[data-theme="light"] .podcast-route {
+  background: var(--bg-base);
+}
+
+[data-theme="light"] .translate-shell,
+[data-theme="light"] .podcast-shell {
+  border-color: var(--border);
+  background: var(--bg-elevated);
+  box-shadow: 0 18px 48px rgba(23, 23, 20, 0.08);
+}
+
+/* Heading missed by the text block above (only podcast-heading was listed). */
+[data-theme="light"] .translate-header h2 {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .translate-panel,
+[data-theme="light"] .translate-language-row label {
+  color: var(--text-secondary);
+}
+
+/* Inputs / selects / output / compose box */
+[data-theme="light"] .translate-language-row select,
+[data-theme="light"] .translate-panel textarea,
+[data-theme="light"] .translate-output,
+[data-theme="light"] .podcast-compose textarea {
+  border-color: var(--border);
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+/* Icon-buttons (language swap, copy) */
+[data-theme="light"] .translate-swap,
+[data-theme="light"] .translate-panel-heading button {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .translate-swap:hover,
+[data-theme="light"] .translate-panel-heading button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text-primary);
+}
+
+/* Podcast preset cards */
+[data-theme="light"] .podcast-card {
+  border-color: var(--border);
+  background:
+    linear-gradient(145deg, rgba(244, 63, 94, 0.08), transparent 70%),
+    var(--bg-elevated);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .podcast-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 32%, transparent);
+  background-color: color-mix(in srgb, var(--text-primary) 4%, transparent);
+}
+
+[data-theme="light"] .podcast-compose {
+  border-top-color: var(--border);
+}
+
+/* Pale-pink icon glyph is invisible on the light pink tile — deepen it. */
+[data-theme="light"] .podcast-icon {
+  color: #be123c;
+}
+
+/* Error banner background (text color handled above) */
+[data-theme="light"] .translate-error {
+  border-color: rgba(180, 35, 24, 0.26);
+  background: rgba(248, 113, 113, 0.12);
+}
+
 /* Side-by-side provider headings (Aria Diverse): darken the chip text/fill. */
 [data-theme="light"] .model-answer-heading {
   color: color-mix(in srgb, var(--model-color, var(--accent)) 55%, #121212);
@@ -13363,5 +13506,88 @@ body:has(.landing-page) {
 }
 
 [data-theme="light"] .auth-error {
+  color: #b42318;
+}
+
+/* ============================================================
+   LIGHT THEME — AI Image Studio
+   The studio hardcodes dark panels and inset fields, so in the
+   light theme its (theme-token) text rendered dark-on-dark.
+   Remap the dark surfaces to the light surface tokens; the
+   text colors already adapt, so this fixes contrast on both.
+   ============================================================ */
+[data-theme="light"] .image-studio-route {
+  --image-panel: var(--bg-elevated);
+}
+
+[data-theme="light"] .image-preview-first,
+[data-theme="light"] .image-studio-form,
+[data-theme="light"] .ai-preview-board,
+[data-theme="light"] .image-output-panel,
+[data-theme="light"] .image-workbench-panel {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+  box-shadow: 0 16px 44px rgba(23, 23, 20, 0.08);
+}
+
+[data-theme="light"] .image-preview-first {
+  background:
+    radial-gradient(circle at 12% 15%, color-mix(in srgb, var(--image-accent) 12%, transparent), transparent 30%),
+    radial-gradient(circle at 88% 20%, color-mix(in srgb, var(--image-accent-2) 12%, transparent), transparent 32%),
+    var(--bg-elevated);
+}
+
+/* Inset fields: prompt textarea + select dropdowns */
+[data-theme="light"] .image-studio-form .image-prompt-input,
+[data-theme="light"] .media-select-field select {
+  background: var(--bg-input);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .media-select-field select:hover {
+  border-color: color-mix(in srgb, var(--text-primary) 22%, transparent);
+}
+
+/* Preset / mode chips */
+[data-theme="light"] .image-prompt-chip-row button,
+[data-theme="light"] .image-studio-route .chip-row button {
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+  border-color: var(--border);
+}
+
+[data-theme="light"] .image-prompt-chip-row button:hover {
+  background: color-mix(in srgb, var(--image-accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--image-accent) 45%, transparent);
+}
+
+[data-theme="light"] .image-studio-route .chip-row button.is-active {
+  color: color-mix(in srgb, var(--image-accent) 72%, #3a1d00);
+}
+
+/* Output + history surfaces */
+[data-theme="light"] .image-output-surface {
+  background:
+    radial-gradient(circle at 20% 18%, color-mix(in srgb, var(--image-accent-2) 9%, transparent), transparent 38%),
+    color-mix(in srgb, var(--text-primary) 3%, transparent);
+  border-color: var(--border);
+}
+
+[data-theme="light"] .image-history-empty,
+[data-theme="light"] .image-history-card {
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+  border-color: var(--border);
+}
+
+/* Pills / badges that hardcode near-white text */
+[data-theme="light"] .preview-live-pill,
+[data-theme="light"] .image-section-heading > span {
+  color: color-mix(in srgb, var(--image-accent-2) 60%, #06363f);
+}
+
+/* Error banner */
+[data-theme="light"] .image-error {
+  border-color: rgba(180, 35, 24, 0.28);
+  background: rgba(248, 113, 113, 0.12);
   color: #b42318;
 }
