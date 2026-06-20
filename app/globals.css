@@ -1923,16 +1923,21 @@ a {
 }
 
 .user-avatar {
-  display: block;
+  display: grid;
+  place-items: center;
   width: 32px;
   height: 32px;
   flex: 0 0 auto;
   border-radius: 999px;
-  background: #e5e7eb;
+  background: color-mix(in srgb, var(--sidebar-accent, var(--accent)) 22%, var(--bg-elevated));
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--sidebar-accent) 35%, rgba(255, 255, 255, 0.14)),
     0 0 16px var(--sidebar-accent-glow, var(--accent-glow));
-  object-fit: cover;
 }
 
 .sidebar-user-copy {

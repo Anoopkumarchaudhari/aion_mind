@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
 import { useThemeStore } from "@/store/useThemeStore";
+import { getBillingPlan, useBillingStore } from "@/store/useBillingStore";
 import { ChatRowMenu } from "@/components/ChatRowMenu";
 import { RenameInline } from "@/components/RenameInline";
 import { cardItemVariants, gentleSpring, sidebarBackdropVariants } from "@/lib/motion";
@@ -76,8 +77,11 @@ type SidebarProps = {
 const VIDEO_VISIT_KEY = "aion-mind-videos-first-visit";
 const NEW_PILL_MS = 7 * 24 * 60 * 60 * 1000;
 const ACCOUNT_NAME = "Anoop Kumar";
-const ACCOUNT_PLAN = "Pro";
-const ACCOUNT_AVATAR_SRC = "/profile_avtar.png";
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map((part) => part.charAt(0).toUpperCase()).join("") || "?";
+}
 
 type AuthMeResponse = {
   user?: {
@@ -110,7 +114,9 @@ export function Sidebar({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [showVideoNew, setShowVideoNew] = useState(false);
-  const [account, setAccount] = useState({ name: ACCOUNT_NAME, plan: ACCOUNT_PLAN });
+  const [account, setAccount] = useState({ name: ACCOUNT_NAME });
+  const planId = useBillingStore((state) => state.planId);
+  const planName = getBillingPlan(planId).name;
   const resolvedTheme = useThemeStore((state) => state.resolved);
   const toggleTheme = useThemeStore((state) => state.toggle);
   const pinnedThreads = useMemo(() => threads.filter((thread) => thread.pinned), [threads]);
@@ -148,7 +154,7 @@ export function Sidebar({
       })
       .then((data: AuthMeResponse) => {
         if (data?.user?.name) {
-          setAccount({ name: data.user.name, plan: ACCOUNT_PLAN });
+          setAccount({ name: data.user.name });
         }
       })
       .catch(() => undefined);
@@ -375,10 +381,10 @@ export function Sidebar({
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button className="sidebar-user" type="button" title="Account menu">
-              <img className="user-avatar" src={ACCOUNT_AVATAR_SRC} alt="" aria-hidden="true" />
+              <span className="user-avatar" aria-hidden="true">{getInitials(account.name)}</span>
               <span className="sidebar-user-copy">
                 <span className="sidebar-user-name">{account.name}</span>
-                <span className="sidebar-user-plan">{account.plan}</span>
+                <span className="sidebar-user-plan">{planName}</span>
               </span>
               <Settings className="sidebar-settings" size={15} />
             </button>
