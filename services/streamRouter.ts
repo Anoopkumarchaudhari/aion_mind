@@ -1,6 +1,5 @@
 import { callConfiguredModel, streamConfiguredModel } from "@/services/aionModelCalls";
 import { loadAionRoutingSettings } from "@/services/aionRoutingConfig";
-import { callOpenAIWithWebSearch } from "@/providers/openaiProvider";
 import { callResearchWebSearch } from "@/providers/webSearchProvider";
 import { getTimeoutMs, truncate } from "@/providers/providerUtils";
 import {
@@ -9,10 +8,7 @@ import {
   pickFallbackAnswer
 } from "@/services/aionAnalyzer";
 import { getAionGreetingAnswer } from "@/services/aionGreeting";
-import {
-  LIVE_VERIFICATION_SYSTEM_PROMPT,
-  needsLiveVerification
-} from "@/services/liveVerification";
+import { needsLiveVerification } from "@/services/liveVerification";
 import type {
   ModelRouteRequest,
   ProviderResponse,
@@ -65,9 +61,7 @@ export async function routeAionStream({
 
   const messages: ChatMessage[] = [...history, { role: "user", content: message }];
   const liveSearchResponse = await getLiveSearchResponse({
-    selectedModel,
     message,
-    messages,
     attachments
   });
 
@@ -369,47 +363,25 @@ function disabledDiagnostic(slot: AionRouteSlot): ProviderResponse {
 }
 
 async function getLiveSearchResponse({
-  selectedModel,
   message,
-  messages,
   attachments
 }: {
-  selectedModel: ModelRouteRequest["selectedModel"];
   message: string;
-  messages: ChatMessage[];
   attachments: ChatAttachment[];
 }) {
-  if (!needsModelWebSearch(selectedModel, message, attachments)) {
+  if (!needsModelWebSearch(message, attachments)) {
     return null;
   }
 
-  if (selectedModel === "aion-mind-pro" || selectedModel === "aion-mind-analyzer") {
-    return callResearchWebSearch({
-      query: message,
-      timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
-    });
-  }
-
-  return callOpenAIWithWebSearch({
-    messages,
-    systemPrompt: LIVE_VERIFICATION_SYSTEM_PROMPT,
+  // All model tiers use Tavily for live web search.
+  return callResearchWebSearch({
+    query: message,
     timeoutMs: getTimeoutMs(process.env.AION_LIVE_VERIFICATION_TIMEOUT_MS, 35000)
   });
 }
 
-function needsModelWebSearch(
-  selectedModel: ModelRouteRequest["selectedModel"],
-  message: string,
-  attachments: ChatAttachment[]
-) {
+function needsModelWebSearch(message: string, attachments: ChatAttachment[]) {
   const normalized = message.replace(/\s+/g, " ").trim();
-
-  if (selectedModel === "aion-mind-pro" || selectedModel === "aion-mind-analyzer") {
-    return (
-      needsLiveVerification(message, attachments) ||
-      (attachments.length === 0 && WEB_SEARCH_INTENT_PATTERN.test(normalized))
-    );
-  }
 
   return (
     needsLiveVerification(message, attachments) ||
