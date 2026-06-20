@@ -5073,6 +5073,8 @@ select:focus-visible,
 }
 
 .billing-invoice-button {
+  /* Invoice download is always green, regardless of theme or accent mode. */
+  --invoice-green: #25d59b;
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
@@ -5080,10 +5082,10 @@ select:focus-visible,
   gap: 6px;
   width: auto;
   height: auto;
-  border: 1px solid color-mix(in srgb, var(--accent-2) 32%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--invoice-green) 36%, var(--border));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
-  color: color-mix(in srgb, var(--accent-2) 88%, white);
+  background: color-mix(in srgb, var(--invoice-green) 14%, transparent);
+  color: color-mix(in srgb, var(--invoice-green) 90%, white);
   padding: 7px 14px;
   font-size: 0.8rem;
   font-weight: 700;
@@ -5093,8 +5095,15 @@ select:focus-visible,
 }
 
 .billing-invoice-button:hover {
-  background: color-mix(in srgb, var(--accent-2) 20%, transparent);
+  background: color-mix(in srgb, var(--invoice-green) 22%, transparent);
+  border-color: color-mix(in srgb, var(--invoice-green) 50%, var(--border));
   transform: translateY(-1px);
+}
+
+/* Light theme: deepen the green text/fill so it reads on white. */
+[data-theme="light"] .billing-invoice-button {
+  --invoice-green: #0e9f74;
+  color: color-mix(in srgb, var(--invoice-green) 78%, #06311f);
 }
 
 .billing-invoice-spacer {
