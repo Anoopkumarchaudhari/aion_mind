@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { AuthError, requireCurrentUser } from "@/services/auth";
 import { deleteNotebook, getNotebook, patchNotebook } from "@/services/serverMemory";
+
+export const runtime = "nodejs";
 
 type RouteContext = {
   params: Promise<{
@@ -9,13 +12,19 @@ type RouteContext = {
 
 export async function GET(_request: Request, context: RouteContext) {
   const { id } = await context.params;
-  const notebook = getNotebook(id);
 
-  if (!notebook) {
-    return NextResponse.json({ error: "Notebook not found" }, { status: 404 });
+  try {
+    const user = await requireCurrentUser();
+    const notebook = await getNotebook(user.id, id);
+
+    if (!notebook) {
+      return NextResponse.json({ error: "Notebook not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ notebook });
+  } catch (error) {
+    return authErrorResponse(error);
   }
-
-  return NextResponse.json({ notebook });
 }
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -28,13 +37,35 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const notebook = patchNotebook(id, body);
+  try {
+    const user = await requireCurrentUser();
+    const notebook = await patchNotebook(user.id, id, body);
 
-  return NextResponse.json({ notebook, ok: true });
+    if (!notebook) {
+      return NextResponse.json({ error: "Notebook not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ notebook, ok: true });
+  } catch (error) {
+    return authErrorResponse(error);
+  }
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
   const { id } = await context.params;
 
-  return NextResponse.json({ id, deleted: deleteNotebook(id) });
+  try {
+    const user = await requireCurrentUser();
+    return NextResponse.json({ id, deleted: await deleteNotebook(user.id, id) });
+  } catch (error) {
+    return authErrorResponse(error);
+  }
+}
+
+function authErrorResponse(error: unknown) {
+  if (error instanceof AuthError) {
+    return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+
+  return NextResponse.json({ error: "Database request failed." }, { status: 500 });
 }

@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       inputImageData
     });
     const timestamp = Date.now();
-    const job = saveVideoJob({
+    const job = await saveVideoJob(user.id, {
       id: crypto.randomUUID(),
       provider,
       mode,

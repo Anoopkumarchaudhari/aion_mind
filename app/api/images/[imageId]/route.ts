@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/services/auth";
 import { readGeneratedImageFile } from "@/services/generatedImageFiles";
 import { getGeneratedImage } from "@/services/serverMemory";
 
@@ -11,36 +12,45 @@ type RouteContext = {
 };
 
 export async function GET(_request: Request, context: RouteContext) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "You must be signed in." }, { status: 401 });
+  }
+
   const { imageId } = await context.params;
-  const image = getGeneratedImage(imageId);
+  // Ownership is enforced here: getGeneratedImage only returns a row whose
+  // user_id matches the signed-in user, so one account can never fetch
+  // another account's image by guessing its id.
+  const image = await getGeneratedImage(user.id, imageId);
 
   if (!image) {
-    const storedFile = readGeneratedImageFile(imageId);
+    return NextResponse.json({ error: "Image not found" }, { status: 404 });
+  }
 
-    if (!storedFile) {
-      return NextResponse.json({ error: "Image not found" }, { status: 404 });
-    }
-
+  if (image.base64) {
     return toImageResponse(
-      storedFile.bytes,
-      storedFile.mimeType,
-      `aria-mind-image.${storedFile.extension}`
+      Buffer.from(image.base64, "base64"),
+      image.mimeType,
+      `${toImageFilename(image.prompt)}.${getImageExtension(image.mimeType)}`
     );
   }
 
-  if (image.sourceUrl && !image.base64) {
+  const storedFile = readGeneratedImageFile(imageId);
+
+  if (storedFile) {
+    return toImageResponse(
+      storedFile.bytes,
+      storedFile.mimeType,
+      `${toImageFilename(image.prompt)}.${storedFile.extension}`
+    );
+  }
+
+  if (image.sourceUrl) {
     return NextResponse.redirect(image.sourceUrl);
   }
 
-  if (!image.base64) {
-    return NextResponse.json({ error: "Image data is unavailable" }, { status: 404 });
-  }
-
-  return toImageResponse(
-    Buffer.from(image.base64, "base64"),
-    image.mimeType,
-    `${toImageFilename(image.prompt)}.${getImageExtension(image.mimeType)}`
-  );
+  return NextResponse.json({ error: "Image data is unavailable" }, { status: 404 });
 }
 
 function toImageResponse(bytes: Buffer, mimeType: string, filename: string) {

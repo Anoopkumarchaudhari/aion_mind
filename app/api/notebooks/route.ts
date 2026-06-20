@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
+import { AuthError, requireCurrentUser } from "@/services/auth";
 import { listNotebooks, saveNotebook } from "@/services/serverMemory";
 import type { Notebook } from "@/types/workspace";
+
+export const runtime = "nodejs";
 
 type NotebookBody = Partial<Notebook>;
 
 export async function GET() {
-  return NextResponse.json({ notebooks: listNotebooks() });
+  try {
+    const user = await requireCurrentUser();
+    return NextResponse.json({ notebooks: await listNotebooks(user.id) });
+  } catch (error) {
+    return authErrorResponse(error);
+  }
 }
 
 export async function POST(request: Request) {
@@ -28,5 +36,18 @@ export async function POST(request: Request) {
     updatedAt: typeof body.updatedAt === "number" ? body.updatedAt : timestamp
   };
 
-  return NextResponse.json({ notebook: saveNotebook(notebook) }, { status: 201 });
+  try {
+    const user = await requireCurrentUser();
+    return NextResponse.json({ notebook: await saveNotebook(user.id, notebook) }, { status: 201 });
+  } catch (error) {
+    return authErrorResponse(error);
+  }
+}
+
+function authErrorResponse(error: unknown) {
+  if (error instanceof AuthError) {
+    return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+
+  return NextResponse.json({ error: "Database request failed." }, { status: 500 });
 }

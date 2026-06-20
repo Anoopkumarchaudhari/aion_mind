@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminUser } from "@/services/adminAuth";
-import { revokeUserSessions } from "@/services/adminOverview";
+import { assertCanManageTargetUser, revokeUserSessions } from "@/services/adminOverview";
 import { AuthError } from "@/services/auth";
 
 export const runtime = "nodejs";
@@ -23,6 +23,10 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
         { status: 400 }
       );
     }
+
+    // A sub-admin must not be able to revoke a super-admin's (or peer admin's)
+    // sessions — same protection the sibling status/billing routes enforce.
+    await assertCanManageTargetUser(admin, userId);
 
     const revoked = await revokeUserSessions(userId);
 

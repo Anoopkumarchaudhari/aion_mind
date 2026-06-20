@@ -136,7 +136,7 @@ export async function POST(request: Request) {
   try {
     const image = await generateImage(input);
 
-    return NextResponse.json({ image: saveGeneratedImage(image) }, { status: 201 });
+    return NextResponse.json({ image: await saveGeneratedImage(user.id, image) }, { status: 201 });
   } catch (error) {
     const status = error instanceof ProviderHttpError ? error.status : 500;
     const message = getImageErrorMessage(error);

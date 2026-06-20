@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
+import { AuthError, requireCurrentUser } from "@/services/auth";
 import { listLibraryItems, saveLibraryItem } from "@/services/serverMemory";
 import type { LibraryItem, LibraryItemType } from "@/types/workspace";
+
+export const runtime = "nodejs";
 
 type LibraryBody = Partial<LibraryItem>;
 
 const libraryTypes = new Set<LibraryItemType>(["chat", "code", "image", "video", "document"]);
 
 export async function GET() {
-  return NextResponse.json({ items: listLibraryItems() });
+  try {
+    const user = await requireCurrentUser();
+    return NextResponse.json({ items: await listLibraryItems(user.id) });
+  } catch (error) {
+    return authErrorResponse(error);
+  }
 }
 
 export async function POST(request: Request) {
@@ -35,5 +43,18 @@ export async function POST(request: Request) {
     createdAt: typeof body.createdAt === "number" ? body.createdAt : Date.now()
   };
 
-  return NextResponse.json({ item: saveLibraryItem(item) }, { status: 201 });
+  try {
+    const user = await requireCurrentUser();
+    return NextResponse.json({ item: await saveLibraryItem(user.id, item) }, { status: 201 });
+  } catch (error) {
+    return authErrorResponse(error);
+  }
+}
+
+function authErrorResponse(error: unknown) {
+  if (error instanceof AuthError) {
+    return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+
+  return NextResponse.json({ error: "Database request failed." }, { status: 500 });
 }

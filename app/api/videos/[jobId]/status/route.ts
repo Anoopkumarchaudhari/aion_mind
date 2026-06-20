@@ -28,7 +28,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const { jobId } = await context.params;
-  const job = getVideoJob(jobId);
+  const job = await getVideoJob(user.id, jobId);
 
   if (!job) {
     return NextResponse.json({ error: "Video job not found" }, { status: 404 });
@@ -54,17 +54,17 @@ export async function GET(_request: Request, context: RouteContext) {
       patch.cost = result.cost;
     }
 
-    const next = patchVideoJob(job.id, patch) ?? job;
+    const next = (await patchVideoJob(user.id, job.id, patch)) ?? job;
     return NextResponse.json(next);
   } catch (error) {
     const message = job.provider === "google" ? getGoogleVideoErrorMessage(error) : getRunwareVideoErrorMessage(error);
     const shouldFail =
       error instanceof ProviderHttpError && [400, 401, 403, 404].includes(error.status);
     const next =
-      patchVideoJob(job.id, {
+      (await patchVideoJob(user.id, job.id, {
         status: shouldFail ? "failed" : "processing",
         error: message
-      }) ?? job;
+      })) ?? job;
 
     return NextResponse.json(next);
   }

@@ -1,7 +1,7 @@
 import { Pool, type PoolConfig, type QueryResultRow } from "pg";
 
 const globalKey = "__aionMindPgPool";
-const schemaKey = "__aionMindPgSchemaReady_v12";
+const schemaKey = "__aionMindPgSchemaReady_v13";
 const splitConfigPrefixes = ["AION_PG", "JBTALLY_PG"] as const;
 const requiredSplitConfigKeys = ["HOST", "DATABASE", "USER", "PASSWORD"] as const;
 
@@ -238,6 +238,73 @@ async function createSchema() {
       created_at BIGINT NOT NULL,
       position INTEGER NOT NULL
     );
+
+    -- Per-user, secret share token for a chat thread. NULL until the owner
+    -- explicitly creates a share link; only the owner can mint one.
+    ALTER TABLE chat_threads
+      ADD COLUMN IF NOT EXISTS share_token TEXT;
+
+    -- Workspace items. Every row is owned by exactly one user so library,
+    -- notebooks, images, and video jobs can never leak across accounts and
+    -- survive server restarts / multi-instance deploys (replaces the old
+    -- process-global in-memory store).
+    CREATE TABLE IF NOT EXISTS library_items (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT,
+      url TEXT,
+      source_chat_id TEXT,
+      source_message_id TEXT,
+      language TEXT,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_library_items_user ON library_items(user_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS notebooks (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      color TEXT NOT NULL,
+      items JSONB NOT NULL DEFAULT '[]'::jsonb,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_notebooks_user ON notebooks(user_id, updated_at DESC);
+
+    CREATE TABLE IF NOT EXISTS generated_images (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+      prompt TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      model_key TEXT NOT NULL,
+      model TEXT NOT NULL,
+      aspect_ratio TEXT NOT NULL,
+      size TEXT NOT NULL,
+      quality TEXT NOT NULL,
+      url TEXT NOT NULL,
+      revised_prompt TEXT,
+      mime_type TEXT NOT NULL,
+      base64 TEXT,
+      source_url TEXT,
+      created_at BIGINT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_generated_images_user ON generated_images(user_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS video_jobs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+      data JSONB NOT NULL,
+      created_at BIGINT NOT NULL,
+      updated_at BIGINT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_video_jobs_user ON video_jobs(user_id, updated_at DESC);
 
     CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON app_sessions(user_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON app_sessions(expires_at);

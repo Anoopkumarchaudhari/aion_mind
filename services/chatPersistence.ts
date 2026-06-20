@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { query } from "@/services/db";
 import type { AionModelId, DebugDiagnostic, MessageAttachment } from "@/types/aion";
 
@@ -157,6 +158,38 @@ export async function patchUserThread(
   );
 
   return next;
+}
+
+/**
+ * Mint (or reuse) a secret share token for a thread the caller owns.
+ * Returns null when the thread does not exist or is not owned by the user, so
+ * no one can create a public link to a chat that is not theirs. The token is a
+ * full random UUID (122 bits) so share URLs cannot be guessed or enumerated.
+ */
+export async function createThreadShare(userId: string, threadId: string) {
+  const existing = await query<{ share_token: string | null }>(
+    "SELECT share_token FROM chat_threads WHERE id = $1 AND user_id = $2",
+    [threadId, userId]
+  );
+  const row = existing.rows[0];
+
+  if (!row) {
+    return null;
+  }
+
+  if (row.share_token) {
+    return row.share_token;
+  }
+
+  const token = randomUUID();
+
+  await query("UPDATE chat_threads SET share_token = $1 WHERE id = $2 AND user_id = $3", [
+    token,
+    threadId,
+    userId
+  ]);
+
+  return token;
 }
 
 export async function deleteUserThread(userId: string, threadId: string) {

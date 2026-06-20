@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { AionLogo } from "@/components/AionLogo";
 import { ConfigAlert } from "@/components/ConfigAlert";
 import { messageRowVariants } from "@/lib/motion";
+import { safeHref } from "@/lib/safeUrl";
 import { useChatStore } from "@/store/useChatStore";
 import { useLibraryStore } from "@/store/useLibraryStore";
 import type { UiMessage } from "@/store/useChatStore";
@@ -265,7 +266,7 @@ function MarkdownContent({ content }: { content: string }) {
         remarkPlugins={[remarkGfm]}
         components={{
           a: ({ href, children }) => (
-            <a href={href} target="_blank" rel="noreferrer">
+            <a href={safeHref(href)} target="_blank" rel="noreferrer">
               {children}
             </a>
           ),
