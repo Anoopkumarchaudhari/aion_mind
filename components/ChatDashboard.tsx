@@ -47,7 +47,7 @@ export function ChatDashboard({ initialThreadId }: ChatDashboardProps) {
   const [attachments, setAttachments] = useState<ChatAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState("");
   const [isReadingFiles, setIsReadingFiles] = useState(false);
-  const [accountName, setAccountName] = useState("Anoop Kumar");
+  const [accountName, setAccountName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [routingOpen, setRoutingOpen] = useState(false);

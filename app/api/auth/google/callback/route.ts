@@ -40,6 +40,14 @@ export async function GET(request: Request) {
 
   try {
     const profile = await exchangeGoogleCode(code, getGoogleRedirectUri(request.url));
+
+    // Only trust a Google email Google itself has verified. Otherwise a sign-in
+    // with an unverified email could match — and silently take over — an existing
+    // password account, since accounts are linked by email.
+    if (!profile.emailVerified) {
+      return fail("google_unverified");
+    }
+
     const user = await findOrCreateGoogleUser({ email: profile.email, name: profile.name });
     const sessionId = await createSession(user.id);
 

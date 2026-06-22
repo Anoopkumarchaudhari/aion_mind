@@ -20,6 +20,7 @@ const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
   google_unconfigured: "Google sign-in isn't configured yet. Please use email for now.",
   google_failed: "Google sign-in failed. Please try again.",
   google_state: "Google sign-in expired or was interrupted. Please try again.",
+  google_unverified: "Your Google email isn't verified. Verify it with Google, or sign in with email and password.",
   inactive: "This account is inactive. Contact the administrator."
 };
 

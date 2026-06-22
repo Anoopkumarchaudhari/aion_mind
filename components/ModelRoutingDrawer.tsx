@@ -408,8 +408,7 @@ function SlotEditor({
   modelChoices?: Array<{ label: string; value: string }>;
   onChange: (patch: Partial<AionRouteSlot>) => void;
 }) {
-  const modelListId = `models-${slot.id}`;
-  const datalistModels = modelChoices ?? getProviderDefaults(providers, slot.provider);
+  const modelOptions = modelChoices ?? getProviderDefaults(providers, slot.provider);
 
   function handleProviderChange(provider: AionRoutingProvider) {
     onChange({
@@ -451,20 +450,23 @@ function SlotEditor({
 
         <label className="field-label">
           Model ID
-          <input
+          {/* Always a real dropdown so every model for the slot's provider is
+              visible. A datalist hides all but the option matching the typed
+              text, so e.g. DeepSeek would only ever show one of its two models. */}
+          <select
             className="field-input"
-            list={modelListId}
             value={slot.model}
             onChange={(event) => onChange({ model: event.target.value })}
-            placeholder="Use server default"
-          />
-          <datalist id={modelListId}>
-            {datalistModels.map((model) => (
-              <option key={`${slot.id}-${model.label}`} value={model.value}>
+          >
+            {modelOptions.some((model) => model.value === slot.model) ? null : (
+              <option value={slot.model}>{slot.model || "Use server default"}</option>
+            )}
+            {modelOptions.map((model, index) => (
+              <option key={`${slot.id}-${index}-${model.value}`} value={model.value}>
                 {model.label}
               </option>
             ))}
-          </datalist>
+          </select>
         </label>
 
         <label className="field-label">

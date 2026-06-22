@@ -998,23 +998,53 @@ function LandingFooter() {
   return (
     <footer className="landing-footer">
       <div className="landing-footer-inner">
-        <Link className="landing-brand" href="/">
-          <AionLogo size={30} />
-          <span>
-            <strong>AriamindX</strong>
-            <small>By JB Crownstone</small>
-          </span>
-        </Link>
-        <nav aria-label="Footer navigation">
-          <a href="#models">Models</a>
-          <a href="#features">Features</a>
-          <a href="#about">About</a>
-          <a href="#plans">Plans</a>
-          <Link href="/login">Login</Link>
-          <Link href="/signup">Create account</Link>
-        </nav>
+        <div className="landing-footer-brand">
+          <Link className="landing-brand" href="/">
+            <AionLogo size={32} />
+            <span>
+              <strong>AriamindX</strong>
+              <small>By JB Crownstone</small>
+            </span>
+          </Link>
+          <p className="landing-footer-tagline">
+            Every powerful AI model in one workspace — chat, image, video, audio, and more, without
+            switching tools.
+          </p>
+        </div>
+
+        <div className="landing-footer-cols">
+          <nav className="landing-footer-col" aria-label="Product">
+            <h4>Product</h4>
+            <a href="#models">Models</a>
+            <a href="#features">Features</a>
+            <a href="#plans">Plans</a>
+            <Link href="/pricing">Pricing</Link>
+          </nav>
+          <nav className="landing-footer-col" aria-label="Company">
+            <h4>Company</h4>
+            <a href="#about">Overview</a>
+            <Link href="/about">About us</Link>
+            <Link href="/contact">Contact us</Link>
+          </nav>
+          <nav className="landing-footer-col" aria-label="Account">
+            <h4>Account</h4>
+            <Link href="/login">Login</Link>
+            <Link href="/signup">Create account</Link>
+          </nav>
+          <nav className="landing-footer-col" aria-label="Legal">
+            <h4>Legal</h4>
+            <Link href="/privacy-policy">Privacy Policy</Link>
+            <Link href="/terms">Terms &amp; Conditions</Link>
+            <Link href="/refund-policy">Refund &amp; Cancellation</Link>
+            <Link href="/shipping-policy">Shipping Policy</Link>
+          </nav>
+        </div>
       </div>
-      <p className="landing-footer-copy">&copy; {year} AriamindX by JB Crownstone. Every powerful model, one workspace.</p>
+
+      <div className="landing-footer-bottom">
+        <p className="landing-footer-copy">&copy; {year} AriamindX by JB Crownstone. All rights reserved.</p>
+        <p className="landing-footer-made">Built by JB Crownstone</p>
+      </div>
     </footer>
   );
 }

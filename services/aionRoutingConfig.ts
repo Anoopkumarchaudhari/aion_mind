@@ -23,7 +23,9 @@ const INSTANT_MODEL_CHOICES: Array<{ label: string; value: string }> = [
   { label: "GPT-5.4 nano (fastest)", value: "gpt-5.4-nano" },
   { label: "GPT-5.4", value: "gpt-5.4" },
   { label: "GPT-5.5 (flagship)", value: "gpt-5.5" },
-  { label: "GPT-5 mini", value: "gpt-5-mini" }
+  { label: "GPT-5 mini", value: "gpt-5-mini" },
+  { label: "GPT-4o mini", value: "gpt-4o-mini" },
+  { label: "GPT-3.5 Turbo", value: "gpt-3.5-turbo" }
 ];
 
 export async function getAionRoutingPayload() {

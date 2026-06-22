@@ -1326,13 +1326,13 @@ a {
 }
 
 .sidebar {
-  --sidebar-accent: #34d399;
-  --sidebar-accent-2: #25d59b;
-  --sidebar-accent-glow: rgba(37, 213, 155, 0.22);
+  --sidebar-accent: #64748b;
+  --sidebar-accent-2: #475569;
+  --sidebar-accent-glow: rgba(100, 116, 139, 0.22);
   --sidebar-panel: #171715;
   --sidebar-panel-soft: #201f1d;
-  --sidebar-panel-hover: #2a2a27;
-  --sidebar-panel-active: #2f3a33;
+  --sidebar-panel-hover: color-mix(in srgb, var(--sidebar-accent) 16%, #1d2127);
+  --sidebar-panel-active: #262a30;
   position: relative;
   z-index: 30;
   display: flex;
@@ -1548,7 +1548,7 @@ a {
 .new-pill {
   border-color: color-mix(in srgb, var(--sidebar-accent) 36%, transparent);
   background: color-mix(in srgb, var(--sidebar-accent) 12%, transparent);
-  color: #bae6fd;
+  color: color-mix(in srgb, var(--sidebar-accent) 55%, var(--text-primary));
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -6123,11 +6123,13 @@ select:focus-visible,
   margin-top: 0;
   border: 1px solid var(--border);
   border-radius: 20px;
+  /* Match the billing / dashboard card surface (dark slate with a soft accent tint). */
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--accent-2) 7%, transparent), transparent 26%),
-    rgba(255, 255, 255, 0.025);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.052), rgba(255, 255, 255, 0.02)),
+    rgba(13, 20, 28, 0.76);
   padding: 22px;
-  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.24);
   gap: 16px;
 }
 
@@ -6181,26 +6183,29 @@ select:focus-visible,
 }
 
 /* ============================================================
-   Account hub identity — settings, billing, and the user dashboard
-   (plus their context sidebars) share one refined Claude-style clay
+   Account hub identity — billing keeps one refined Claude-style clay
    accent. Clay sits in the mid-tone range, so it keeps strong, even
    contrast on both light and dark surfaces.
+
+   Settings and the user dashboard are intentionally excluded so they
+   match the main app's teal/green accent (inherited from :root).
    ============================================================ */
-.settings-route,
 .billing-route,
-.user-dash,
-.context-sidebar {
+.context-sidebar:not(.settings-sidebar) {
   --accent: #d97757;
   --accent-2: #bf5d3a;
   --accent-glow: rgba(217, 119, 87, 0.3);
   --gradient-accent: linear-gradient(135deg, #e08a64 0%, #c2622f 100%);
 }
 
-.context-sidebar {
+.context-sidebar:not(.settings-sidebar) {
   --sidebar-accent: #d97757;
   --sidebar-accent-2: #bf5d3a;
   --sidebar-accent-glow: rgba(217, 119, 87, 0.3);
 }
+
+/* Settings sidebar inherits the main app's sidebar accent (slate) from
+   the base .sidebar rule — no override needed. */
 
 /* Accent buttons keep light text — white reads cleanly on clay. */
 .settings-route .primary-button,
@@ -6995,11 +7000,13 @@ select:focus-visible,
 
 .routing-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Four routing modes — a 2x2 grid keeps every label on one line and the
+     longest one ("Aria Mind / Analyzer") fully visible. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
   margin: 0 18px 14px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.03);
   padding: 4px;
 }
@@ -7007,12 +7014,16 @@ select:focus-visible,
 .routing-tabs button {
   min-width: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: 11px;
   background: transparent;
   color: var(--text-secondary);
-  padding: 7px 10px;
+  padding: 9px 10px;
   font-size: 0.78rem;
   font-weight: 650;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .routing-tabs button:hover,
@@ -9394,9 +9405,13 @@ body:has(.landing-page) {
   }
 
   .landing-footer-inner {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+
+  .landing-footer-cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 28px 24px;
   }
 
   .landing-model-grid,
@@ -10080,46 +10095,84 @@ body:has(.landing-page) {
 .landing-footer {
   width: min(1180px, calc(100% - 36px));
   margin: 0 auto;
-  padding: 36px 0 56px;
+  padding: 56px 0 40px;
   border-top: 1px solid rgba(255, 255, 255, 0.09);
 }
 
 .landing-footer-inner {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.2fr) 2fr;
+  gap: 56px;
+  align-items: start;
+}
+
+.landing-footer-brand {
+  display: grid;
+  gap: 16px;
+  max-width: 340px;
+}
+
+.landing-footer-brand .landing-brand {
+  width: fit-content;
+}
+
+.landing-footer-tagline {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.landing-footer-cols {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 28px;
+}
+
+.landing-footer-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.landing-footer-col h4 {
+  margin: 0 0 3px;
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.landing-footer-col a {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.landing-footer-col a:hover {
+  color: var(--text-primary);
+}
+
+.landing-footer-bottom {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   flex-wrap: wrap;
+  margin-top: 44px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-.landing-footer nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-}
-
-.landing-footer nav a {
-  border-radius: 999px;
-  color: var(--text-secondary);
-  padding: 8px 11px;
-  font-size: 0.86rem;
-  font-weight: 700;
-  text-decoration: none;
-  transition:
-    background-color 150ms ease,
-    color 150ms ease;
-}
-
-.landing-footer nav a:hover {
-  background: rgba(255, 255, 255, 0.07);
-  color: #ffffff;
-}
-
-.landing-footer-copy {
-  margin: 22px 0 0;
+.landing-footer-copy,
+.landing-footer-made {
+  margin: 0;
   color: var(--text-muted);
-  font-size: 0.84rem;
+  font-size: 0.82rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -12521,13 +12574,13 @@ body:has(.landing-page) {
 }
 
 [data-theme="light"] .sidebar {
-  --sidebar-accent: #0e9f74;
-  --sidebar-accent-2: #0e8fb0;
-  --sidebar-accent-glow: rgba(14, 159, 116, 0.16);
+  --sidebar-accent: #334155;
+  --sidebar-accent-2: #1e293b;
+  --sidebar-accent-glow: rgba(51, 65, 85, 0.22);
   --sidebar-panel: #efede8;
   --sidebar-panel-soft: #e7e5de;
-  --sidebar-panel-hover: #ded9cf;
-  --sidebar-panel-active: #d2ebe0;
+  --sidebar-panel-hover: color-mix(in srgb, var(--sidebar-accent) 20%, #ffffff);
+  --sidebar-panel-active: #d3d8e0;
   border-right: 1px solid rgba(23, 23, 20, 0.1);
   background:
     linear-gradient(180deg, rgba(0, 0, 0, 0.018), transparent 24%),
@@ -12716,7 +12769,7 @@ body:has(.landing-page) {
 }
 
 [data-theme="light"] .sidebar-action.is-primary {
-  color: #14463a;
+  color: #1e293b;
 }
 
 /* Pale status text needs darker tints to read on white. */
@@ -12858,6 +12911,36 @@ body:has(.landing-page) {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 12px 30px rgba(0, 0, 0, 0.06);
 }
 
+/* ---------- Model routing drawer (light) ---------- */
+[data-theme="light"] .routing-drawer {
+  border-left-color: rgba(23, 23, 20, 0.1);
+  /* Soft off-white panel so the pure-white slot cards stand out against it. */
+  background: linear-gradient(180deg, #faf9f6, #f2f0ea);
+  box-shadow: -26px 0 70px rgba(23, 23, 20, 0.16);
+}
+
+[data-theme="light"] .routing-drawer-backdrop {
+  background: rgba(23, 23, 20, 0.32);
+}
+
+[data-theme="light"] .routing-provider-status,
+[data-theme="light"] .routing-icon-button {
+  background: #ffffff;
+  border-color: rgba(23, 23, 20, 0.1);
+}
+
+[data-theme="light"] .routing-tabs {
+  background: #ece9e3;
+  border-color: rgba(23, 23, 20, 0.1);
+}
+
+/* Pale-green accent text is invisible on a light tint — use a deep green. */
+[data-theme="light"] .routing-tabs button:hover,
+[data-theme="light"] .routing-tabs button.is-active,
+[data-theme="light"] .routing-title-icon {
+  color: #0b6b4f;
+}
+
 [data-theme="light"] .billing-overview,
 [data-theme="light"] .billing-panel {
   background: #ffffff;
@@ -12871,7 +12954,7 @@ body:has(.landing-page) {
 
 [data-theme="light"] .sidebar-action.is-active,
 [data-theme="light"] .history-item.is-active {
-  color: #163f33;
+  color: #1e293b;
 }
 
 [data-theme="light"] .square-icon,
@@ -12987,8 +13070,12 @@ body:has(.landing-page) {
   border-color: rgba(23, 23, 20, 0.1);
 }
 
-[data-theme="light"] .landing-footer nav a:hover {
+[data-theme="light"] .landing-footer-col a:hover {
   color: #1d1c19;
+}
+
+[data-theme="light"] .landing-footer-bottom {
+  border-top-color: rgba(23, 23, 20, 0.1);
 }
 
 /* Hero: secondary button, eyebrow, and mode pills were built for dark. */

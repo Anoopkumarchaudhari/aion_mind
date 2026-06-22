@@ -76,7 +76,8 @@ type SidebarProps = {
 
 const VIDEO_VISIT_KEY = "aion-mind-videos-first-visit";
 const NEW_PILL_MS = 7 * 24 * 60 * 60 * 1000;
-const ACCOUNT_NAME = "Anoop Kumar";
+// Neutral default shown only until /api/auth/me resolves the real account name.
+const ACCOUNT_NAME = "";
 
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/).slice(0, 2);
