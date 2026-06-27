@@ -831,6 +831,11 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                   <CreditCard size={15} />
                   Top-up packs
                 </div>
+                <div className="admin-inline-edit admin-inline-head" aria-hidden="true">
+                  <span>Pack</span>
+                  <span>Price (₹)</span>
+                  <span>Credits</span>
+                </div>
                 {billingDraft.topUps.map((pack) => (
                   <div className="admin-inline-edit" key={pack.id}>
                     <span>{pack.name}</span>
@@ -857,6 +862,10 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                 <div className="admin-mini-heading">
                   <Activity size={15} />
                   Feature rates
+                </div>
+                <div className="admin-inline-edit admin-inline-head" aria-hidden="true">
+                  <span>Feature</span>
+                  <span>Credits</span>
                 </div>
                 {billingDraft.featureRates.map((rate) => (
                   <div className="admin-inline-edit" key={rate.id}>

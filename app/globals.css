@@ -5815,6 +5815,16 @@ select:focus-visible,
 .admin-mini-panel {
   display: grid;
   gap: 8px;
+  /* Pack rows to the top — the two side-by-side panels stretch to equal height,
+     so without this the shorter list's rows spread out to fill the gap. */
+  align-content: start;
+}
+
+/* Inset the content so the heading and rows aren't flush against the panel
+   edges or the divider between the two panels. */
+.admin-mini-panel {
+  padding: 4px 16px 16px;
+  border-radius: 14px;
 }
 
 .admin-list-row,
@@ -6702,30 +6712,70 @@ select:focus-visible,
   color: var(--accent);
 }
 
-.model-submenu {
-  position: absolute;
-  right: calc(100% + 8px);
-  top: 0;
-  z-index: 70;
-  width: 190px;
+/* Inline drill-in detail view — renders inside the same .model-menu-panel */
+.model-menu-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: modelDetailIn 160ms ease;
+}
+
+@keyframes modelDetailIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.model-menu-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
+.model-menu-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.model-menu-back:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.model-menu-detail-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-menu-detail-body {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: rgba(40, 40, 38, 0.98);
-  backdrop-filter: blur(22px);
-  padding: 6px;
-  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.5);
 }
 
-@media (max-width: 560px) {
-  .model-submenu {
-    right: auto;
-    left: 0;
-    top: calc(100% + 4px);
-    width: 100%;
-  }
+.model-menu-use {
+  justify-content: space-between;
 }
 
 .model-submenu-item {
@@ -11383,6 +11433,21 @@ body:has(.landing-page) {
   font-size: 0.86rem;
 }
 
+/* Column header row above the editable rows (Pack / Price / Credits, etc.). */
+.admin-inline-head span {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 720;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Numeric headers sit over the fixed-width inputs (92px) and centre on them. */
+.admin-inline-head span + span {
+  width: 92px;
+  text-align: center;
+}
+
 /* ---- Providers + budgets ---- */
 .admin-provider-grid {
   display: grid;
@@ -12700,9 +12765,12 @@ body:has(.landing-page) {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
 }
 
-[data-theme="light"] .model-submenu {
-  background: rgba(255, 255, 255, 0.99);
-  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.16);
+[data-theme="light"] .model-menu-back {
+  border-color: rgba(23, 23, 20, 0.12);
+}
+
+[data-theme="light"] .model-menu-back:hover {
+  background: rgba(23, 23, 20, 0.05);
 }
 
 [data-theme="light"] .chat-menu-content {

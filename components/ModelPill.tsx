@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
-import { Check, ChevronDown, ChevronRight, SlidersHorizontal, Sparkles } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
+  Sparkles
+} from "lucide-react";
 import {
   ARIA_DIVERSE_PROVIDERS,
   getAionModelLabel,
@@ -34,6 +41,11 @@ const MODES: AionModelId[] = [
 const RECOMMENDED_MODE: AionModelId = "aion-mind";
 const MAX_DIVERSE_PROVIDERS = 5;
 
+// Modes that drill into an inline sub-options view instead of selecting directly.
+function hasSubOptions(model: AionModelId) {
+  return model === "aion-mind-pro" || model === "aria-diverse";
+}
+
 export function ModelPill({
   active,
   diverseProviders,
@@ -44,7 +56,8 @@ export function ModelPill({
   onOpenRouting
 }: ModelPillProps) {
   const [open, setOpen] = useState(false);
-  const [openSubmenu, setOpenSubmenu] = useState<AionModelId | null>(null);
+  // null = root list view; a mode id = inline detail view for that mode.
+  const [detailMode, setDetailMode] = useState<AionModelId | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,14 +68,20 @@ export function ModelPill({
     function handlePointer(event: MouseEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
         setOpen(false);
-        setOpenSubmenu(null);
+        setDetailMode(null);
       }
     }
 
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setOpen(false);
-        setOpenSubmenu(null);
+        // Escape steps back out of a detail view first, then closes the menu.
+        setDetailMode((current) => {
+          if (current) {
+            return null;
+          }
+          setOpen(false);
+          return null;
+        });
       }
     }
 
@@ -76,10 +95,23 @@ export function ModelPill({
 
   const triggerLabel = getTriggerLabel(active, diverseProviders, researchProvider);
 
+  function closeMenu() {
+    setOpen(false);
+    setDetailMode(null);
+  }
+
   function selectMode(model: AionModelId) {
     onChange(model);
-    setOpen(false);
-    setOpenSubmenu(null);
+    closeMenu();
+  }
+
+  // Root row click: drill into sub-options if available, otherwise select.
+  function handleRowClick(model: AionModelId) {
+    if (hasSubOptions(model)) {
+      setDetailMode(model);
+    } else {
+      selectMode(model);
+    }
   }
 
   // Aria Diverse: toggle a provider in the multi-select (keep at least one).
@@ -110,9 +142,7 @@ export function ModelPill({
   // Aria Research: pick exactly one provider.
   function selectResearchProvider(provider: AriaDiverseProvider) {
     onResearchProviderChange(provider);
-    onChange("aion-mind-pro");
-    setOpen(false);
-    setOpenSubmenu(null);
+    selectMode("aion-mind-pro");
   }
 
   return (
@@ -132,137 +162,58 @@ export function ModelPill({
 
         {open ? (
           <div className="model-menu-panel" role="menu">
-            {MODES.map((model) => {
-              // Aria Diverse — checkbox multi-select (1–5 providers).
-              if (model === "aria-diverse") {
+            {detailMode ? (
+              <ModelDetailView
+                mode={detailMode}
+                active={active}
+                diverseProviders={diverseProviders}
+                researchProvider={researchProvider}
+                onBack={() => setDetailMode(null)}
+                onToggleDiverseProvider={toggleDiverseProvider}
+                onSelectResearchProvider={selectResearchProvider}
+                onSelectMode={selectMode}
+              />
+            ) : (
+              MODES.map((model) => {
+                const drillable = hasSubOptions(model);
+                const subtitleSuffix =
+                  active === model && model === "aria-diverse"
+                    ? ` · ${describeDiverseCount(diverseProviders)}`
+                    : active === model && model === "aion-mind-pro"
+                      ? ` · ${getAriaDiverseProviderLabel(researchProvider)}`
+                      : "";
+
                 return (
-                  <div
+                  <button
                     key={model}
-                    className="model-menu-item has-submenu"
-                    onMouseEnter={() => setOpenSubmenu(model)}
-                    onMouseLeave={() => setOpenSubmenu((value) => (value === model ? null : value))}
+                    type="button"
+                    role="menuitem"
+                    className={clsx(
+                      "model-menu-item-main model-menu-item",
+                      active === model && "is-active",
+                      model === RECOMMENDED_MODE && "is-recommended"
+                    )}
+                    onClick={() => handleRowClick(model)}
                   >
-                    <button
-                      type="button"
-                      className={clsx("model-menu-item-main", active === model && "is-active")}
-                      onClick={() => setOpenSubmenu((value) => (value === model ? null : model))}
-                    >
-                      <span className="model-menu-item-text">
-                        <span className="model-menu-item-label">
-                          {getAionModelLabel(model)}
-                          {active === model ? ` · ${describeDiverseCount(diverseProviders)}` : ""}
-                        </span>
-                        <span className="model-menu-item-tagline">{getAionModelTagline(model)}</span>
+                    <span className="model-menu-item-text">
+                      <span className="model-menu-item-label">
+                        {getAionModelLabel(model)}
+                        {subtitleSuffix}
+                        {model === RECOMMENDED_MODE ? (
+                          <span className="model-menu-rec">Recommended</span>
+                        ) : null}
                       </span>
-                      <ChevronRight size={15} aria-hidden="true" />
-                    </button>
-
-                    {openSubmenu === model ? (
-                      <div className="model-submenu" role="menu">
-                        <p className="model-submenu-hint">Pick 1–5 models to compare side by side</p>
-                        {ARIA_DIVERSE_PROVIDERS.map((provider) => {
-                          const checked = diverseProviders.includes(provider);
-                          const atLimit = !checked && diverseProviders.length >= MAX_DIVERSE_PROVIDERS;
-
-                          return (
-                            <button
-                              key={provider}
-                              type="button"
-                              role="menuitemcheckbox"
-                              aria-checked={checked}
-                              disabled={atLimit}
-                              className={clsx("model-submenu-item is-checkbox", checked && "is-active")}
-                              onClick={() => toggleDiverseProvider(provider)}
-                            >
-                              <span className={clsx("model-submenu-check", checked && "is-checked")}>
-                                {checked ? <Check size={12} aria-hidden="true" /> : null}
-                              </span>
-                              <span>{getAriaDiverseProviderLabel(provider)}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              }
-
-              // Aria Research — single-select provider.
-              if (model === "aion-mind-pro") {
-                return (
-                  <div
-                    key={model}
-                    className="model-menu-item has-submenu"
-                    onMouseEnter={() => setOpenSubmenu(model)}
-                    onMouseLeave={() => setOpenSubmenu((value) => (value === model ? null : value))}
-                  >
-                    <button
-                      type="button"
-                      className={clsx("model-menu-item-main", active === model && "is-active")}
-                      onClick={() => setOpenSubmenu((value) => (value === model ? null : model))}
-                    >
-                      <span className="model-menu-item-text">
-                        <span className="model-menu-item-label">
-                          {getAionModelLabel(model)}
-                          {active === model ? ` · ${getAriaDiverseProviderLabel(researchProvider)}` : ""}
-                        </span>
-                        <span className="model-menu-item-tagline">{getAionModelTagline(model)}</span>
-                      </span>
-                      <ChevronRight size={15} aria-hidden="true" />
-                    </button>
-
-                    {openSubmenu === model ? (
-                      <div className="model-submenu" role="menu">
-                        <p className="model-submenu-hint">Choose one model for a deep-dive answer</p>
-                        {ARIA_DIVERSE_PROVIDERS.map((provider) => (
-                          <button
-                            key={provider}
-                            type="button"
-                            role="menuitemradio"
-                            aria-checked={active === model && researchProvider === provider}
-                            className={clsx(
-                              "model-submenu-item",
-                              active === model && researchProvider === provider && "is-active"
-                            )}
-                            onClick={() => selectResearchProvider(provider)}
-                          >
-                            <span>{getAriaDiverseProviderLabel(provider)}</span>
-                            {active === model && researchProvider === provider ? (
-                              <Check size={14} aria-hidden="true" />
-                            ) : null}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              }
-
-              return (
-                <button
-                  key={model}
-                  type="button"
-                  role="menuitem"
-                  className={clsx(
-                    "model-menu-item-main model-menu-item",
-                    active === model && "is-active",
-                    model === RECOMMENDED_MODE && "is-recommended"
-                  )}
-                  onClick={() => selectMode(model)}
-                >
-                  <span className="model-menu-item-text">
-                    <span className="model-menu-item-label">
-                      {getAionModelLabel(model)}
-                      {model === RECOMMENDED_MODE ? (
-                        <span className="model-menu-rec">Recommended</span>
-                      ) : null}
+                      <span className="model-menu-item-tagline">{getAionModelTagline(model)}</span>
                     </span>
-                    <span className="model-menu-item-tagline">{getAionModelTagline(model)}</span>
-                  </span>
-                  {active === model ? <Check size={16} aria-hidden="true" /> : null}
-                </button>
-              );
-            })}
+                    {drillable ? (
+                      <ChevronRight size={15} aria-hidden="true" />
+                    ) : active === model ? (
+                      <Check size={16} aria-hidden="true" />
+                    ) : null}
+                  </button>
+                );
+              })
+            )}
           </div>
         ) : null}
       </div>
@@ -278,6 +229,105 @@ export function ModelPill({
           <SlidersHorizontal size={15} />
         </button>
       ) : null}
+    </div>
+  );
+}
+
+function ModelDetailView({
+  mode,
+  active,
+  diverseProviders,
+  researchProvider,
+  onBack,
+  onToggleDiverseProvider,
+  onSelectResearchProvider,
+  onSelectMode
+}: {
+  mode: AionModelId;
+  active: AionModelId;
+  diverseProviders: AriaDiverseProvider[];
+  researchProvider: AriaDiverseProvider;
+  onBack: () => void;
+  onToggleDiverseProvider: (provider: AriaDiverseProvider) => void;
+  onSelectResearchProvider: (provider: AriaDiverseProvider) => void;
+  onSelectMode: (model: AionModelId) => void;
+}) {
+  return (
+    <div className="model-menu-detail">
+      <div className="model-menu-detail-head">
+        <button
+          type="button"
+          className="model-menu-back"
+          aria-label="Back to all models"
+          title="Back"
+          onClick={onBack}
+        >
+          <ChevronLeft size={16} aria-hidden="true" />
+        </button>
+        <span className="model-menu-detail-text">
+          <span className="model-menu-item-label">{getAionModelLabel(mode)}</span>
+          <span className="model-menu-item-tagline">{getAionModelTagline(mode)}</span>
+        </span>
+      </div>
+
+      <div className="model-menu-detail-body">
+        {mode === "aria-diverse" ? (
+          <>
+            <p className="model-submenu-hint">Pick 1–5 models to compare side by side</p>
+            {ARIA_DIVERSE_PROVIDERS.map((provider) => {
+              const checked = diverseProviders.includes(provider);
+              const atLimit = !checked && diverseProviders.length >= MAX_DIVERSE_PROVIDERS;
+
+              return (
+                <button
+                  key={provider}
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={checked}
+                  disabled={atLimit}
+                  className={clsx("model-submenu-item is-checkbox", checked && "is-active")}
+                  onClick={() => onToggleDiverseProvider(provider)}
+                >
+                  <span className={clsx("model-submenu-check", checked && "is-checked")}>
+                    {checked ? <Check size={12} aria-hidden="true" /> : null}
+                  </span>
+                  <span>{getAriaDiverseProviderLabel(provider)}</span>
+                </button>
+              );
+            })}
+          </>
+        ) : mode === "aion-mind-pro" ? (
+          <>
+            <p className="model-submenu-hint">Choose one model for a deep-dive answer</p>
+            {ARIA_DIVERSE_PROVIDERS.map((provider) => {
+              const selected = active === mode && researchProvider === provider;
+
+              return (
+                <button
+                  key={provider}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={selected}
+                  className={clsx("model-submenu-item", selected && "is-active")}
+                  onClick={() => onSelectResearchProvider(provider)}
+                >
+                  <span>{getAriaDiverseProviderLabel(provider)}</span>
+                  {selected ? <Check size={14} aria-hidden="true" /> : null}
+                </button>
+              );
+            })}
+          </>
+        ) : (
+          <button
+            type="button"
+            className={clsx("model-submenu-item model-menu-use", active === mode && "is-active")}
+            onClick={() => onSelectMode(mode)}
+          >
+            <span>{active === mode ? "Currently selected" : "Use this model"}</span>
+            {active === mode ? <Check size={14} aria-hidden="true" /> : null}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

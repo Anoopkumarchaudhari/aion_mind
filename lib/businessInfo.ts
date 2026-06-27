@@ -10,7 +10,7 @@ export const BUSINESS_INFO = {
   /** Legal / registered name of the entity operating Aria Mind. */
   legalName: "JB Crownstone Private Limited",
   /** Public brand / trade name shown to users. */
-  brandName: "AriamindX",
+  brandName: "AriaMindX",
   /** Support email — must be a working inbox you monitor. */
   email: "admin@jbcrownstone.com",
   /** Support phone in international format, e.g. +91 98765 43210. */
@@ -18,7 +18,7 @@ export const BUSINESS_INFO = {
   /** Full registered business address (required by Razorpay). */
   address: "C-101,Nirman Vihar, Delhi, 110029, India",
   /** Primary website URL. */
-  website: "https://www.ariamindx.com",
+  website: "https://ariamindx.com",
   /** Date the current policies took effect (YYYY-MM-DD or human form). */
   policiesUpdated: "20 June 2026"
 } as const;
