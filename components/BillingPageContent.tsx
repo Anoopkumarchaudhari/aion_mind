@@ -146,7 +146,7 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
             key: orderData.keyId,
             amount: orderData.amount ?? amountInr * 100,
             currency: orderData.currency ?? "INR",
-            name: "AriamindX",
+            name: "AriaMindX",
             description: label,
             order_id: orderData.orderId,
             prefill: { name: accountName, email: accountEmail },

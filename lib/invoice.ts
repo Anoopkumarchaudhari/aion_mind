@@ -24,7 +24,7 @@ export function downloadInvoice(payment: BillingPayment, account: { name: string
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
   doc.setTextColor(99, 102, 241);
-  doc.text("AriamindX", left, y);
+  doc.text("AriaMindX", left, y);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(120, 120, 120);
@@ -102,7 +102,7 @@ export function downloadInvoice(payment: BillingPayment, account: { name: string
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(160, 160, 160);
-  doc.text("Thank you for using AriamindX. This is a system-generated invoice.", left, y);
+  doc.text("Thank you for using AriaMindX. This is a system-generated invoice.", left, y);
 
-  doc.save(`AriamindX-invoice-${invoiceNo}.pdf`);
+  doc.save(`AriaMindX-invoice-${invoiceNo}.pdf`);
 }

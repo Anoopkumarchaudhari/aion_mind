@@ -327,7 +327,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 draggable={false}
               />
               <span>
-              <strong>AriamindX</strong>
+              <strong>AriaMindX</strong>
               <small>By JB Crownstone</small>
               </span>
             </div>

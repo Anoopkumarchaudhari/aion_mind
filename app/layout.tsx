@@ -34,7 +34,13 @@ const BRAND_ALIASES = [
   "Aria Min X",
   "Aria Mind",
   "ariamindx",
-  "ariamindx.com"
+  "ariamindx.com",
+  "JB AI",
+  "JBAI",
+  "Anoop AI",
+  "AnoopAI",
+  "Anup AI",
+  "AnupAI"
 ];
 
 export const metadata: Metadata = {

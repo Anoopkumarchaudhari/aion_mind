@@ -224,8 +224,8 @@ const aboutStats = [
 ];
 
 const quotes = [
-  { text: "Stop switching tabs. Start building with one AI command center.", who: "The AriamindX Team" },
-  { text: "One subscription, every powerful model, zero context switching.", who: "AriamindX" },
+  { text: "Stop switching tabs. Start building with one AI command center.", who: "The AriaMindX Team" },
+  { text: "One subscription, every powerful model, zero context switching.", who: "AriaMindX" },
   { text: "Ask once, let every model answer, and get one verified result.", who: "Aria Mind" }
 ];
 
@@ -260,11 +260,11 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.18, duration: 0.5 }}
           >
-            AriamindX AI workspace
+            AriaMindX AI workspace
           </motion.p>
           <TypewriterHeadline />
           <p className="landing-subheadline">
-            AriamindX helps creators, students, founders, teams, and businesses generate high-quality content,
+            AriaMindX helps creators, students, founders, teams, and businesses generate high-quality content,
             answers, visuals, videos, and voiceovers using the world&apos;s leading AI models.
           </p>
 
@@ -293,8 +293,8 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
         </motion.div>
       </section>
 
-      <section className="landing-logos" aria-label="Models powering AriamindX">
-        <p className="landing-logos-label">The models and engines powering every AriamindX answer</p>
+      <section className="landing-logos" aria-label="Models powering AriaMindX">
+        <p className="landing-logos-label">The models and engines powering every AriaMindX answer</p>
         <div className="landing-marquee">
           <div className="landing-marquee-track">
             {[...modelLogos, ...modelLogos].map((model, index) => (
@@ -386,7 +386,7 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
         <SectionHeading
           eyebrow="Features"
           title="Text, image, video, voice, research, and storage together"
-          copy="AriamindX keeps the creative loop fast: prompt, compare, generate, save, organize, and continue."
+          copy="AriaMindX keeps the creative loop fast: prompt, compare, generate, save, organize, and continue."
         />
         <div className="landing-card-grid">
           {capabilities.map((item, index) => (
@@ -443,16 +443,16 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.55 }}
         >
-          <p className="landing-eyebrow">About AriamindX</p>
+          <p className="landing-eyebrow">About AriaMindX</p>
           <h2>One workspace, every powerful model.</h2>
           <p>
-            AriamindX was built on a simple idea: you should not need ten subscriptions and ten open tabs to
+            AriaMindX was built on a simple idea: you should not need ten subscriptions and ten open tabs to
             do real work with AI. Text, images, video, voice, research, and translation belong in one calm,
             fast workspace.
           </p>
           <p>
             Modern teams switch constantly between separate AI tools, each with its own login, billing, and
-            quirks. AriamindX brings the leading models together behind five clear modes, so you reach for the
+            quirks. AriaMindX brings the leading models together behind five clear modes, so you reach for the
             right capability instead of the right app.
           </p>
           <p>
@@ -483,7 +483,7 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
       <section className="landing-section landing-plan-section" id="plans">
         <SectionHeading
           eyebrow="Plans"
-          title="One subscription, every AriamindX feature"
+          title="One subscription, every AriaMindX feature"
           copy="Pick a monthly credit wallet. Every plan unlocks the full workspace: chat, research, image, video, translate, notebooks, and library."
         />
         <div className="landing-plan-grid">
@@ -579,7 +579,7 @@ export function LandingPage({ catalog }: { catalog: ResolvedBillingCatalog }) {
       <section className="landing-final-cta">
         <Sparkles size={24} />
         <h2>Create with every powerful model from one place.</h2>
-        <p>Start in AriamindX, choose your plan, and continue directly into your AI workspace.</p>
+        <p>Start in AriaMindX, choose your plan, and continue directly into your AI workspace.</p>
         <div className="landing-hero-actions">
           <Link className="landing-primary-button" href="/login">
             Get started
@@ -809,7 +809,7 @@ function LandingNav({ scrolled }: { scrolled: boolean }) {
         <Link className="landing-brand" href="/" onClick={closeMenu}>
           <AionLogo size={34} />
           <span>
-            <strong>AriamindX</strong>
+            <strong>AriaMindX</strong>
             <small>By JB Crownstone</small>
           </span>
         </Link>
@@ -1002,7 +1002,7 @@ function LandingFooter() {
           <Link className="landing-brand" href="/">
             <AionLogo size={32} />
             <span>
-              <strong>AriamindX</strong>
+              <strong>AriaMindX</strong>
               <small>By JB Crownstone</small>
             </span>
           </Link>
@@ -1042,7 +1042,7 @@ function LandingFooter() {
       </div>
 
       <div className="landing-footer-bottom">
-        <p className="landing-footer-copy">&copy; {year} AriamindX by JB Crownstone. All rights reserved.</p>
+        <p className="landing-footer-copy">&copy; {year} AriaMindX by JB Crownstone. All rights reserved.</p>
         <p className="landing-footer-made">Built by JB Crownstone</p>
       </div>
     </footer>
