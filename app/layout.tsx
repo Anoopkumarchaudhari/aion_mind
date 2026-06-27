@@ -34,15 +34,18 @@ const BRAND_ALIASES = [
   "Aria Min X",
   "Aria Mind",
   "ariamindx",
-  "ariamindx.com",
-  "JB AI",
-  "JBAI1234",
-  "Anoop AI",
-  "AnoopAI1234",
-  "anoop roari ai",
-  "anooproariai",
-  "Anup AI",
-  "AnupAI1234"
+  "ariamindx.com"
+];
+
+// Official AriaMindX profiles. `sameAs` is the strongest signal Google uses to
+// recognise the brand as a distinct entity (and stop confusing it with others).
+// Paste the real URLs here as each profile goes live, then rebuild + redeploy.
+const BRAND_PROFILES: string[] = [
+  // "https://www.linkedin.com/company/ariamindx",
+  // "https://x.com/ariamindx",
+  // "https://www.instagram.com/ariamindx",
+  // "https://www.producthunt.com/products/ariamindx",
+  // "https://www.youtube.com/@ariamindx"
 ];
 
 export const metadata: Metadata = {
@@ -116,7 +119,10 @@ const organizationJsonLd = {
   name: "AriaMindX",
   alternateName: BRAND_ALIASES,
   url: SITE_URL,
-  logo: `${SITE_URL}/Aria%20logo/aria-icon.png`
+  logo: `${SITE_URL}/Aria%20logo/aria-icon.png`,
+  description:
+    "AriaMindX is an all-in-one AI assistant and workspace for chat, search, image and video generation, notebooks, translation and podcasts — every leading AI model in one place.",
+  ...(BRAND_PROFILES.length > 0 ? { sameAs: BRAND_PROFILES } : {})
 };
 
 const websiteJsonLd = {
