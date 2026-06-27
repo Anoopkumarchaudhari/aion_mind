@@ -122,11 +122,11 @@ export function getAionModelTagline(model: AionModelId) {
     case "aria-instant":
       return "Fast answers from a single model";
     case "aria-diverse":
-      return "Pick your preferred AI provider";
+      return "Compare 1–5 models side by side";
     case "aion-mind":
       return "All models combined into one best answer";
     case "aion-mind-pro":
-      return "Compare every model side by side";
+      return "Deep dive with one provider you choose";
     case "aion-mind-analyzer":
       return "Auto-routes to the best model for your question";
   }
