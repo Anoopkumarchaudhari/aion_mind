@@ -104,12 +104,12 @@ export function NeuralBackground({ intensity = "normal" }: NeuralBackgroundProps
 
     function palette() {
       if (isActive) {
-        return { node: "56,189,248", line: "45,160,230", pulse: "125,211,252", accent: "34,211,238" };
+        return { node: "79,140,255", line: "59,109,245", pulse: "125,160,252", accent: "59,109,245" };
       }
 
       return tempRef.current
         ? { node: "244,114,182", line: "236,99,160", pulse: "253,224,71", accent: "251,113,133" }
-        : { node: "56,189,248", line: "45,160,230", pulse: "236,72,153", accent: "34,211,238" };
+        : { node: "79,140,255", line: "59,109,245", pulse: "125,160,252", accent: "59,109,245" };
     }
 
     function spawnPulse() {

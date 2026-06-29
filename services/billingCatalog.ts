@@ -40,7 +40,7 @@ export const BILLING_PLANS: BillingPlan[] = [
     name: "Starter",
     priceInr: 199,
     monthlyCredits: 220,
-    accent: "#22d3ee",
+    accent: "#3b6df5",
     note: ""
   },
   {
@@ -83,7 +83,7 @@ export type FeatureCreditRate = {
 };
 
 export const FEATURE_CREDIT_RATES: FeatureCreditRate[] = [
-  { id: "chat", label: "Aria Instant / Diverse", credits: "2-3", color: "#22d3ee" },
+  { id: "chat", label: "Aria Instant / Diverse", credits: "2-3", color: "#3b6df5" },
   { id: "file-chat", label: "File or image chat", credits: "4+", color: "#38bdf8" },
   { id: "research", label: "Aria Research (all models)", credits: "20+", color: "#60a5fa" },
   { id: "analyzer", label: "Aria Mind / Analyzer", credits: "8-24+", color: "#34d399" },

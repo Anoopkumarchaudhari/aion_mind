@@ -5,16 +5,16 @@
   --bg-elevated: #1d2732;
   --bg-input: #202b37;
   --hover: #263543;
-  --border: rgba(204, 251, 241, 0.18);
+  --border: rgba(199, 214, 251, 0.18);
   --text-primary: #ffffff;
   --text-secondary: #d8e1ec;
   --text-muted: #aebac8;
-  --accent: #25d59b;
-  --accent-2: #22d3ee;
-  --accent-glow: rgba(34, 211, 238, 0.42);
-  --grid-tint: rgba(34, 211, 238, 0.08);
-  --hero-glow: rgba(34, 211, 238, 0.26);
-  --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  --accent: #3b6df5;
+  --accent-2: #4f8cff;
+  --accent-glow: rgba(59, 109, 245, 0.42);
+  --grid-tint: rgba(59, 109, 245, 0.08);
+  --hero-glow: rgba(59, 109, 245, 0.26);
+  --gradient-accent: linear-gradient(135deg, #4f7cff 0%, #2546c7 100%);
   --warning: #f59e0b;
   --danger: #f87171;
   --font-sans: "Geist", "Inter", ui-sans-serif, system-ui, -apple-system,
@@ -38,12 +38,12 @@
   --text-primary: #1d1c19;
   --text-secondary: #3b3a35;
   --text-muted: #6c6a62;
-  --accent: #0e9f74;
-  --accent-2: #0e8fb0;
-  --accent-glow: rgba(14, 159, 116, 0.22);
-  --grid-tint: rgba(14, 143, 176, 0.06);
-  --hero-glow: rgba(14, 159, 116, 0.14);
-  --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  --accent: #2456d6;
+  --accent-2: #2f6fed;
+  --accent-glow: rgba(36, 86, 214, 0.22);
+  --grid-tint: rgba(36, 86, 214, 0.06);
+  --hero-glow: rgba(36, 86, 214, 0.14);
+  --gradient-accent: linear-gradient(135deg, #2f6fed 0%, #1d3fae 100%);
 }
 
 .mode-root {
@@ -1306,7 +1306,7 @@ a {
   --border-strong: rgba(255, 255, 255, 0.14);
   --text-secondary: #e4e3df;
   --text-muted: #a3a29b;
-  --accent-glow: rgba(37, 213, 155, 0.22);
+  --accent-glow: rgba(59, 109, 245, 0.22);
 
   display: grid;
   grid-template-columns: var(--sidebar-width, 240px) minmax(0, 1fr);
@@ -1383,7 +1383,7 @@ a {
   flex: 0 0 auto;
   border-radius: 24%;
   background: transparent;
-  filter: drop-shadow(0 0 10px var(--sidebar-accent-glow, rgba(34, 211, 238, 0.32)));
+  filter: drop-shadow(0 0 10px var(--sidebar-accent-glow, rgba(59, 109, 245, 0.32)));
   object-fit: contain;
 }
 
@@ -2420,8 +2420,8 @@ a {
   background:
     radial-gradient(
       ellipse,
-      rgba(37, 213, 155, 0.09) 0%,
-      rgba(34, 211, 238, 0.05) 35%,
+      rgba(59, 109, 245, 0.09) 0%,
+      rgba(59, 109, 245, 0.05) 35%,
       transparent 70%
     );
   filter: blur(40px);
@@ -2476,7 +2476,7 @@ a {
   background:
     radial-gradient(36% 28% at 24% 22%, rgba(56, 72, 160, 0.16), transparent 60%),
     radial-gradient(30% 24% at 78% 30%, rgba(96, 52, 140, 0.13), transparent 62%),
-    radial-gradient(48% 38% at 60% 84%, rgba(37, 213, 155, 0.08), transparent 64%);
+    radial-gradient(48% 38% at 60% 84%, rgba(59, 109, 245, 0.08), transparent 64%);
   filter: blur(46px);
   opacity: 0.8;
   animation: authNebulaDrift 32s ease-in-out infinite;
@@ -2721,6 +2721,16 @@ select:focus-visible,
   font-weight: 750;
   letter-spacing: 0.13em;
   text-transform: uppercase;
+}
+
+/* Dark theme only: recolor the cobalt-blue headings on the Billing and
+   Dashboard pages to orange. Scoped to those routes and to the accent-blue
+   heading bits (eyebrows + dashboard section-title icons) — white/black text
+   and every other colour are left untouched. */
+[data-theme="dark"] .billing-route .eyebrow,
+[data-theme="dark"] .user-dash .eyebrow,
+[data-theme="dark"] .user-dash .admin-detail-section-title svg {
+  color: #fb923c;
 }
 
 .route-search,
@@ -3002,7 +3012,7 @@ select:focus-visible,
   width: fit-content;
   min-height: 42px;
   padding-inline: 18px;
-  background: linear-gradient(135deg, #6366f1, #06b6d4 58%, #10b981);
+  background: linear-gradient(135deg, #4f8cff, #3b6df5 58%, #2546c7);
   box-shadow: 0 14px 30px rgba(37, 99, 235, 0.18);
 }
 
@@ -3539,7 +3549,7 @@ select:focus-visible,
 
 .image-studio-route {
   --image-accent: #f97316;
-  --image-accent-2: #22d3ee;
+  --image-accent-2: #4f8cff;
   --image-accent-3: #d946ef;
   --image-panel: rgba(13, 15, 22, 0.84);
   display: grid;
@@ -5079,7 +5089,7 @@ select:focus-visible,
 
 .billing-invoice-button {
   /* Invoice download is always green, regardless of theme or accent mode. */
-  --invoice-green: #25d59b;
+  --invoice-green: #34d399;
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
@@ -5448,8 +5458,17 @@ select:focus-visible,
 
 .billing-dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+/* Top-ups span the whole row; their packs lay out horizontally across it. */
+.billing-topups-wide {
+  grid-column: 1 / -1;
+}
+
+.billing-topups-wide .billing-topup-list {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
 .billing-panel {
@@ -5579,7 +5598,7 @@ select:focus-visible,
 
 /* Credits added are always green (independent of accent/theme mode). */
 .billing-ledger-row em.is-positive {
-  color: #25d59b;
+  color: #34d399;
 }
 
 [data-theme="light"] .billing-ledger-row em.is-positive {
@@ -6193,29 +6212,27 @@ select:focus-visible,
 }
 
 /* ============================================================
-   Account hub identity — billing keeps one refined Claude-style clay
-   accent. Clay sits in the mid-tone range, so it keeps strong, even
-   contrast on both light and dark surfaces.
+   Account hub identity — Settings, Billing, and the user Dashboard all
+   share the main chat app's teal/green accent (inherited from :root) so
+   the whole member-facing account area matches the rest of the product.
 
-   Settings and the user dashboard are intentionally excluded so they
-   match the main app's teal/green accent (inherited from :root).
+   Only the admin vault keeps the refined Claude-style clay accent so it
+   stays visually distinct from the member experience. Clay sits in the
+   mid-tone range, so it keeps strong, even contrast on light and dark.
    ============================================================ */
-.billing-route,
 .context-sidebar:not(.settings-sidebar) {
   --accent: #d97757;
   --accent-2: #bf5d3a;
   --accent-glow: rgba(217, 119, 87, 0.3);
   --gradient-accent: linear-gradient(135deg, #e08a64 0%, #c2622f 100%);
-}
-
-.context-sidebar:not(.settings-sidebar) {
   --sidebar-accent: #d97757;
   --sidebar-accent-2: #bf5d3a;
   --sidebar-accent-glow: rgba(217, 119, 87, 0.3);
 }
 
-/* Settings sidebar inherits the main app's sidebar accent (slate) from
-   the base .sidebar rule — no override needed. */
+/* Settings, billing, and dashboard inherit the main app's teal accent
+   and slate sidebar accent from :root and the base .sidebar rule — no
+   override needed. */
 
 /* Accent buttons keep light text — white reads cleanly on clay. */
 .settings-route .primary-button,
@@ -6688,17 +6705,17 @@ select:focus-visible,
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #04121a;
-  background: linear-gradient(120deg, #34d399, #22d3ee);
-  box-shadow: 0 2px 10px rgba(34, 211, 238, 0.3);
+  background: linear-gradient(120deg, #4f8cff, #3b6df5);
+  box-shadow: 0 2px 10px rgba(59, 109, 245, 0.3);
 }
 
 .model-menu-item-main.is-recommended {
-  background: linear-gradient(120deg, color-mix(in srgb, #34d399 12%, transparent), color-mix(in srgb, #22d3ee 10%, transparent));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #34d399 28%, transparent);
+  background: linear-gradient(120deg, color-mix(in srgb, #4f8cff 12%, transparent), color-mix(in srgb, #3b6df5 10%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #4f8cff 28%, transparent);
 }
 
 .model-menu-item-main.is-recommended:hover {
-  background: linear-gradient(120deg, color-mix(in srgb, #34d399 18%, transparent), color-mix(in srgb, #22d3ee 14%, transparent));
+  background: linear-gradient(120deg, color-mix(in srgb, #4f8cff 18%, transparent), color-mix(in srgb, #3b6df5 14%, transparent));
 }
 
 .model-menu-item-tagline {
@@ -7265,7 +7282,7 @@ select:focus-visible,
   max-width: min(100%, 320px);
   align-items: center;
   gap: 7px;
-  border: 1px solid rgba(204, 251, 241, 0.16);
+  border: 1px solid rgba(199, 214, 251, 0.16);
   border-radius: 999px;
   background: rgba(28, 37, 47, 0.82);
   color: var(--text-secondary);
@@ -7701,7 +7718,7 @@ select:focus-visible,
   overflow: hidden;
   width: min(620px, 100%);
   margin: 0 0 10px;
-  border: 1px solid rgba(204, 251, 241, 0.16);
+  border: 1px solid rgba(199, 214, 251, 0.16);
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 70%),
@@ -7751,7 +7768,7 @@ select:focus-visible,
 .work-log-list {
   display: grid;
   gap: 1px;
-  border-top: 1px solid rgba(204, 251, 241, 0.12);
+  border-top: 1px solid rgba(199, 214, 251, 0.12);
   padding: 5px;
 }
 
@@ -7835,7 +7852,7 @@ select:focus-visible,
   overflow: hidden;
   width: min(620px, 100%);
   margin: 0 0 12px;
-  border: 1px solid rgba(204, 251, 241, 0.17);
+  border: 1px solid rgba(199, 214, 251, 0.17);
   border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.052), transparent 72%),
@@ -8359,7 +8376,7 @@ body:has(.landing-page) {
   left: -12%;
   width: 52vw;
   height: 38vw;
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.5), transparent 68%);
+  background: radial-gradient(circle, rgba(59, 109, 245, 0.5), transparent 68%);
 }
 
 .landing-nebula-2 {
@@ -8445,7 +8462,7 @@ body:has(.landing-page) {
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(90deg, rgba(34, 211, 238, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 109, 245, 0.08) 1px, transparent 1px),
     linear-gradient(180deg, rgba(52, 211, 153, 0.08) 1px, transparent 1px);
   background-size: 72px 72px;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 78%);
@@ -8564,7 +8581,7 @@ body:has(.landing-page) {
 
 .landing-eyebrow {
   margin: 0;
-  color: #67e8f9;
+  color: #4f8cff;
   font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.22em;
@@ -8598,10 +8615,10 @@ body:has(.landing-page) {
 .landing-about-copy h2 {
   background: linear-gradient(
     100deg,
-    #67e8f9 0%,
-    #22d3ee 22%,
-    #6366f1 60%,
-    #a855f7 100%
+    #7aa6ff 0%,
+    #4f8cff 22%,
+    #3b6df5 60%,
+    #2546c7 100%
   );
   background-size: 220% 100%;
   -webkit-background-clip: text;
@@ -8623,10 +8640,10 @@ body:has(.landing-page) {
 .landing-type-text {
   background: linear-gradient(
     100deg,
-    #67e8f9 0%,
-    #22d3ee 26%,
-    #6366f1 62%,
-    #a855f7 100%
+    #7aa6ff 0%,
+    #4f8cff 26%,
+    #3b6df5 62%,
+    #2546c7 100%
   );
   background-size: 240% 100%;
   -webkit-background-clip: text;
@@ -8647,8 +8664,8 @@ body:has(.landing-page) {
   height: 0.92em;
   margin-left: 0.08em;
   border-radius: 2px;
-  background: linear-gradient(180deg, #22d3ee, #6366f1);
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.7);
+  background: linear-gradient(180deg, #4f8cff, #2546c7);
+  box-shadow: 0 0 12px rgba(59, 109, 245, 0.7);
   transform: translateY(0.08em);
   animation: landingCaretBlink 0.9s steps(1, end) infinite;
 }
@@ -8800,14 +8817,14 @@ body:has(.landing-page) {
   0%,
   100% {
     box-shadow:
-      0 12px 30px rgba(34, 211, 238, 0.22),
+      0 12px 30px rgba(59, 109, 245, 0.22),
       inset 0 1px 0 rgba(255, 255, 255, 0.28);
   }
 
   50% {
     box-shadow:
       0 16px 40px rgba(52, 211, 153, 0.42),
-      0 0 22px rgba(34, 211, 238, 0.4),
+      0 0 22px rgba(59, 109, 245, 0.4),
       inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 }
@@ -8820,8 +8837,8 @@ body:has(.landing-page) {
 
   50% {
     box-shadow:
-      0 0 18px rgba(34, 211, 238, 0.26),
-      0 0 0 1px rgba(34, 211, 238, 0.32);
+      0 0 18px rgba(59, 109, 245, 0.26),
+      0 0 0 1px rgba(59, 109, 245, 0.32);
   }
 }
 
@@ -8847,7 +8864,7 @@ body:has(.landing-page) {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
-  color: color-mix(in srgb, var(--text-primary) 92%, #22d3ee);
+  color: color-mix(in srgb, var(--text-primary) 92%, #4f8cff);
   padding: 7px 11px;
   font-size: 0.84rem;
   font-weight: 800;
@@ -8908,7 +8925,7 @@ body:has(.landing-page) {
 }
 
 .landing-mcard {
-  --model-color: #22d3ee;
+  --model-color: #4f8cff;
   display: grid;
   justify-items: center;
   align-content: start;
@@ -9070,7 +9087,7 @@ body:has(.landing-page) {
 }
 
 .landing-model-card {
-  --model-color: #22d3ee;
+  --model-color: #4f8cff;
   display: flex;
   min-height: 132px;
   align-items: center;
@@ -9103,15 +9120,15 @@ body:has(.landing-page) {
   width: 44px;
   height: 44px;
   place-items: center;
-  border: 1px solid rgba(34, 211, 238, 0.28);
+  border: 1px solid rgba(59, 109, 245, 0.28);
   border-radius: 14px;
-  background: rgba(34, 211, 238, 0.11);
-  color: #67e8f9;
+  background: rgba(59, 109, 245, 0.11);
+  color: #4f8cff;
 }
 
 .landing-feature-card h3 {
   margin: 0;
-  background: linear-gradient(100deg, #22d3ee 0%, #34d399 45%, #a3e635 100%);
+  background: linear-gradient(100deg, #7aa6ff 0%, #4f8cff 45%, #3b6df5 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -9130,7 +9147,7 @@ body:has(.landing-page) {
 
 /* ---------- Feature cards: per-feature accent treatment ---------- */
 .landing-feature-card {
-  --feature-accent: #22d3ee;
+  --feature-accent: #4f8cff;
   min-height: 250px;
   padding-bottom: 24px;
   transition: border-color 240ms ease, box-shadow 240ms ease;
@@ -9259,7 +9276,7 @@ body:has(.landing-page) {
 }
 
 .landing-plan-card {
-  --plan-color: #22d3ee;
+  --plan-color: #4f8cff;
   display: flex;
   flex-direction: column;
   gap: 11px;
@@ -9369,7 +9386,7 @@ body:has(.landing-page) {
 }
 
 .landing-rate-pill {
-  --rate-color: #22d3ee;
+  --rate-color: #4f8cff;
   display: grid;
   grid-template-columns: 12px minmax(0, 1fr) auto;
   align-items: center;
@@ -9411,7 +9428,7 @@ body:has(.landing-page) {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
   background:
-    linear-gradient(135deg, rgba(34, 211, 238, 0.14), transparent 40%),
+    linear-gradient(135deg, rgba(59, 109, 245, 0.14), transparent 40%),
     linear-gradient(315deg, rgba(245, 158, 11, 0.12), transparent 44%),
     rgba(17, 24, 33, 0.78);
   margin: 28px auto 72px;
@@ -9431,12 +9448,12 @@ body:has(.landing-page) {
 @keyframes landingTextColor {
   0%,
   100% {
-    text-shadow: 0 0 0 rgba(34, 211, 238, 0);
+    text-shadow: 0 0 0 rgba(59, 109, 245, 0);
   }
 
   45% {
     text-shadow:
-      0 0 28px rgba(34, 211, 238, 0.18),
+      0 0 28px rgba(59, 109, 245, 0.18),
       0 0 46px rgba(52, 211, 153, 0.1);
   }
 }
@@ -9526,7 +9543,7 @@ body:has(.landing-page) {
 }
 
 .landing-tier-card {
-  --model-color: #22d3ee;
+  --model-color: #4f8cff;
   position: relative;
   display: grid;
   align-content: start;
@@ -9745,7 +9762,7 @@ body:has(.landing-page) {
 }
 
 .landing-tier-row {
-  --model-color: #22d3ee;
+  --model-color: #4f8cff;
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   align-items: stretch;
@@ -9836,7 +9853,7 @@ body:has(.landing-page) {
 
 /* n8n-style workflow canvas - SVG zig-zag live flow */
 .n8n {
-  --model-color: #22d3ee;
+  --model-color: #4f8cff;
   position: relative;
   display: flex;
   flex: 1;
@@ -10057,7 +10074,7 @@ body:has(.landing-page) {
 }
 
 .landing-about-stat svg {
-  color: #67e8f9;
+  color: #4f8cff;
 }
 
 .landing-about-stat strong {
@@ -11908,8 +11925,24 @@ body:has(.landing-page) {
 .admin-detail-filters {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+/* Failed-payment count badge (failed records are summarised, not listed) */
+.dash-failed-pill {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--danger) 38%, transparent);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: color-mix(in srgb, var(--danger) 72%, var(--text-primary));
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .admin-filter-group {
@@ -12098,13 +12131,396 @@ body:has(.landing-page) {
   font-weight: 600;
 }
 
-/* KPI hero grid */
+/* ================================================================== *
+ * Contribution heatmap (GitHub-style app activity calendar)
+ * ================================================================== */
+.contrib {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 6%, transparent), transparent 46%),
+    rgba(255, 255, 255, 0.022);
+  padding: 18px 18px 16px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.contrib-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.contrib-head h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.98rem;
+  line-height: 1.1;
+}
+
+.contrib-head p {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+/* Year dropdown */
+.contrib-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.contrib-select select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 36%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 7px 32px 7px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.contrib-select select:hover {
+  border-color: color-mix(in srgb, var(--accent) 54%, transparent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.contrib-select select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, white);
+  outline-offset: 1px;
+}
+
+.contrib-select svg {
+  position: absolute;
+  right: 11px;
+  pointer-events: none;
+  color: color-mix(in srgb, var(--accent) 80%, var(--text-secondary));
+}
+
+.contrib-select option {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+/* Calendar grid — single grid so weekday labels, month labels and the fluid
+   square day-cells all stay aligned while filling the full card width. */
+.contrib-scroll {
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.contrib-grid {
+  --cgap: 4px;
+  --mgap: 16px;
+  display: grid;
+  grid-template-rows: auto repeat(7, auto);
+  gap: var(--cgap);
+  width: 100%;
+  min-width: 0;
+}
+
+.contrib-month {
+  grid-row: 1;
+  align-self: end;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.contrib-weekday {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  padding-right: 8px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.contrib-cell {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+  animation: contribPop 420ms ease both;
+}
+
+.contrib-cell.lvl-0 {
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+}
+
+.contrib-cell.lvl-1 {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.contrib-cell.lvl-2 {
+  background: color-mix(in srgb, var(--accent) 52%, transparent);
+}
+
+.contrib-cell.lvl-3 {
+  background: color-mix(in srgb, var(--accent) 74%, transparent);
+}
+
+.contrib-cell.lvl-4 {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+.contrib-cell.is-empty {
+  background: transparent;
+}
+
+.contrib-cell.is-future {
+  opacity: 0.4;
+}
+
+.contrib-cell[title] {
+  cursor: pointer;
+  transition: outline-color 120ms ease;
+}
+
+.contrib-cell[title]:hover {
+  outline: 1.5px solid color-mix(in srgb, var(--accent) 70%, white);
+  outline-offset: 0;
+}
+
+@keyframes contribPop {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.contrib-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.contrib-legend .contrib-cell {
+  width: 11px;
+  height: 11px;
+}
+
+[data-theme="light"] .contrib {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 7%, transparent), transparent 46%),
+    #ffffff;
+}
+
+/* ---------- User dashboard identity box (holds all account info) ---------- */
+.dash-header {
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  gap: 18px;
+}
+
+.dash-id-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+}
+
+.dash-id-row .admin-status-pill {
+  align-self: center;
+}
+
+.dash-header-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px 18px;
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.dash-header-meta > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dash-header-meta dt {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.dash-header-meta dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .dash-id-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .dash-id-row .admin-status-pill {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .dash-header-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Account overview: balance hero + stat cards ---------- */
+.dash-overview {
+  display: grid;
+  gap: 14px;
+}
+
+/* Featured balance hero */
+.dash-balance-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 26px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: 20px;
+  padding: 22px 26px;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 52%),
+    color-mix(in srgb, var(--accent) 8%, rgba(255, 255, 255, 0.02));
+}
+
+.dash-balance-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  border-radius: inherit;
+}
+
+.dash-balance-main {
+  display: grid;
+  gap: 2px;
+}
+
+.dash-balance-main .eyebrow {
+  color: color-mix(in srgb, var(--accent) 78%, var(--text-secondary));
+}
+
+.dash-balance-main strong {
+  color: var(--text-primary);
+  font-size: clamp(2.4rem, 5vw, 3.2rem);
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-balance-sub {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.dash-balance-meta {
+  display: grid;
+  gap: 16px;
+}
+
+.dash-balance-gauge {
+  display: grid;
+  gap: 7px;
+}
+
+.dash-balance-gauge-head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.dash-balance-gauge-head span:last-child {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.dash-balance-track {
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  overflow: hidden;
+}
+
+.dash-balance-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--gradient-accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.dash-balance-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dash-balance-stats > div {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
+  border: 1px solid var(--border);
+}
+
+.dash-balance-stats strong {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-balance-stats span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* KPI grid (shared by user dashboard + admin user detail) */
 .admin-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
+/* Base KPI card — kept intact for the admin user-detail view (which still
+   renders icons inside these cards). The user dashboard overrides below. */
 .admin-kpi {
   display: grid;
   gap: 4px;
@@ -12145,6 +12561,70 @@ body:has(.landing-page) {
   color: var(--text-muted);
   font-size: 0.74rem;
   font-weight: 600;
+}
+
+/* ---- User dashboard stat-card restyle (scoped, leaves admin intact) ---- */
+.dash-overview .admin-kpi {
+  --kpi-tone: var(--accent);
+  position: relative;
+  gap: 3px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--kpi-tone) 7%, transparent), transparent 60%),
+    rgba(255, 255, 255, 0.022);
+  padding: 17px 16px 15px 18px;
+  overflow: hidden;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+/* Tone accent rail down the left edge */
+.dash-overview .admin-kpi::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--kpi-tone);
+  opacity: 0.85;
+}
+
+.dash-overview .admin-kpi:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--kpi-tone) 45%, transparent);
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--kpi-tone) 16%, transparent);
+}
+
+.dash-overview .admin-kpi strong {
+  font-size: 1.6rem;
+  line-height: 1.02;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-overview .admin-kpi-label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.admin-kpi-hint {
+  color: color-mix(in srgb, var(--kpi-tone, var(--accent)) 60%, var(--text-muted));
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.admin-kpi-hint.is-danger {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .dash-balance-hero {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
 }
 
 /* Key/value list */
@@ -12632,9 +13112,9 @@ body:has(.landing-page) {
   --border-strong: rgba(23, 23, 20, 0.18);
   --text-secondary: #3b3a35;
   --text-muted: #6c6a62;
-  --accent-glow: rgba(14, 159, 116, 0.16);
+  --accent-glow: rgba(36, 86, 214, 0.16);
   background:
-    radial-gradient(120% 90% at 50% -10%, rgba(14, 159, 116, 0.04), transparent 55%),
+    radial-gradient(120% 90% at 50% -10%, rgba(36, 86, 214, 0.04), transparent 55%),
     #f6f5f2;
 }
 
@@ -13252,7 +13732,7 @@ body:has(.landing-page) {
    Re-apply the bright heading gradient (the deep one is for light backgrounds)
    and lighten the subtext. */
 [data-theme="light"] .landing-final-cta h2 {
-  background: linear-gradient(100deg, #67e8f9 0%, #22d3ee 22%, #6366f1 60%, #a855f7 100%);
+  background: linear-gradient(100deg, #4f8cff 0%, #3b6df5 30%, #2546c7 70%, #1d3fae 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -13452,7 +13932,7 @@ body:has(.landing-page) {
 /* User detail page (light) */
 [data-theme="light"] .admin-detail-page {
   background:
-    radial-gradient(120% 90% at 50% -10%, rgba(14, 159, 116, 0.05), transparent 55%),
+    radial-gradient(120% 90% at 50% -10%, rgba(36, 86, 214, 0.05), transparent 55%),
     var(--bg-base);
 }
 
@@ -13790,4 +14270,498 @@ body:has(.landing-page) {
   border-color: rgba(180, 35, 24, 0.28);
   background: rgba(248, 113, 113, 0.12);
   color: #b42318;
+}
+
+/* ================================================================== *
+ * Dashboard insight charts
+ * ================================================================== */
+.dash-charts-section {
+  display: grid;
+  gap: 14px;
+}
+
+.dash-charts-heading {
+  margin: 0;
+}
+
+.dash-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dash-chart-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 6%, transparent), transparent 46%),
+    rgba(255, 255, 255, 0.022);
+  padding: 18px 18px 16px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dash-chart-card.is-wide {
+  grid-column: 1 / -1;
+}
+
+.dash-chart-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dash-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dash-chart-icon {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.dash-chart-title h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.98rem;
+  line-height: 1.1;
+}
+
+.dash-chart-title p {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+}
+
+.dash-chart-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dash-chart-body {
+  min-width: 0;
+}
+
+.dash-chart-empty {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  padding: 28px 0;
+  text-align: center;
+}
+
+/* Segmented toggle */
+.dash-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dash-seg-btn {
+  position: relative;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.dash-seg-btn.is-active {
+  color: #04130c;
+}
+
+.dash-seg-label {
+  position: relative;
+  z-index: 1;
+}
+
+.dash-seg-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--gradient-accent);
+  box-shadow: 0 4px 12px var(--accent-glow);
+  z-index: 0;
+}
+
+/* Line chart */
+.dash-line-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.dash-line-svg {
+  width: 100%;
+  height: 260px;
+  display: block;
+  overflow: visible;
+}
+
+.dash-line-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+  opacity: 0.5;
+}
+
+.dash-line-cross {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: 0.6;
+}
+
+.dash-axis-label {
+  fill: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Crosshair ray readout labels (line chart) */
+.dash-ray-label-bg {
+  fill: color-mix(in srgb, var(--accent) 88%, #000);
+}
+
+.dash-ray-label {
+  fill: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Tooltip */
+.dash-tip {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 2px;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 4;
+  max-width: 220px;
+}
+
+.dash-tip strong {
+  font-size: 0.92rem;
+}
+
+.dash-tip span {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+.dash-tip em {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-style: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Donut */
+.dash-donut-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.dash-donut {
+  position: relative;
+  width: 180px;
+  height: 180px;
+}
+
+.dash-donut-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.dash-donut-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.dash-donut-center strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.dash-donut-center span {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  max-width: 110px;
+}
+
+.dash-legend {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dash-legend-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 5px 7px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.dash-legend-btn:hover {
+  background: var(--hover);
+}
+
+.dash-legend-btn.is-off {
+  opacity: 0.4;
+}
+
+.dash-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.dash-legend-label {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash-legend-val {
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* Bar chart */
+.dash-bar-legend {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.dash-bar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.dash-bar-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.dash-bars {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 200px;
+  padding-top: 12px;
+  padding-left: 30px;
+}
+
+/* Horizontal grid lines behind the bars, with value labels in the left gutter */
+.dash-bar-grid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 12px;
+  bottom: 19px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dash-bar-grid-line {
+  position: relative;
+  border-top: 1px dashed var(--border);
+}
+
+.dash-bar-grid-line:last-child {
+  border-top-style: solid;
+  border-top-color: color-mix(in srgb, var(--border) 160%, transparent);
+}
+
+.dash-bar-grid-line span {
+  position: absolute;
+  left: 0;
+  top: -6px;
+  width: 26px;
+  padding-right: 4px;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 600;
+}
+
+.dash-bars .dash-bar-col {
+  z-index: 1;
+}
+
+.dash-bar-col {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 6px;
+  height: 100%;
+}
+
+.dash-bar-stack {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  height: 100%;
+}
+
+.dash-bar-col.stacked .dash-bar-stack {
+  flex-direction: column-reverse;
+  gap: 0;
+  align-items: stretch;
+}
+
+.dash-bar {
+  display: block;
+  width: 100%;
+  max-width: 16px;
+  margin: 0 auto;
+  border-radius: 5px 5px 0 0;
+  transition: filter 140ms ease;
+}
+
+.dash-bar-col.stacked .dash-bar {
+  max-width: 22px;
+  border-radius: 0;
+}
+
+.dash-bar-col.stacked .dash-bar.earned {
+  border-radius: 5px 5px 0 0;
+}
+
+.dash-bar-col.stacked .dash-bar.spent {
+  border-radius: 0 0 5px 5px;
+}
+
+.dash-bar.earned {
+  background: linear-gradient(180deg, #34e0aa, #1aa97c);
+}
+
+.dash-bar.spent {
+  background: linear-gradient(180deg, #fb7185, #e11d6b);
+}
+
+.dash-bar-col.is-hover .dash-bar {
+  filter: brightness(1.18);
+}
+
+.dash-bar-x {
+  color: var(--text-muted);
+  font-size: 0.64rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-bar-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  top: auto;
+}
+
+@media (max-width: 860px) {
+  .dash-charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-donut-wrap {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .dash-legend {
+    width: 100%;
+    max-width: 280px;
+  }
+}
+
+/* Light theme */
+[data-theme="light"] .dash-chart-card {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 7%, transparent), transparent 46%),
+    #ffffff;
+}
+
+[data-theme="light"] .dash-seg,
+[data-theme="light"] .dash-tip {
+  background: #ffffff;
+}
+
+[data-theme="light"] .dash-donut-svg circle:first-child {
+  stroke: rgba(23, 23, 20, 0.08);
+}
+
+/* Settings, Billing and Dashboard: make all text bold (font sizes unchanged). */
+.settings-route,
+.settings-route *,
+.billing-route,
+.billing-route *,
+.user-dash,
+.user-dash * {
+  font-weight: 700 !important;
 }

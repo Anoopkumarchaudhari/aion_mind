@@ -385,7 +385,7 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
 
           <motion.section
             id="billing-topups"
-            className="billing-panel"
+            className="billing-panel billing-topups-wide"
             aria-labelledby="topups-heading"
             variants={scrollItemVariants}
           >
@@ -409,7 +409,7 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
                     className="ghost-button"
                     type="button"
                     onClick={() =>
-                      purchase("topup", pack.id, `${pack.name} credit pack`, pack.priceInr, null, "#22d3ee")
+                      purchase("topup", pack.id, `${pack.name} credit pack`, pack.priceInr, null, "#4f8cff")
                     }
                     disabled={pendingItem === pack.id}
                   >

@@ -45,7 +45,7 @@ const inrFormatter = new Intl.NumberFormat("en-IN", {
 });
 
 const modelLogos = [
-  { label: "OpenAI", src: "/model logo/openai.webp", color: "#22d3ee", latest: "Latest OpenAI model", intro: "Fast, versatile reasoning and writing." },
+  { label: "OpenAI", src: "/model logo/openai.webp", color: "#3b6df5", latest: "Latest OpenAI model", intro: "Fast, versatile reasoning and writing." },
   { label: "Claude", src: "/model logo/claude-ai.webp", color: "#f59e0b", latest: "Latest Claude model", intro: "Deep reasoning and long-context analysis." },
   { label: "Gemini", src: "/model logo/gemini.jpg", color: "#8b5cf6", latest: "Latest Gemini model", intro: "Multimodal answers across text and vision." },
   { label: "DeepSeek", src: "/model logo/DeepSeek-Emblem.png", color: "#34d399", latest: "Latest DeepSeek model", intro: "Efficient open reasoning and strong coding." },
@@ -61,7 +61,7 @@ const tiers = [
     copy: "The fast default. One quick model handles everyday chat with instant answers, workspace memory, and live verification that kicks in only when a prompt needs current facts.",
     points: ["One fast model for everyday chat", "Workspace memory from saved chats", "Live search only when facts need it"],
     models: "Latest fast model",
-    color: "#22d3ee",
+    color: "#3b6df5",
     diagram: {
       main: [
         { icon: MessageSquare, title: "Prompt", sub: "your question" },
@@ -187,14 +187,14 @@ const orderedTiers = ORDERED_TIER_NAMES.map((name) =>
 ).filter((tier): tier is (typeof tiers)[number] => Boolean(tier));
 
 const capabilities = [
-  { icon: MessageSquare, title: "Text", accent: "#22d3ee", copy: "Chat, write, brainstorm, and reason with the right model for each task." },
+  { icon: MessageSquare, title: "Text", accent: "#3b6df5", copy: "Chat, write, brainstorm, and reason with the right model for each task." },
   { icon: ImageIcon, title: "Image", accent: "#a855f7", copy: "Turn prompts, references, and concepts into polished visual assets." },
   { icon: Video, title: "Video", accent: "#fb7185", copy: "Create short clips, social cuts, and cinematic experiments from one place." },
   { icon: Mic2, title: "Voice", accent: "#f59e0b", copy: "Plan scripts, narration, podcasts, and voiceover workflows beside your work." },
   { icon: Search, title: "Research", accent: "#60a5fa", copy: "Live web search with sources and a transparent step-by-step work log." },
   { icon: Languages, title: "Translate", accent: "#34d399", copy: "Fast, accurate translation across languages without leaving the workspace." },
   { icon: NotebookPen, title: "Notebooks", accent: "#f97316", copy: "Capture useful ideas and build structured notebooks from your chats." },
-  { icon: Library, title: "Library", accent: "#2dd4bf", copy: "Save outputs, organize history, and return to anything you have created." }
+  { icon: Library, title: "Library", accent: "#38bdf8", copy: "Save outputs, organize history, and return to anything you have created." }
 ];
 
 const benefits = [
@@ -658,10 +658,10 @@ type DiagramSub = { icon: typeof Bot; label: string; role: string };
 type TierDiagram = { main: DiagramNode[]; agentIndex: number; subs: DiagramSub[] };
 
 const WORKFLOW_COLOR_B: Record<string, string> = {
-  "#22d3ee": "#25d59b",
-  "#a855f7": "#22d3ee",
+  "#3b6df5": "#4f8cff",
+  "#a855f7": "#4f8cff",
   "#34d399": "#a3e635",
-  "#60a5fa": "#22d3ee",
+  "#60a5fa": "#4f8cff",
   "#f59e0b": "#fb7185"
 };
 
