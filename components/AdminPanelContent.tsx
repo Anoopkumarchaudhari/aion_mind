@@ -3,9 +3,12 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import * as AlertDialog from "@radix-ui/react-alert-dialog";
 import { motion } from "framer-motion";
 import {
   Activity,
+  ChevronDown,
+  ChevronUp,
   Coins,
   CreditCard,
   Database,
@@ -14,6 +17,7 @@ import {
   LogOut,
   Megaphone,
   Pencil,
+  Plus,
   Power,
   RefreshCw,
   Route,
@@ -76,6 +80,9 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
 
   const [billingDraft, setBillingDraft] = useState(initialOverview.billing);
   const [billingSaving, setBillingSaving] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<
+    { kind: "plan" | "topup" | "rate"; id: string; label: string } | null
+  >(null);
 
   const [admins, setAdmins] = useState(initialOverview.admins);
   const [newAdminEmail, setNewAdminEmail] = useState("");
@@ -357,24 +364,12 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
     setBillingSaving(true);
     setMessage("");
 
-    const overrides = {
-      plans: Object.fromEntries(
-        billingDraft.plans.map((plan) => [
-          plan.id,
-          { priceInr: plan.priceInr, monthlyCredits: plan.monthlyCredits, note: plan.note }
-        ])
-      ),
-      topUps: Object.fromEntries(
-        billingDraft.topUps.map((pack) => [pack.id, { priceInr: pack.priceInr, credits: pack.credits }])
-      ),
-      featureRates: Object.fromEntries(billingDraft.featureRates.map((rate) => [rate.id, { credits: rate.credits }]))
-    };
-
     try {
+      // Send the full managed catalog (supports added / removed / reordered items).
       const response = await fetch("/api/admin/billing", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(overrides)
+        body: JSON.stringify(billingDraft)
       });
       const data = (await response.json()) as { catalog?: AdminOverview["billing"]; error?: string };
 
@@ -784,11 +779,51 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
             </div>
 
             <div className="admin-editor-grid">
-              {billingDraft.plans.map((plan) => (
+              {billingDraft.plans.map((plan, planIndex) => (
                 <div className="admin-editor-card" key={plan.id} style={{ borderColor: plan.accent }}>
                   <div className="admin-editor-card-head">
-                    <span style={{ background: plan.accent }} />
-                    <strong>{plan.name}</strong>
+                    <input
+                      className="admin-color-input"
+                      type="color"
+                      value={plan.accent}
+                      onChange={(event) => updatePlanField(setBillingDraft, plan.id, "accent", event.target.value)}
+                      aria-label={`${plan.name} accent colour`}
+                    />
+                    <input
+                      className="admin-input admin-editor-name"
+                      type="text"
+                      value={plan.name}
+                      onChange={(event) => updatePlanField(setBillingDraft, plan.id, "name", event.target.value)}
+                      aria-label="Plan name"
+                    />
+                  </div>
+                  <div className="admin-editor-card-tools">
+                    <button
+                      type="button"
+                      className="admin-icon-button"
+                      title="Move up"
+                      disabled={planIndex === 0}
+                      onClick={() => movePlan(setBillingDraft, plan.id, -1)}
+                    >
+                      <ChevronUp size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-icon-button"
+                      title="Move down"
+                      disabled={planIndex === billingDraft.plans.length - 1}
+                      onClick={() => movePlan(setBillingDraft, plan.id, 1)}
+                    >
+                      <ChevronDown size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="admin-icon-button is-danger"
+                      title="Delete plan"
+                      onClick={() => setPendingDelete({ kind: "plan", id: plan.id, label: plan.name })}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                   <label>
                     Price (INR)
@@ -823,6 +858,10 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                   </label>
                 </div>
               ))}
+              <button type="button" className="admin-editor-add" onClick={() => addPlan(setBillingDraft)}>
+                <Plus size={16} />
+                Add plan
+              </button>
             </div>
 
             <div className="admin-mini-grid">
@@ -831,14 +870,21 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                   <CreditCard size={15} />
                   Top-up packs
                 </div>
-                <div className="admin-inline-edit admin-inline-head" aria-hidden="true">
+                <div className="admin-inline-edit is-topup admin-inline-head" aria-hidden="true">
                   <span>Pack</span>
                   <span>Price (₹)</span>
                   <span>Credits</span>
+                  <span />
                 </div>
                 {billingDraft.topUps.map((pack) => (
-                  <div className="admin-inline-edit" key={pack.id}>
-                    <span>{pack.name}</span>
+                  <div className="admin-inline-edit is-topup" key={pack.id}>
+                    <input
+                      className="admin-input admin-input-sm"
+                      type="text"
+                      value={pack.name}
+                      onChange={(event) => updateTopUpField(setBillingDraft, pack.id, "name", event.target.value)}
+                      aria-label="Pack name"
+                    />
                     <input
                       className="admin-input admin-input-sm"
                       type="number"
@@ -855,30 +901,70 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                       onChange={(event) => updateTopUpField(setBillingDraft, pack.id, "credits", Number(event.target.value))}
                       aria-label={`${pack.name} credits`}
                     />
+                    <button
+                      type="button"
+                      className="admin-icon-button is-danger"
+                      title="Delete pack"
+                      onClick={() => setPendingDelete({ kind: "topup", id: pack.id, label: pack.name })}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))}
+                <button type="button" className="admin-editor-add is-inline" onClick={() => addTopUp(setBillingDraft)}>
+                  <Plus size={15} />
+                  Add top-up pack
+                </button>
               </div>
               <div className="admin-mini-panel">
                 <div className="admin-mini-heading">
                   <Activity size={15} />
                   Feature rates
                 </div>
-                <div className="admin-inline-edit admin-inline-head" aria-hidden="true">
+                <div className="admin-inline-edit is-rate admin-inline-head" aria-hidden="true">
                   <span>Feature</span>
                   <span>Credits</span>
+                  <span />
                 </div>
                 {billingDraft.featureRates.map((rate) => (
-                  <div className="admin-inline-edit" key={rate.id}>
-                    <span>{rate.label}</span>
+                  <div className="admin-inline-edit is-rate" key={rate.id}>
+                    <span className="admin-rate-name">
+                      <input
+                        className="admin-color-input sm"
+                        type="color"
+                        value={rate.color}
+                        onChange={(event) => updateRateField(setBillingDraft, rate.id, "color", event.target.value)}
+                        aria-label={`${rate.label} colour`}
+                      />
+                      <input
+                        className="admin-input admin-input-sm"
+                        type="text"
+                        value={rate.label}
+                        onChange={(event) => updateRateField(setBillingDraft, rate.id, "label", event.target.value)}
+                        aria-label="Feature label"
+                      />
+                    </span>
                     <input
                       className="admin-input admin-input-sm"
                       type="text"
                       value={rate.credits}
-                      onChange={(event) => updateRateField(setBillingDraft, rate.id, event.target.value)}
+                      onChange={(event) => updateRateField(setBillingDraft, rate.id, "credits", event.target.value)}
                       aria-label={`${rate.label} credit rate`}
                     />
+                    <button
+                      type="button"
+                      className="admin-icon-button is-danger"
+                      title="Delete feature rate"
+                      onClick={() => setPendingDelete({ kind: "rate", id: rate.id, label: rate.label })}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))}
+                <button type="button" className="admin-editor-add is-inline" onClick={() => addRate(setBillingDraft)}>
+                  <Plus size={15} />
+                  Add feature rate
+                </button>
               </div>
             </div>
           </motion.section>
@@ -1015,14 +1101,12 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
                 return (
                   <div className="admin-provider-card" key={provider.id}>
                     <div className="admin-provider-top">
-                      <div>
-                        <strong>{provider.label}</strong>
-                        <span>{provider.modelCount} configured models</span>
-                      </div>
+                      <strong>{provider.label}</strong>
                       <span className={`admin-status-pill ${provider.apiKeyConfigured ? "is-ready" : "is-missing"}`}>
                         {provider.apiKeyConfigured ? "Key ready" : "No key"}
                       </span>
                     </div>
+                    <span className="admin-provider-sub">{provider.modelCount} configured models</span>
                     <div className="admin-provider-controls">
                       <label className="admin-budget-field">
                         <Coins size={14} />
@@ -1136,6 +1220,38 @@ export function AdminPanelContent({ initialOverview }: AdminPanelContentProps) {
       ) : null}
 
       <ModelRoutingDrawer open={routingOpen} initialTab="aion" onOpenChange={setRoutingOpen} />
+
+      <AlertDialog.Root open={pendingDelete !== null} onOpenChange={(open) => (open ? null : setPendingDelete(null))}>
+        <AlertDialog.Portal>
+          <AlertDialog.Overlay className="alert-overlay" />
+          <AlertDialog.Content className="alert-content">
+            <AlertDialog.Title className="alert-title">
+              Delete this {pendingDelete?.kind === "plan" ? "plan" : pendingDelete?.kind === "topup" ? "top-up pack" : "feature rate"}?
+            </AlertDialog.Title>
+            <AlertDialog.Description className="alert-description">
+              “{pendingDelete?.label}” will be removed from the catalog. Click “Save catalog” afterwards to apply — this can’t be undone once saved.
+            </AlertDialog.Description>
+            <div className="alert-actions">
+              <AlertDialog.Cancel className="alert-button" type="button">
+                Cancel
+              </AlertDialog.Cancel>
+              <AlertDialog.Action
+                className="alert-button is-danger"
+                type="button"
+                onClick={() => {
+                  if (!pendingDelete) return;
+                  if (pendingDelete.kind === "plan") removePlan(setBillingDraft, pendingDelete.id);
+                  else if (pendingDelete.kind === "topup") removeTopUp(setBillingDraft, pendingDelete.id);
+                  else removeRate(setBillingDraft, pendingDelete.id);
+                  setPendingDelete(null);
+                }}
+              >
+                Delete
+              </AlertDialog.Action>
+            </div>
+          </AlertDialog.Content>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
     </AppFrame>
   );
 }
@@ -1308,11 +1424,17 @@ function AdminSwitch({ checked, onChange }: { checked: boolean; onChange: (value
 /* -------------------------------------------------------------------------- */
 
 type BillingDraft = AdminOverview["billing"];
+type DraftSetter = React.Dispatch<React.SetStateAction<BillingDraft>>;
 
+function genId(prefix: string) {
+  return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+/* Plans */
 function updatePlanField(
-  setDraft: React.Dispatch<React.SetStateAction<BillingDraft>>,
+  setDraft: DraftSetter,
   id: string,
-  field: "priceInr" | "monthlyCredits" | "note",
+  field: "name" | "priceInr" | "monthlyCredits" | "accent" | "note",
   value: number | string
 ) {
   setDraft((draft) => ({
@@ -1321,11 +1443,41 @@ function updatePlanField(
   }));
 }
 
+function addPlan(setDraft: DraftSetter) {
+  setDraft((draft) => ({
+    ...draft,
+    plans: [
+      ...draft.plans,
+      { id: genId("plan"), name: "New plan", priceInr: 0, monthlyCredits: 0, accent: "#3b6df5", note: "" }
+    ]
+  }));
+}
+
+function removePlan(setDraft: DraftSetter, id: string) {
+  setDraft((draft) => ({ ...draft, plans: draft.plans.filter((plan) => plan.id !== id) }));
+}
+
+function moveItem<T>(list: T[], index: number, dir: -1 | 1): T[] {
+  const next = [...list];
+  const target = index + dir;
+  if (index < 0 || target < 0 || target >= next.length) return next;
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
+}
+
+function movePlan(setDraft: DraftSetter, id: string, dir: -1 | 1) {
+  setDraft((draft) => ({
+    ...draft,
+    plans: moveItem(draft.plans, draft.plans.findIndex((plan) => plan.id === id), dir)
+  }));
+}
+
+/* Top-ups */
 function updateTopUpField(
-  setDraft: React.Dispatch<React.SetStateAction<BillingDraft>>,
+  setDraft: DraftSetter,
   id: string,
-  field: "priceInr" | "credits",
-  value: number
+  field: "name" | "priceInr" | "credits",
+  value: number | string
 ) {
   setDraft((draft) => ({
     ...draft,
@@ -1333,15 +1485,39 @@ function updateTopUpField(
   }));
 }
 
+function addTopUp(setDraft: DraftSetter) {
+  setDraft((draft) => ({
+    ...draft,
+    topUps: [...draft.topUps, { id: genId("topup"), name: "New pack", priceInr: 0, credits: 0 }]
+  }));
+}
+
+function removeTopUp(setDraft: DraftSetter, id: string) {
+  setDraft((draft) => ({ ...draft, topUps: draft.topUps.filter((pack) => pack.id !== id) }));
+}
+
+/* Feature rates */
 function updateRateField(
-  setDraft: React.Dispatch<React.SetStateAction<BillingDraft>>,
+  setDraft: DraftSetter,
   id: string,
+  field: "label" | "credits" | "color",
   value: string
 ) {
   setDraft((draft) => ({
     ...draft,
-    featureRates: draft.featureRates.map((rate) => (rate.id === id ? { ...rate, credits: value } : rate))
+    featureRates: draft.featureRates.map((rate) => (rate.id === id ? { ...rate, [field]: value } : rate))
   }));
+}
+
+function addRate(setDraft: DraftSetter) {
+  setDraft((draft) => ({
+    ...draft,
+    featureRates: [...draft.featureRates, { id: genId("feature"), label: "New feature", credits: "1", color: "#3b6df5" }]
+  }));
+}
+
+function removeRate(setDraft: DraftSetter, id: string) {
+  setDraft((draft) => ({ ...draft, featureRates: draft.featureRates.filter((rate) => rate.id !== id) }));
 }
 
 /* -------------------------------------------------------------------------- */

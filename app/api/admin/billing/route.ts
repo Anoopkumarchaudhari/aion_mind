@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminUser } from "@/services/adminAuth";
-import { getBillingOverrides, saveBillingOverrides } from "@/services/adminSettings";
-import { mergeBillingCatalog } from "@/services/billingCatalog";
+import { getBillingCatalog, saveBillingCatalog } from "@/services/adminSettings";
 import { AuthError } from "@/services/auth";
 
 export const runtime = "nodejs";
@@ -10,9 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await requireAdminUser();
-    const overrides = await getBillingOverrides();
-
-    return NextResponse.json({ overrides, catalog: mergeBillingCatalog(overrides) });
+    return NextResponse.json({ catalog: await getBillingCatalog() });
   } catch (error) {
     return errorResponse(error, "Could not load billing catalog.");
   }
@@ -22,9 +19,9 @@ export async function PATCH(request: Request) {
   try {
     await requireAdminUser();
     const body = await request.json();
-    const overrides = await saveBillingOverrides(body);
+    const catalog = await saveBillingCatalog(body);
 
-    return NextResponse.json({ overrides, catalog: mergeBillingCatalog(overrides) });
+    return NextResponse.json({ catalog });
   } catch (error) {
     return errorResponse(error, "Could not update billing catalog.");
   }

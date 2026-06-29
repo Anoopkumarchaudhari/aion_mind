@@ -132,7 +132,9 @@ const EMPTY_STATE = {
 };
 
 function normalizePlanId(planId: string): BillingPlanId {
-  return BILLING_PLANS.some((plan) => plan.id === planId) ? (planId as BillingPlanId) : "free";
+  // Plans are admin-managed (dynamic ids), so the server is authoritative —
+  // keep whatever id it sends and fall back to "free" only when it's empty.
+  return planId || "free";
 }
 
 export const useBillingStore = create<BillingState>()((set, get) => ({

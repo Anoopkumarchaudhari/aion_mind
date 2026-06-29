@@ -5862,6 +5862,32 @@ select:focus-visible,
   font-size: 1.12rem;
 }
 
+/* Admin heading / subheading type scale (panel titles, eyebrows, cards). */
+.admin-route .admin-panel-heading h3,
+.admin-detail-page .admin-panel-heading h3 {
+  font-size: 1.26rem;
+  line-height: 1.18;
+}
+
+.admin-route .eyebrow,
+.admin-detail-page .eyebrow {
+  font-size: 0.82rem;
+  letter-spacing: 0.13em;
+}
+
+.admin-route .admin-mini-heading,
+.admin-detail-page .admin-mini-heading {
+  font-size: 1.06rem;
+}
+
+.admin-route .admin-provider-top strong {
+  font-size: 1.12rem;
+}
+
+.admin-route .admin-provider-sub {
+  font-size: 0.8rem;
+}
+
 .admin-table-shell {
   overflow-x: auto;
 }
@@ -8309,10 +8335,10 @@ select:focus-visible,
   z-index: 95;
   width: min(380px, calc(100vw - 32px));
   transform: translate(-50%, -50%);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--border);
   border-radius: 18px;
-  background: #1f1f24;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.56);
+  background: var(--bg-elevated);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
   padding: 20px;
 }
 
@@ -8336,17 +8362,28 @@ select:focus-visible,
 }
 
 .alert-button {
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
   color: var(--text-primary);
-  padding: 8px 12px;
+  font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.alert-button:hover {
+  background: var(--hover);
 }
 
 .alert-button.is-danger {
-  border-color: rgba(248, 113, 113, 0.24);
-  background: rgba(248, 113, 113, 0.14);
-  color: #fecaca;
+  border-color: transparent;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.alert-button.is-danger:hover {
+  background: #b91c1c;
 }
 
 .toast {
@@ -11489,7 +11526,7 @@ body:has(.landing-page) {
 /* ---- Billing editor ---- */
 .admin-editor-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 12px;
 }
 
@@ -11508,14 +11545,12 @@ body:has(.landing-page) {
   gap: 8px;
 }
 
-.admin-editor-card-head span {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.admin-editor-card-head strong {
-  color: var(--text-primary);
+/* Reorder / delete buttons sit on their own row so the name field gets the
+   full card width and the plan name is never truncated. */
+.admin-editor-card-tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
 .admin-editor-card label,
@@ -11558,6 +11593,137 @@ body:has(.landing-page) {
   text-align: center;
 }
 
+/* Catalog editor: colour pickers, inline name fields, add / remove / reorder */
+.admin-color-input {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 2px var(--bg-elevated);
+}
+
+/* Strip the native color-input chrome so it reads as a clean filled swatch. */
+.admin-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.admin-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 7px;
+}
+.admin-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 7px;
+}
+
+.admin-color-input.sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
+
+.admin-editor-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 700;
+}
+
+.admin-editor-card-actions {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.admin-icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.admin-icon-button:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--text-primary);
+}
+
+.admin-icon-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-icon-button.is-danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+  background: color-mix(in srgb, var(--danger) 16%, transparent);
+  color: var(--danger);
+}
+
+.admin-editor-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: color-mix(in srgb, var(--accent) 90%, white);
+  font-weight: 700;
+  padding: 14px;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.admin-editor-add:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.admin-editor-add.is-inline {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+}
+
+.admin-inline-edit.is-topup {
+  grid-template-columns: minmax(0, 1fr) 84px 84px auto;
+}
+
+.admin-inline-edit.is-rate {
+  grid-template-columns: minmax(0, 1fr) 76px auto;
+}
+
+.admin-rate-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.admin-rate-name input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Inside the catalog editor rows the inputs should fill their grid cell —
+   override the fixed 92px width that .admin-input-sm uses for budget fields. */
+.admin-inline-edit .admin-input-sm,
+.admin-editor-name {
+  width: 100%;
+  min-width: 0;
+}
+
 /* ---- Providers + budgets ---- */
 .admin-provider-grid {
   display: grid;
@@ -11576,19 +11742,32 @@ body:has(.landing-page) {
 
 .admin-provider-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
-.admin-provider-top > div {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
 .admin-provider-top strong {
   color: var(--text-primary);
+  font-size: 1.05rem;
+  line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-provider-top .admin-status-pill {
+  flex: 0 0 auto;
+  font-size: 0.66rem;
+  padding: 4px 9px;
+  white-space: nowrap;
+}
+
+.admin-provider-sub {
+  margin-top: -6px;
+  color: var(--text-muted);
+  font-size: 0.76rem;
 }
 
 .admin-provider-controls {
@@ -14857,4 +15036,175 @@ body:has(.landing-page) {
 .user-dash,
 .user-dash * {
   font-weight: 700 !important;
+}
+
+/* Admin panel (main panel, user-detail view, sidebar): all text bold. */
+.admin-route,
+.admin-route *,
+.admin-detail-page,
+.admin-detail-page *,
+.admin-context-sidebar,
+.admin-context-sidebar * {
+  font-weight: 700 !important;
+}
+
+/* ================================================================== *
+ * Broadcast notification bell + popover
+ * ================================================================== */
+.landing-nav-utils,
+.route-header-utils {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.notif-bell {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.notif-bell:hover {
+  background: var(--hover);
+  color: var(--text-primary);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.notif-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  box-shadow: 0 0 0 2px var(--bg-elevated);
+}
+
+.notif-popover {
+  width: min(330px, calc(100vw - 24px));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  padding: 12px;
+  z-index: 130;
+}
+
+.notif-popover-head {
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.notif-item-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.notif-item-body {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.notif-item-body strong {
+  color: var(--text-primary);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.notif-item p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.notif-item.is-info {
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.notif-item.is-info .notif-item-icon {
+  color: var(--accent);
+}
+
+.notif-item.is-success {
+  border-color: rgba(52, 211, 153, 0.4);
+  background: rgba(52, 211, 153, 0.12);
+}
+.notif-item.is-success .notif-item-icon {
+  color: #34d399;
+}
+
+.notif-item.is-warning {
+  border-color: rgba(245, 158, 11, 0.42);
+  background: rgba(245, 158, 11, 0.12);
+}
+.notif-item.is-warning .notif-item-icon {
+  color: #f59e0b;
+}
+
+.notif-item.is-danger {
+  border-color: rgba(248, 113, 113, 0.42);
+  background: rgba(248, 113, 113, 0.12);
+}
+.notif-item.is-danger .notif-item-icon {
+  color: var(--danger);
+}
+
+.notif-arrow {
+  fill: var(--bg-elevated);
+}
+
+.notif-empty {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 18px 10px 12px;
+  text-align: center;
+}
+
+.notif-empty svg {
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.notif-empty strong {
+  color: var(--text-primary);
+  font-size: 0.88rem;
+}
+
+.notif-empty span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
 }

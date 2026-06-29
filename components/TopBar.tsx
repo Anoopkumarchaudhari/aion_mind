@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CreditCard, Edit3, Menu } from "lucide-react";
 import { TempModeToggle } from "@/components/TempModeToggle";
 import { ThemeToggleButton } from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 import { getAvailableCredits, useBillingStore } from "@/store/useBillingStore";
 
 type TopBarProps = {
@@ -34,6 +35,7 @@ export function TopBar({ tempMode, onToggleTempMode, onNewChat, onToggleSidebar 
           <CreditCard size={16} />
           <span className="top-billing-balance">{formatCompactCredits(availableCredits)}</span>
         </Link>
+        <NotificationBell />
         <ThemeToggleButton />
         <TempModeToggle active={tempMode} onToggle={onToggleTempMode} />
         <button

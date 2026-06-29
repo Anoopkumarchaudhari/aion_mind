@@ -1,7 +1,4 @@
-import {
-  mergeBillingCatalog,
-  type ResolvedBillingCatalog
-} from "@/services/billingCatalog";
+import { type ResolvedBillingCatalog } from "@/services/billingCatalog";
 import { getAionRoutingPayload } from "@/services/aionRoutingConfig";
 import {
   getAdminAccessSummary,
@@ -13,7 +10,7 @@ import {
 } from "@/services/adminAuth";
 import { normalizeEmail } from "@/services/auth";
 import {
-  getBillingOverrides,
+  getBillingCatalog,
   getFeatureFlags,
   getProviderBudgets,
   type FeatureFlags,
@@ -97,13 +94,13 @@ export type AdminOverview = {
 };
 
 export async function getAdminOverview(admin: AdminUser): Promise<AdminOverview> {
-  const [routingPayload, databaseSnapshot, featureFlags, providerBudgets, billingOverrides, admins] =
+  const [routingPayload, databaseSnapshot, featureFlags, providerBudgets, billingCatalog, admins] =
     await Promise.all([
       getAionRoutingPayload(),
       getDatabaseSnapshot(admin.id),
       getFeatureFlags(),
       getProviderBudgets(),
-      getBillingOverrides(),
+      getBillingCatalog(),
       listAdminMembers(admin.email)
     ]);
   const adminAccess = getAdminAccessSummary();
@@ -141,7 +138,7 @@ export async function getAdminOverview(admin: AdminUser): Promise<AdminOverview>
         )
       }
     ],
-    billing: mergeBillingCatalog(billingOverrides),
+    billing: billingCatalog,
     featureFlags,
     providerBudgets,
     config: [

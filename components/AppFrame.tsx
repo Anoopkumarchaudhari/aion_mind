@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "@/components/Sidebar";
 import { ThemeToggleButton } from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 import { pageShellVariants } from "@/lib/motion";
 import { sortThreads, useChatStore } from "@/store/useChatStore";
 import { useNotebookStore } from "@/store/useNotebookStore";
@@ -132,7 +133,10 @@ export function AppFrame({ children, title, sidebar }: AppFrameProps) {
             ☰
           </button>
           {title ? <h1>{title}</h1> : <span />}
-          <ThemeToggleButton className="route-header-theme" />
+          <div className="route-header-utils">
+            <NotificationBell />
+            <ThemeToggleButton className="route-header-theme" />
+          </div>
         </header>
         <AnimatePresence mode="wait">
           <motion.div

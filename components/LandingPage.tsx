@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
 import { ThemeToggleButton } from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 import { type BillingPlanId, type ResolvedBillingCatalog } from "@/services/billingCatalog";
 
 const inrFormatter = new Intl.NumberFormat("en-IN", {
@@ -827,6 +828,7 @@ function LandingNav({ scrolled }: { scrolled: boolean }) {
           <a href="#features" onClick={closeMenu}>Features</a>
           <a href="#about" onClick={closeMenu}>About</a>
           <a href="#plans" onClick={closeMenu}>Plans</a>
+          <NotificationBell className="landing-nav-bell" />
           <Link className="landing-nav-cta" href="/login" onClick={closeMenu}>
             Get started
             <ArrowRight size={15} />

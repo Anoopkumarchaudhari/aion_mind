@@ -1,14 +1,8 @@
-export type BillingPlanId = "free" | "starter" | "plus" | "pro" | "power";
+// IDs are open strings so the admin can create arbitrary plans / feature rates.
+// The constants below list the built-in defaults used to seed a fresh catalog.
+export type BillingPlanId = string;
 
-export type BillingFeatureId =
-  | "chat"
-  | "file-chat"
-  | "research"
-  | "analyzer"
-  | "translate"
-  | "image"
-  | "video"
-  | "audio";
+export type BillingFeatureId = string;
 
 export type BillingPlan = {
   id: BillingPlanId;
