@@ -18,6 +18,7 @@ import {
   Zap
 } from "lucide-react";
 import { downloadInvoice } from "@/lib/invoice";
+import { InvoicePreviewButton } from "@/components/InvoicePreviewButton";
 import {
   barFillVariants,
   hoverLift,
@@ -547,15 +548,18 @@ export function BillingPageContent({ catalog }: { catalog: ResolvedBillingCatalo
                     </div>
                     <span className="billing-status-pill is-available">Paid</span>
                     <strong>{inrFormatter.format(payment.amountInr)}</strong>
-                    <button
-                      className="billing-invoice-button"
-                      type="button"
-                      onClick={() => downloadInvoice(payment, { name: accountName, email: accountEmail })}
-                      title="Download PDF invoice"
-                    >
-                      <Download size={14} />
-                      Invoice
-                    </button>
+                    <span className="billing-row-actions">
+                      <InvoicePreviewButton payment={payment} account={{ name: accountName, email: accountEmail }} />
+                      <button
+                        className="billing-invoice-button"
+                        type="button"
+                        onClick={() => downloadInvoice(payment, { name: accountName, email: accountEmail })}
+                        title="Download PDF invoice"
+                      >
+                        <Download size={14} />
+                        Invoice
+                      </button>
+                    </span>
                   </motion.div>
                 );
               })}

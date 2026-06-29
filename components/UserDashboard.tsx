@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Activity, CalendarDays, Download, Layers, Mail, Receipt } from "lucide-react";
 import { downloadInvoice } from "@/lib/invoice";
 import { ContributionGraph } from "@/components/ContributionGraph";
+import { InvoicePreviewButton } from "@/components/InvoicePreviewButton";
 import { DashboardCharts } from "@/components/DashboardCharts";
 import type { AdminUserDetail, AdminUserPayment } from "@/services/adminUserDetail";
 
@@ -251,15 +252,21 @@ export function UserDashboard() {
                                   {formatDateTime(payment.createdAt)} · {inr.format(payment.amountInr)}
                                 </small>
                               </span>
-                              <button
-                                className="billing-invoice-button"
-                                type="button"
-                                onClick={() => downloadInvoice(toBillingPayment(payment), { name: profile.name, email: profile.email })}
-                                title="Download PDF invoice"
-                              >
-                                <Download size={14} />
-                                Invoice
-                              </button>
+                              <span className="dash-row-actions">
+                                <InvoicePreviewButton
+                                  payment={toBillingPayment(payment)}
+                                  account={{ name: profile.name, email: profile.email }}
+                                />
+                                <button
+                                  className="billing-invoice-button"
+                                  type="button"
+                                  onClick={() => downloadInvoice(toBillingPayment(payment), { name: profile.name, email: profile.email })}
+                                  title="Download PDF invoice"
+                                >
+                                  <Download size={14} />
+                                  Invoice
+                                </button>
+                              </span>
                             </li>
                           ))}
                         </ul>
