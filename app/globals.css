@@ -1253,6 +1253,31 @@ html[data-reduce-motion="true"] *::after {
   --hero-glow: rgba(244, 114, 182, 0.22);
 }
 
+/* Settings, Billing and Dashboard always use the cobalt accent — never the
+   temporary-mode pink (set on .mode-root, which would otherwise cascade in).
+   Defined on the route elements so the nearest-ancestor value wins. */
+.settings-route,
+.billing-route,
+.user-dash {
+  --accent: #3b6df5;
+  --accent-2: #4f8cff;
+  --accent-glow: rgba(59, 109, 245, 0.42);
+  --grid-tint: rgba(59, 109, 245, 0.08);
+  --hero-glow: rgba(59, 109, 245, 0.26);
+  --gradient-accent: linear-gradient(135deg, #4f7cff 0%, #2546c7 100%);
+}
+
+[data-theme="light"] .settings-route,
+[data-theme="light"] .billing-route,
+[data-theme="light"] .user-dash {
+  --accent: #2456d6;
+  --accent-2: #2f6fed;
+  --accent-glow: rgba(36, 86, 214, 0.22);
+  --grid-tint: rgba(36, 86, 214, 0.06);
+  --hero-glow: rgba(36, 86, 214, 0.14);
+  --gradient-accent: linear-gradient(135deg, #2f6fed 0%, #1d3fae 100%);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -2823,8 +2848,25 @@ select:focus-visible,
 }
 
 .danger-button {
-  background: rgba(248, 113, 113, 0.14);
-  color: #fecaca;
+  background: rgba(248, 113, 113, 0.16);
+  color: #fca5a5;
+}
+
+.danger-button:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.26);
+  color: #fee2e2;
+  transform: translateY(-1px);
+}
+
+/* Light theme: faint-pink-on-pink is unreadable — use a strong red. */
+[data-theme="light"] .danger-button {
+  background: rgba(220, 38, 38, 0.1);
+  color: #c01919;
+}
+
+[data-theme="light"] .danger-button:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.16);
+  color: #9b1212;
 }
 
 .translate-route,
