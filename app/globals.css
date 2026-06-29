@@ -6704,7 +6704,7 @@ select:focus-visible,
 .model-menu-item-tagline {
   font-size: 0.76rem;
   line-height: 1.3;
-  color: var(--text-muted);
+  color: #9ca3af;
 }
 
 .model-menu-item-main svg:last-child {

@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
-import { buildGoogleAuthUrl, getGoogleRedirectUri, isGoogleOAuthConfigured } from "@/services/googleOAuth";
+import { buildGoogleAuthUrl, getAppOrigin, getGoogleRedirectUri, isGoogleOAuthConfigured } from "@/services/googleOAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ const STATE_COOKIE = "g_oauth_state";
 // Start the Google sign-in flow: set a CSRF state cookie and redirect to Google.
 export async function GET(request: Request) {
   if (!isGoogleOAuthConfigured()) {
-    return NextResponse.redirect(new URL("/login?error=google_unconfigured", request.url));
+    return NextResponse.redirect(new URL("/login?error=google_unconfigured", getAppOrigin(request.url)));
   }
 
   const redirectUri = getGoogleRedirectUri(request.url);

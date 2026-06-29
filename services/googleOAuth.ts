@@ -16,6 +16,28 @@ export function isGoogleOAuthConfigured() {
   return Boolean(env("GOOGLE_CLIENT_ID") && env("GOOGLE_CLIENT_SECRET"));
 }
 
+/**
+ * The app's public origin (e.g. https://ariamindx.com).
+ *
+ * Behind a reverse proxy that doesn't forward the Host header, `request.url`
+ * resolves to the internal address (e.g. http://localhost:3001), which would
+ * send users to a dead localhost URL after sign-in. Prefer an explicitly
+ * configured public URL so redirects always point at the real domain.
+ */
+export function getAppOrigin(requestUrl: string) {
+  const configured = env("APP_URL") || env("GOOGLE_REDIRECT_URI");
+
+  if (configured) {
+    try {
+      return new URL(configured).origin;
+    } catch {
+      // Fall through to the request-derived origin below.
+    }
+  }
+
+  return new URL(requestUrl).origin;
+}
+
 /** The callback URL Google redirects back to. Override with GOOGLE_REDIRECT_URI. */
 export function getGoogleRedirectUri(requestUrl: string) {
   const configured = env("GOOGLE_REDIRECT_URI");
@@ -24,7 +46,7 @@ export function getGoogleRedirectUri(requestUrl: string) {
     return configured;
   }
 
-  return `${new URL(requestUrl).origin}/api/auth/google/callback`;
+  return `${getAppOrigin(requestUrl)}/api/auth/google/callback`;
 }
 
 export function buildGoogleAuthUrl(redirectUri: string, state: string) {

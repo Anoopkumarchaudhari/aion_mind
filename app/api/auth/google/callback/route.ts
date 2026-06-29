@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { AuthError, createSession, findOrCreateGoogleUser, setSessionCookie } from "@/services/auth";
-import { exchangeGoogleCode, getGoogleRedirectUri, isGoogleOAuthConfigured } from "@/services/googleOAuth";
+import { exchangeGoogleCode, getAppOrigin, getGoogleRedirectUri, isGoogleOAuthConfigured } from "@/services/googleOAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,8 +14,10 @@ export async function GET(request: Request) {
   const state = url.searchParams.get("state");
   const oauthError = url.searchParams.get("error");
 
+  const origin = getAppOrigin(request.url);
+
   const fail = (reason: string) => {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/login", origin);
     loginUrl.searchParams.set("error", reason);
     const response = NextResponse.redirect(loginUrl);
     response.cookies.set(STATE_COOKIE, "", { path: "/", maxAge: 0 });
@@ -51,7 +53,7 @@ export async function GET(request: Request) {
     const user = await findOrCreateGoogleUser({ email: profile.email, name: profile.name });
     const sessionId = await createSession(user.id);
 
-    const response = NextResponse.redirect(new URL("/chat", request.url));
+    const response = NextResponse.redirect(new URL("/chat", origin));
     setSessionCookie(response, sessionId);
     response.cookies.set(STATE_COOKIE, "", { path: "/", maxAge: 0 });
     return response;
