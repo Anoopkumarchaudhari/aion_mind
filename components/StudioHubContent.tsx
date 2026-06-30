@@ -704,25 +704,38 @@ export function StudioHubContent() {
               ) : null}
 
               {latestImage && !isGenerating ? (
-                <button
-                  type="button"
-                  className="studio-feature-shot"
-                  onClick={() => openGeneratedImage(latestImage)}
-                  aria-label="Open latest image"
-                >
-                  <img src={latestImage.url} alt={latestImage.prompt} />
-                  <span className="studio-feature-open"><Maximize2 size={15} /> View</span>
-                </button>
+                <div className="studio-feature-shot">
+                  <button
+                    type="button"
+                    className="studio-feature-image"
+                    onClick={() => openGeneratedImage(latestImage)}
+                    aria-label="Open latest image"
+                  >
+                    <img src={latestImage.url} alt={latestImage.prompt} />
+                    <span className="studio-feature-open"><Maximize2 size={15} /> View</span>
+                  </button>
+                  <div className="studio-feature-actions">
+                    <a className="ghost-button" href={latestImage.url} download={getImageFilename(latestImage)} title="Download">
+                      <Download size={15} />
+                    </a>
+                    <button className="ghost-button" type="button" onClick={() => saveImage(latestImage)} title="Save to Library">
+                      <Save size={15} />
+                    </button>
+                    <button className="ghost-button" type="button" onClick={() => removeImage(latestImage.id)} title="Remove">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
               ) : null}
 
-              {sortedImages.length > 0 ? (
+              {sortedImages.length > 1 ? (
                 <motion.div
                   className="studio-grid"
                   variants={scrollContainerVariants}
                   initial="hidden"
                   animate="show"
                 >
-                  {sortedImages.map((image) => (
+                  {sortedImages.slice(1).map((image) => (
                     <motion.article className="studio-card" key={image.id} variants={scrollItemVariants} whileHover={hoverLift}>
                       <button
                         type="button"
@@ -796,8 +809,6 @@ export function StudioHubContent() {
             </motion.div>
           )}
         </AnimatePresence>
-          </div>
-        </div>
 
         <section className="studio-featured" aria-label="Featured inspiration">
           <div className="studio-featured-head">
@@ -832,6 +843,8 @@ export function StudioHubContent() {
             ))}
           </div>
         </section>
+          </div>
+        </div>
 
         <ImageViewer image={viewerImage} onClose={() => setViewerImage(null)} />
       </section>

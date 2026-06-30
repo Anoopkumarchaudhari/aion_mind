@@ -15351,7 +15351,8 @@ body:has(.landing-page) {
 }
 
 .studio-creator-dock {
-  order: 999;
+  /* Prompt input sits on top; the feature image and all generated / preloaded
+     images flow below it. */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -15364,10 +15365,7 @@ body:has(.landing-page) {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  /* Pull the strip up so the inspiration shows a little higher under the dock. */
-  margin-top: clamp(-110px, -9vh, -48px);
-  /* Align the strip with the main column (sidebar 96px + 22px grid gap). */
-  padding-left: 118px;
+  margin-top: 8px;
 }
 
 .studio-featured-head {
@@ -15376,8 +15374,6 @@ body:has(.landing-page) {
   align-items: center;
   text-align: center;
   gap: 2px;
-  /* Cancel the section's left offset so the heading centers across the full width. */
-  margin-left: -118px;
 }
 
 .studio-featured-head .studio-eyebrow {
@@ -15551,10 +15547,6 @@ body:has(.landing-page) {
 
   .studio-featured-strip {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .studio-featured-head {
-    margin-left: 0;
   }
 }
 
@@ -15945,22 +15937,41 @@ body:has(.landing-page) {
 }
 
 .studio-feature-shot {
+  /* Shrink-wrap the image and center it so a square render isn't surrounded
+     by a wide empty void. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.studio-feature-image {
   position: relative;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 18px;
   overflow: hidden;
   padding: 0;
   cursor: pointer;
   background: var(--bg-elevated);
-  max-height: 460px;
 }
 
-.studio-feature-shot img {
-  width: 100%;
-  height: 100%;
+.studio-feature-image img {
+  width: auto;
+  max-width: 100%;
   max-height: 460px;
   object-fit: contain;
   display: block;
+}
+
+.studio-feature-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .studio-feature-open {
