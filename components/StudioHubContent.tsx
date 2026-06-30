@@ -432,6 +432,14 @@ export function StudioHubContent() {
     setError("");
   }
 
+  async function downloadAsset(asset: StudioAsset) {
+    const ok = await triggerImageDownload([asset.url], slugifyPrompt(asset.title));
+
+    if (!ok) {
+      window.open(asset.url, "_blank", "noopener");
+    }
+  }
+
   function openAssetImage(asset: StudioAsset) {
     setViewerImage({
       title: asset.title,
@@ -883,11 +891,7 @@ export function StudioHubContent() {
           </div>
           <div className="studio-featured-strip">
             {galleryAssets.map((asset) => (
-              <motion.article
-                className="studio-rail-card"
-                key={asset.id}
-                whileHover={hoverLift}
-              >
+              <article className="studio-rail-card" key={asset.id}>
                 <button
                   type="button"
                   className="studio-rail-thumb"
@@ -895,17 +899,26 @@ export function StudioHubContent() {
                   aria-label={`Open ${asset.title}`}
                 >
                   <img src={asset.url} alt={asset.title} loading="lazy" />
-                  <span className="studio-rail-zoom"><Maximize2 size={14} /></span>
                 </button>
-                <div className="studio-rail-body">
-                  <strong>{asset.title}</strong>
-                  <small>{asset.prompt}</small>
-                  <button type="button" className="studio-rail-use" onClick={() => useAssetPrompt(asset)}>
-                    <Wand2 size={13} />
-                    Use prompt
-                  </button>
+                <div className="studio-rail-overlay">
+                  <p className="studio-rail-prompt">{asset.prompt}</p>
+                  <div className="studio-rail-actions">
+                    <button type="button" className="studio-rail-use" onClick={() => useAssetPrompt(asset)}>
+                      <Wand2 size={13} />
+                      Use prompt
+                    </button>
+                    <button
+                      type="button"
+                      className="studio-rail-download"
+                      onClick={() => downloadAsset(asset)}
+                      title="Download"
+                      aria-label={`Download ${asset.title}`}
+                    >
+                      <Download size={14} />
+                    </button>
+                  </div>
                 </div>
-              </motion.article>
+              </article>
             ))}
           </div>
         </section>
