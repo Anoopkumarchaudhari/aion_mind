@@ -3418,6 +3418,45 @@ select:focus-visible,
   background: var(--bg-input);
 }
 
+.artifact-thumb-wrap {
+  position: relative;
+}
+
+.artifact-thumb-wrap .artifact-thumb {
+  display: block;
+}
+
+.artifact-thumb-download {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 10, 16, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #ffffff;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.16s ease, transform 0.16s ease, background 0.16s ease;
+}
+
+.artifact-card:hover .artifact-thumb-download,
+.artifact-thumb-download:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.artifact-thumb-download:hover {
+  background: color-mix(in srgb, var(--accent) 70%, rgba(8, 10, 16, 0.6));
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
 .artifact-thumb-missing {
   display: grid;
   place-items: center;

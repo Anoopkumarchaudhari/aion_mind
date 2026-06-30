@@ -214,7 +214,20 @@ function MediaPreview({ item }: { item: LibraryItem }) {
     );
   }
 
-  return <img className="artifact-thumb" src={item.url} alt="" onError={() => setHasError(true)} />;
+  return (
+    <div className="artifact-thumb-wrap">
+      <img className="artifact-thumb" src={item.url} alt="" onError={() => setHasError(true)} />
+      <button
+        className="artifact-thumb-download"
+        type="button"
+        onClick={() => downloadItem(item)}
+        title={`Download ${item.type}`}
+        aria-label={`Download ${item.title}`}
+      >
+        <Download size={15} />
+      </button>
+    </div>
+  );
 }
 
 function getIcon(type: LibraryItemType) {
@@ -232,13 +245,67 @@ function getIcon(type: LibraryItemType) {
   }
 }
 
-function downloadItem(item: LibraryItem) {
+async function downloadItem(item: LibraryItem) {
+  // Image/video items download the actual media file; everything else downloads
+  // its text content as before.
+  if (item.url && (item.type === "image" || item.type === "video")) {
+    const ok = await downloadMediaItem(item);
+
+    if (ok) {
+      return;
+    }
+  }
+
   const content = item.content || item.url || item.title;
   const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
   const href = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = href;
-  anchor.download = `${item.title.replace(/[^\w-]+/g, "-").toLowerCase() || "aion-item"}.txt`;
+  anchor.download = `${slugifyTitle(item.title)}.txt`;
   anchor.click();
   URL.revokeObjectURL(href);
+}
+
+// Fetch the media bytes and trigger a real file download from a blob. A plain
+// `<a download>` is ignored for cross-origin URLs, so we go through a blob.
+async function downloadMediaItem(item: LibraryItem) {
+  if (!item.url) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(item.url);
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const blob = await response.blob();
+    const extension = extensionForBlob(blob.type, item.type);
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+
+    anchor.href = objectUrl;
+    anchor.download = `${slugifyTitle(item.title)}.${extension}`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function extensionForBlob(mimeType: string, type: LibraryItemType) {
+  if (mimeType === "image/jpeg") return "jpg";
+  if (mimeType === "image/webp") return "webp";
+  if (mimeType === "image/png") return "png";
+  if (mimeType === "video/mp4") return "mp4";
+  if (mimeType === "video/webm") return "webm";
+  return type === "video" ? "mp4" : "png";
+}
+
+function slugifyTitle(title: string) {
+  return title.replace(/[^\w-]+/g, "-").toLowerCase() || "aion-item";
 }
