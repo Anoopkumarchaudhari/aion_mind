@@ -11,10 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
-  Film,
   HelpCircle,
   History,
-  Image as ImageIcon,
   Keyboard,
   Languages,
   LayoutDashboard,
@@ -27,7 +25,8 @@ import {
   Search,
   Settings,
   Sun,
-  Volume2
+  Volume2,
+  Wand2
 } from "lucide-react";
 import { AionLogo } from "@/components/AionLogo";
 import { useThemeStore } from "@/store/useThemeStore";
@@ -132,8 +131,7 @@ export function Sidebar({
 
   useEffect(() => {
     [
-      "/images",
-      "/videos",
+      "/studio",
       "/podcast",
       "/translate",
       "/library",
@@ -242,24 +240,20 @@ export function Sidebar({
           <div className="sidebar-action-group">
             <div className="sidebar-section-label">Generative AI</div>
             <Link
-              className={clsx("sidebar-action", isActiveRoute(pathname, "/images") && "is-active")}
-              href="/images"
-              aria-current={isActiveRoute(pathname, "/images") ? "page" : undefined}
-              onClick={onClose}
-              title="Image"
-            >
-              <ImageIcon size={17} />
-              <span className="sidebar-action-label">Image</span>
-            </Link>
-            <Link
-              className={clsx("sidebar-action", isActiveRoute(pathname, "/videos") && "is-active")}
-              href="/videos"
-              aria-current={isActiveRoute(pathname, "/videos") ? "page" : undefined}
+              className={clsx(
+                "sidebar-action",
+                (isActiveRoute(pathname, "/studio") ||
+                  isActiveRoute(pathname, "/images") ||
+                  isActiveRoute(pathname, "/videos")) &&
+                  "is-active"
+              )}
+              href="/studio"
+              aria-current={isActiveRoute(pathname, "/studio") ? "page" : undefined}
               onClick={markVideosVisited}
-              title="Video"
+              title="Studio - image and video"
             >
-              <Film size={17} />
-              <span className="sidebar-action-label">Video</span>
+              <Wand2 size={17} />
+              <span className="sidebar-action-label">Studio</span>
               {showVideoNew ? <span className="new-pill">New</span> : null}
             </Link>
             <button className="sidebar-action" type="button" disabled title="Audio coming soon">

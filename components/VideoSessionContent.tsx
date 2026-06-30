@@ -44,7 +44,7 @@ export function VideoSessionContent({ videoId }: VideoSessionContentProps) {
         <section className="route-content">
           <div className="empty-panel">
             <h3>Video session not found</h3>
-            <Link className="primary-button" href="/videos">Back to videos</Link>
+            <Link className="primary-button" href="/studio?tab=video">Back to Studio</Link>
           </div>
         </section>
       </AppFrame>

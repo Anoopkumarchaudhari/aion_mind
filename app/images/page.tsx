@@ -1,5 +1,5 @@
-import { ImagesHubContent } from "@/components/ImagesHubContent";
+import { redirect } from "next/navigation";
 
 export default function ImagesPage() {
-  return <ImagesHubContent />;
+  redirect("/studio?tab=image");
 }

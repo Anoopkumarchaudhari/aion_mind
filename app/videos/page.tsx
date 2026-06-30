@@ -1,5 +1,5 @@
-import { VideosHubContent } from "@/components/VideosHubContent";
+import { redirect } from "next/navigation";
 
 export default function VideosPage() {
-  return <VideosHubContent />;
+  redirect("/studio?tab=video");
 }

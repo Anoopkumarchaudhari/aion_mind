@@ -14,6 +14,7 @@ import { useBillingStore } from "@/store/useBillingStore";
 type AppFrameProps = {
   children: ReactNode;
   title?: string;
+  hideSidebar?: boolean;
   sidebar?: (props: AppFrameSidebarProps) => ReactNode;
 };
 
@@ -24,7 +25,7 @@ export type AppFrameSidebarProps = {
   onToggleCollapsed: () => void;
 };
 
-export function AppFrame({ children, title, sidebar }: AppFrameProps) {
+export function AppFrame({ children, title, hideSidebar, sidebar }: AppFrameProps) {
   const router = useRouter();
   const pathname = usePathname() ?? "route";
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -82,8 +83,12 @@ export function AppFrame({ children, title, sidebar }: AppFrameProps) {
   }
 
   return (
-    <div className={`app-shell ${sidebarCollapsed ? "is-collapsed" : ""}`}>
-      {sidebar ? (
+    <div
+      className={`app-shell ${sidebarCollapsed ? "is-collapsed" : ""} ${
+        hideSidebar ? "is-sidebar-hidden" : ""
+      }`}
+    >
+      {hideSidebar ? null : sidebar ? (
         sidebar({
           isOpen: sidebarOpen,
           isCollapsed: sidebarCollapsed,
