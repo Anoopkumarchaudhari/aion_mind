@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Sidebar } from "@/components/Sidebar";
 import { ThemeToggleButton } from "@/components/ThemeToggle";
@@ -82,11 +84,13 @@ export function AppFrame({ children, title, hideSidebar, sidebar }: AppFrameProp
     addChatToNotebook(notebookId, threadId);
   }
 
+  const isStudio = pathname.startsWith("/studio");
+
   return (
     <div
       className={`app-shell ${sidebarCollapsed ? "is-collapsed" : ""} ${
         hideSidebar ? "is-sidebar-hidden" : ""
-      }`}
+      } ${isStudio ? "is-studio-dark" : ""}`}
     >
       {hideSidebar ? null : sidebar ? (
         sidebar({
@@ -137,6 +141,12 @@ export function AppFrame({ children, title, hideSidebar, sidebar }: AppFrameProp
           >
             ☰
           </button>
+          {isStudio ? (
+            <Link className="route-header-back" href="/chat">
+              <ArrowLeft size={16} />
+              Back to chat
+            </Link>
+          ) : null}
           {title ? <h1>{title}</h1> : <span />}
           <div className="route-header-utils">
             <NotificationBell />

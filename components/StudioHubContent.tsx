@@ -11,7 +11,6 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowLeft,
   Box,
   Clapperboard,
   Download,
@@ -481,10 +480,6 @@ export function StudioHubContent() {
     <AppFrame title="Studio" hideSidebar>
       <section className="route-content studio-route" style={pageStyle}>
         <div className="studio-page-overlay" aria-hidden="true" />
-        <a className="studio-back-chat" href="/chat">
-          <ArrowLeft size={16} />
-          Back to chat
-        </a>
         <div className="studio-shell">
           <aside className="studio-toolbar" aria-label="Studio tools">
             <button

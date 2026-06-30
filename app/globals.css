@@ -13463,6 +13463,32 @@ body:has(.landing-page) {
   background: #f6f5f2;
 }
 
+/* Studio is always dark — force the surrounding chrome (header + panel) dark
+   too, even when the app is in light mode. Higher specificity than the
+   light-theme .app-shell/.main-panel rules above so it wins. */
+.app-shell.is-studio-dark,
+[data-theme="light"] .app-shell.is-studio-dark {
+  color-scheme: dark;
+  --bg-base: #070b10;
+  --bg-elevated: #1d2732;
+  --bg-input: #202b37;
+  --hover: #263543;
+  --border: rgba(199, 214, 251, 0.18);
+  --border-strong: rgba(199, 214, 251, 0.28);
+  --text-primary: #ffffff;
+  --text-secondary: #d8e1ec;
+  --text-muted: #aebac8;
+  --accent: #3b6df5;
+  --accent-2: #4f8cff;
+  --accent-glow: rgba(59, 109, 245, 0.42);
+  background: #070b10;
+}
+
+.app-shell.is-studio-dark .main-panel,
+[data-theme="light"] .app-shell.is-studio-dark .main-panel {
+  background: #070b10;
+}
+
 /* The night sky has no place in light mode — show a calm light wash instead. */
 [data-theme="light"] .star-sky-base {
   background: radial-gradient(120% 90% at 50% 0%, #ffffff 0%, #f3f2ee 60%, #eeece7 100%);
@@ -15272,6 +15298,24 @@ body:has(.landing-page) {
   --studio-ink: #ffffff;
   --studio-ink-soft: rgba(255, 255, 255, 0.86);
   --studio-text-shadow: 0 1px 16px rgba(0, 0, 0, 0.62), 0 1px 3px rgba(0, 0, 0, 0.6);
+
+  /* Studio is ALWAYS dark, even when the app is in light mode. Re-declaring the
+     dark tokens directly on this element overrides the light-theme tokens
+     inherited from <html data-theme="light"> for the whole studio subtree. */
+  color-scheme: dark;
+  --bg-base: #070b10;
+  --bg-sidebar: #111820;
+  --bg-elevated: #1d2732;
+  --bg-input: #202b37;
+  --hover: #263543;
+  --border: rgba(199, 214, 251, 0.18);
+  --text-primary: #ffffff;
+  --text-secondary: #d8e1ec;
+  --text-muted: #aebac8;
+  --accent: #3b6df5;
+  --accent-2: #4f8cff;
+  --accent-glow: rgba(59, 109, 245, 0.42);
+
   /* Keep the photo crisp: a light readability tint instead of the heavy
      murky wash that made the background look hazy/blurred. */
   background:
@@ -15282,57 +15326,36 @@ body:has(.landing-page) {
   background-attachment: fixed;
 }
 
-[data-theme="light"] .studio-route {
-  /* Keep the photo crisp in light mode: a light dark-tint for text contrast
-     instead of the milky white wash that made the scene look hazy/blurred. */
-  background:
-    linear-gradient(180deg, rgba(7, 9, 14, 0.16) 0%, rgba(7, 9, 14, 0.26) 62%, rgba(7, 9, 14, 0.42) 100%),
-    var(--studio-bg, linear-gradient(180deg, color-mix(in srgb, var(--studio-accent) 10%, var(--bg-base)) 0%, var(--bg-base) 100%));
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-}
-
 .studio-page-overlay {
   display: none;
 }
 
-.studio-back-chat {
-  /* Sit in normal flow at the top-left and stay pinned while scrolling, so it
-     never overlaps the tool sidebar or the hero. */
-  position: sticky;
-  top: 4px;
-  z-index: 5;
-  align-self: flex-start;
-  margin-bottom: -14px;
+/* "Back to chat" lives in the route header on Studio. */
+.route-header-back {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 15px 9px 12px;
+  padding: 8px 14px 8px 11px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(18, 16, 28, 0.5);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
   font-size: 0.82rem;
   font-weight: 600;
   text-decoration: none;
-  box-shadow: 0 8px 24px -14px rgba(0, 0, 0, 0.7);
   transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
 }
 
-.studio-back-chat:hover {
-  background: color-mix(in srgb, var(--studio-accent) 70%, rgba(18, 16, 28, 0.6));
-  border-color: color-mix(in srgb, var(--studio-accent) 60%, transparent);
-  transform: translateX(-2px);
+.route-header-back:hover {
+  background: color-mix(in srgb, var(--accent) 60%, rgba(255, 255, 255, 0.08));
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
-.studio-back-chat svg {
+.route-header-back svg {
   transition: transform 0.16s ease;
 }
 
-.studio-back-chat:hover svg {
+.route-header-back:hover svg {
   transform: translateX(-2px);
 }
 
@@ -15346,8 +15369,7 @@ body:has(.landing-page) {
 /* ---- Separate Studio tool sidebar ---- */
 .studio-toolbar {
   position: sticky;
-  /* Pin below the sticky "Back to chat" button so they never overlap. */
-  top: 56px;
+  top: 8px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -15410,6 +15432,8 @@ body:has(.landing-page) {
   margin: 2px 0 0;
   font-size: 1.4rem;
   font-weight: 700;
+  color: #ffffff;
+  text-shadow: var(--studio-text-shadow);
 }
 
 .studio-featured-head h2::after {
@@ -15522,11 +15546,12 @@ body:has(.landing-page) {
   font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: -0.01em;
+  color: #ffffff;
 }
 
 .studio-rail-body small {
   font-size: 0.72rem;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.72);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
