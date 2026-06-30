@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
@@ -18,18 +19,30 @@ import { useLibraryStore } from "@/store/useLibraryStore";
 import type { LibraryItem, LibraryItemType } from "@/types/workspace";
 
 const filters: Array<"all" | LibraryItemType> = ["all", "chat", "code", "image", "video", "document"];
+const scopableTypes: LibraryItemType[] = ["chat", "code", "image", "video", "document"];
 
 export function LibraryPageContent() {
-  const [filter, setFilter] = useState<"all" | LibraryItemType>("all");
+  const searchParams = useSearchParams();
+  // When the Library is opened from Studio it carries `?type=image`, scoping the
+  // page to a single artifact type. Opened from the main chat sidebar there is
+  // no param, so every saved record (chat, image, video, …) is shown.
+  const scopeType = useMemo(() => {
+    const param = searchParams.get("type") as LibraryItemType | null;
+    return param && scopableTypes.includes(param) ? param : null;
+  }, [searchParams]);
+
+  const [filter, setFilter] = useState<"all" | LibraryItemType>(scopeType ?? "all");
   const [query, setQuery] = useState("");
   const items = useLibraryStore((state) => state.items);
   const renameItem = useLibraryStore((state) => state.renameItem);
   const removeItem = useLibraryStore((state) => state.removeItem);
+  // A scope from the URL is authoritative and can't be switched away from.
+  const activeFilter = scopeType ?? filter;
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
 
     return items.filter((item) => {
-      const matchesFilter = filter === "all" || item.type === filter;
+      const matchesFilter = activeFilter === "all" || item.type === activeFilter;
       const matchesQuery =
         !q ||
         item.title.toLowerCase().includes(q) ||
@@ -38,42 +51,46 @@ export function LibraryPageContent() {
 
       return matchesFilter && matchesQuery;
     });
-  }, [filter, items, query]);
+  }, [activeFilter, items, query]);
+
+  const scopeLabel = scopeType ? scopeType[0].toUpperCase() + scopeType.slice(1) : null;
 
   return (
-    <AppFrame title="Library">
+    <AppFrame title={scopeLabel ? `${scopeLabel} Library` : "Library"}>
       <section className="route-content">
         <motion.div className="page-toolbar" variants={scrollRevealVariants} initial="hidden" animate="show">
           <div>
-            <p className="eyebrow">Saved artifacts</p>
-            <h2>Library</h2>
+            <p className="eyebrow">{scopeLabel ? `Saved ${scopeType}s` : "Saved artifacts"}</p>
+            <h2>{scopeLabel ? `${scopeLabel} Library` : "Library"}</h2>
           </div>
           <input
             className="route-search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search library..."
+            placeholder={scopeLabel ? `Search ${scopeType}s...` : "Search library..."}
           />
         </motion.div>
-        <motion.div
-          className="filter-tabs"
-          role="tablist"
-          aria-label="Library filters"
-          variants={scrollRevealVariants}
-          initial="hidden"
-          animate="show"
-        >
-          {filters.map((item) => (
-            <button
-              className={item === filter ? "is-active" : ""}
-              type="button"
-              key={item}
-              onClick={() => setFilter(item)}
-            >
-              {item === "all" ? "All" : item[0].toUpperCase() + item.slice(1)}
-            </button>
-          ))}
-        </motion.div>
+        {scopeType ? null : (
+          <motion.div
+            className="filter-tabs"
+            role="tablist"
+            aria-label="Library filters"
+            variants={scrollRevealVariants}
+            initial="hidden"
+            animate="show"
+          >
+            {filters.map((item) => (
+              <button
+                className={item === filter ? "is-active" : ""}
+                type="button"
+                key={item}
+                onClick={() => setFilter(item)}
+              >
+                {item === "all" ? "All" : item[0].toUpperCase() + item.slice(1)}
+              </button>
+            ))}
+          </motion.div>
+        )}
 
         {filteredItems.length === 0 ? (
           <motion.div
@@ -82,8 +99,12 @@ export function LibraryPageContent() {
             initial="hidden"
             animate="show"
           >
-            <h3>No saved items yet</h3>
-            <p>Save AI responses, code snippets, or generated videos and they will appear here.</p>
+            <h3>{scopeType ? `No saved ${scopeType}s yet` : "No saved items yet"}</h3>
+            <p>
+              {scopeType === "image"
+                ? "Generate an image in Studio and save it to see it here."
+                : "Save AI responses, code snippets, or generated videos and they will appear here."}
+            </p>
           </motion.div>
         ) : (
           <motion.div

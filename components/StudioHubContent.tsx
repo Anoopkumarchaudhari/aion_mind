@@ -48,6 +48,7 @@ import type {
   ImageModelKey,
   ImageProvider,
   ImageQuality,
+  LibraryItem,
   VideoGenerationMode,
   VideoJob,
   VideoModelKey,
@@ -62,6 +63,8 @@ type ViewableImage = {
   prompt: string;
   url: string;
   meta?: string;
+  // Ordered list of URLs to try when downloading (same-origin endpoint first).
+  downloadSources?: string[];
 };
 
 type StudioAsset = {
@@ -157,6 +160,8 @@ export function StudioHubContent() {
   const initialMode: StudioMode = searchParams?.get("tab") === "video" ? "video" : "image";
 
   const [mode, setMode] = useState<StudioMode>(initialMode);
+  // "create" is the generation surface; "library" shows saved images in-page.
+  const [view, setView] = useState<"create" | "library">("create");
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -183,6 +188,8 @@ export function StudioHubContent() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const addLibraryItem = useLibraryStore((state) => state.addItem);
+  const libraryItems = useLibraryStore((state) => state.items);
+  const removeLibraryItem = useLibraryStore((state) => state.removeItem);
   const jobs = useVideoStore((state) => state.jobs);
   const createJob = useVideoStore((state) => state.createJob);
   const updateJob = useVideoStore((state) => state.updateJob);
@@ -195,6 +202,13 @@ export function StudioHubContent() {
   const sortedJobs = useMemo(
     () => [...jobs].sort((left, right) => right.createdAt - left.createdAt),
     [jobs]
+  );
+  const savedImages = useMemo(
+    () =>
+      libraryItems
+        .filter((item) => item.type === "image" && Boolean(item.url))
+        .sort((left, right) => right.createdAt - left.createdAt),
+    [libraryItems]
   );
 
   useEffect(() => {
@@ -379,12 +393,27 @@ export function StudioHubContent() {
     setImages((current) => current.filter((image) => image.id !== id));
   }
 
+  async function downloadImage(image: GeneratedImage) {
+    // Prefer the same-origin `/api/images/:id` endpoint, which serves the raw
+    // bytes and sidesteps the cross-origin `download`-attribute restriction.
+    const ok = await triggerImageDownload(
+      [`/api/images/${image.id}`, image.url],
+      slugifyPrompt(image.prompt)
+    );
+
+    if (!ok) {
+      window.open(image.url, "_blank", "noopener");
+      toast.error("Could not download automatically — opened in a new tab.");
+    }
+  }
+
   function openGeneratedImage(image: GeneratedImage) {
     setViewerImage({
       title: image.prompt.slice(0, 72) || "Generated image",
       prompt: image.revisedPrompt || image.prompt,
       url: image.url,
-      meta: `${getImageProviderLabel(image.provider)} - ${image.size}`
+      meta: `${getImageProviderLabel(image.provider)} - ${image.size}`,
+      downloadSources: [`/api/images/${image.id}`, image.url]
     });
   }
 
@@ -409,8 +438,35 @@ export function StudioHubContent() {
       title: asset.title,
       prompt: asset.prompt,
       url: asset.url,
-      meta: "Featured inspiration"
+      meta: "Featured inspiration",
+      downloadSources: [asset.url]
     });
+  }
+
+  function openSavedImage(item: LibraryItem) {
+    if (!item.url) {
+      return;
+    }
+
+    setViewerImage({
+      title: item.title,
+      prompt: item.content || item.title,
+      url: item.url,
+      meta: "Saved image",
+      downloadSources: [item.url]
+    });
+  }
+
+  async function downloadSavedImage(item: LibraryItem) {
+    if (!item.url) {
+      return;
+    }
+
+    const ok = await triggerImageDownload([item.url], slugifyPrompt(item.title));
+
+    if (!ok) {
+      window.open(item.url, "_blank", "noopener");
+    }
   }
 
   const activeAspect = aspectRatios.find((item) => item.value === aspectRatio) ?? aspectRatios[0];
@@ -433,16 +489,22 @@ export function StudioHubContent() {
           <aside className="studio-toolbar" aria-label="Studio tools">
             <button
               type="button"
-              className={mode === "image" ? "studio-tool is-active" : "studio-tool"}
-              onClick={() => setMode("image")}
+              className={view === "create" && mode === "image" ? "studio-tool is-active" : "studio-tool"}
+              onClick={() => {
+                setMode("image");
+                setView("create");
+              }}
             >
               <span className="studio-tool-icon"><ImageIcon size={20} /></span>
               Image
             </button>
             <button
               type="button"
-              className={mode === "video" ? "studio-tool is-active" : "studio-tool"}
-              onClick={() => setMode("video")}
+              className={view === "create" && mode === "video" ? "studio-tool is-active" : "studio-tool"}
+              onClick={() => {
+                setMode("video");
+                setView("create");
+              }}
             >
               <span className="studio-tool-icon"><Film size={20} /></span>
               Video
@@ -450,15 +512,22 @@ export function StudioHubContent() {
             <button
               type="button"
               className="studio-tool"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                setView("create");
+                fileInputRef.current?.click();
+              }}
             >
               <span className="studio-tool-icon"><ImagePlus size={20} /></span>
               Frame
             </button>
-            <a className="studio-tool" href="/library">
+            <button
+              type="button"
+              className={view === "library" ? "studio-tool is-active" : "studio-tool"}
+              onClick={() => setView("library")}
+            >
               <span className="studio-tool-icon"><Save size={20} /></span>
               Library
-            </a>
+            </button>
             <a className="studio-tool" href="/podcast">
               <span className="studio-tool-icon"><Clapperboard size={20} /></span>
               Podcast
@@ -481,6 +550,8 @@ export function StudioHubContent() {
           </div>
         </motion.div>
 
+        {view === "create" ? (
+          <>
         <div className="studio-creator-dock">
           <form className="studio-prompt-bar" onSubmit={handleSubmit}>
             <div className="studio-prompt-top">
@@ -715,9 +786,9 @@ export function StudioHubContent() {
                     <span className="studio-feature-open"><Maximize2 size={15} /> View</span>
                   </button>
                   <div className="studio-feature-actions">
-                    <a className="ghost-button" href={latestImage.url} download={getImageFilename(latestImage)} title="Download">
+                    <button className="ghost-button" type="button" onClick={() => downloadImage(latestImage)} title="Download">
                       <Download size={15} />
-                    </a>
+                    </button>
                     <button className="ghost-button" type="button" onClick={() => saveImage(latestImage)} title="Save to Library">
                       <Save size={15} />
                     </button>
@@ -751,9 +822,9 @@ export function StudioHubContent() {
                         <p>{getImageProviderLabel(image.provider)} - {image.size}</p>
                       </div>
                       <div className="studio-card-actions">
-                        <a className="ghost-button" href={image.url} download={getImageFilename(image)} title="Download">
+                        <button className="ghost-button" type="button" onClick={() => downloadImage(image)} title="Download">
                           <Download size={15} />
-                        </a>
+                        </button>
                         <button className="ghost-button" type="button" onClick={() => saveImage(image)} title="Save to Library">
                           <Save size={15} />
                         </button>
@@ -843,6 +914,53 @@ export function StudioHubContent() {
             ))}
           </div>
         </section>
+          </>
+        ) : (
+          <section className="studio-library" aria-label="Saved images">
+            <div className="studio-results-heading">
+              <h2>Saved images</h2>
+              <span>{savedImages.length}</span>
+            </div>
+            {savedImages.length > 0 ? (
+              <motion.div
+                className="studio-grid"
+                variants={scrollContainerVariants}
+                initial="hidden"
+                animate="show"
+              >
+                {savedImages.map((item) => (
+                  <motion.article className="studio-card" key={item.id} variants={scrollItemVariants} whileHover={hoverLift}>
+                    <button
+                      type="button"
+                      className="studio-card-thumb"
+                      onClick={() => openSavedImage(item)}
+                      aria-label={`Open ${item.title}`}
+                    >
+                      <img src={item.url ?? ""} alt={item.title} />
+                      <span><Maximize2 size={14} /></span>
+                    </button>
+                    <div className="studio-card-body">
+                      <h3>{item.title.slice(0, 60)}</h3>
+                    </div>
+                    <div className="studio-card-actions">
+                      <button className="ghost-button" type="button" onClick={() => downloadSavedImage(item)} title="Download">
+                        <Download size={15} />
+                      </button>
+                      <button className="ghost-button" type="button" onClick={() => removeLibraryItem(item.id)} title="Remove from library">
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </motion.article>
+                ))}
+              </motion.div>
+            ) : (
+              <div className="studio-empty">
+                <h3>No saved images yet</h3>
+                <p>Generate an image and save it to see it here.</p>
+              </div>
+            )}
+          </section>
+        )}
           </div>
         </div>
 
@@ -881,6 +999,23 @@ function ImageViewer({ image, onClose }: { image: ViewableImage | null; onClose:
           {image.meta ? <p className="eyebrow">{image.meta}</p> : null}
           <h3>{image.title}</h3>
           <p>{image.prompt}</p>
+          <button
+            type="button"
+            className="image-viewer-download"
+            onClick={async () => {
+              const ok = await triggerImageDownload(
+                image.downloadSources ?? [image.url],
+                slugifyPrompt(image.prompt || image.title)
+              );
+
+              if (!ok) {
+                window.open(image.url, "_blank", "noopener");
+              }
+            }}
+          >
+            <Download size={16} />
+            Download
+          </button>
         </div>
       </motion.div>
     </motion.div>
@@ -902,14 +1037,52 @@ function isStudioAsset(value: unknown): value is StudioAsset {
   );
 }
 
-function getImageFilename(image: GeneratedImage) {
-  const slug = image.prompt
+function slugifyPrompt(text: string) {
+  const slug = text
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
 
-  return `${slug || "aria-studio-image"}.png`;
+  return slug || "aria-studio-image";
+}
+
+// Fetch the image bytes and trigger a real file download from a blob. A plain
+// `<a download>` is ignored by browsers for cross-origin URLs (OpenAI/Runware
+// CDNs), so we go through a blob instead. Tries each source in order and
+// returns true on the first success.
+async function triggerImageDownload(sources: Array<string | undefined>, baseName: string) {
+  for (const source of sources) {
+    if (!source) {
+      continue;
+    }
+
+    try {
+      const response = await fetch(source);
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const blob = await response.blob();
+      const extension =
+        blob.type === "image/jpeg" ? "jpg" : blob.type === "image/webp" ? "webp" : "png";
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = objectUrl;
+      link.download = `${baseName}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+      return true;
+    } catch {
+      // Try the next source.
+    }
+  }
+
+  return false;
 }
 
 function getLibraryContent(image: GeneratedImage) {
