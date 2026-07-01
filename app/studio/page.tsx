@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import { StudioHubContent } from "@/components/StudioHubContent";
+import { StudioLanding } from "@/components/StudioLanding";
 
 export default function StudioPage() {
   return (
     <Suspense fallback={null}>
-      <StudioHubContent />
+      <StudioLanding />
     </Suspense>
   );
 }
