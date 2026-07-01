@@ -19,6 +19,7 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronRight,
+  Home,
   Menu,
   Pause,
   Play,
@@ -208,9 +209,19 @@ function Navbar() {
 
   return (
     <header className={`sl-nav ${scrolled ? "is-scrolled" : ""}`}>
-      <Link href="/chat" className="sl-nav-logo" aria-label="Back to Aria">
-        <Sparkles size={18} /> ARIA STUDIO
-      </Link>
+      <div className="sl-nav-brand">
+        <Link href="/login" className="sl-nav-home" aria-label="Home">
+          <Home size={20} />
+        </Link>
+        <button
+          type="button"
+          className="sl-nav-logo"
+          onClick={() => window.location.reload()}
+          aria-label="Reload Aria Studio"
+        >
+          ARIA STUDIO
+        </button>
+      </div>
 
       <nav className="sl-nav-links" onMouseLeave={() => setOpenMenu(null)}>
         {NAV_LINKS.map((link) => (
@@ -484,63 +495,62 @@ function EmergeTile({
 
 /* ====================================================== stats marquee === */
 
+// Stats flow continuously through the room: each one travels right wall → back
+// wall → left wall and out, on an endless loop (rotating to face each wall).
+const STATS_SPEED = 0.09; // cycles per second
+
 function StatsMarquee() {
   const reduce = useReducedMotion();
-  const x = useMotionValue(0);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const halfRef = useRef(0);
-  const dragging = useRef(false);
+  const flow = useMotionValue(0);
 
-  useEffect(() => {
-    const measure = () => {
-      if (trackRef.current) halfRef.current = trackRef.current.scrollWidth / 2;
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
-
-  useAnimationFrame((_, delta) => {
-    if (reduce || dragging.current || !halfRef.current) return;
-    let next = x.get() - (delta / 1000) * 60; // 60px/s
-    if (next <= -halfRef.current) next += halfRef.current;
-    x.set(next);
+  useAnimationFrame((_, dtMs) => {
+    if (reduce) return;
+    flow.set(flow.get() + (dtMs / 1000) * STATS_SPEED);
   });
 
-  const items = [...STATS, ...STATS, ...STATS];
+  // One set, evenly spaced across the loop — enough gap that the big numbers
+  // never overlap, but no long empty stretch either.
+  const items = STATS;
 
   return (
     <section className="sl-marquee-wrap" aria-label="Platform stats">
-      <div className="sl-marquee-persp">
-        <motion.div
-          ref={trackRef}
-          className="sl-marquee-track"
-          style={{ x }}
-          drag={reduce ? false : "x"}
-          dragConstraints={{ left: -99999, right: 99999 }}
-          dragElastic={0}
-          dragMomentum={false}
-          onDragStart={() => (dragging.current = true)}
-          onDragEnd={() => {
-            dragging.current = false;
-            const h = halfRef.current;
-            if (h) {
-              let v = x.get();
-              while (v <= -h) v += h;
-              while (v > 0) v -= h;
-              x.set(v);
-            }
-          }}
-        >
+      <div className="sl-room3">
+        <div className="sl-room3-inner">
           {items.map((stat, i) => (
-            <div className="sl-stat" key={i} style={{ color: stat.color }}>
-              <span className="sl-stat-value">{stat.value}</span>
-              <span className="sl-stat-label">{stat.label}</span>
-            </div>
+            <StatFlow key={stat.label + i} stat={stat} offset={i / items.length} flow={flow} />
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
+  );
+}
+
+function StatFlow({
+  stat,
+  offset,
+  flow
+}: {
+  stat: (typeof STATS)[number];
+  offset: number;
+  flow: ReturnType<typeof useMotionValue<number>>;
+}) {
+  const u = useTransform(flow, (v) => {
+    const x = (v + offset) % 1;
+    return x < 0 ? x + 1 : x;
+  });
+  // Travel range tuned so stats are close but never overlap.
+  const x = useTransform(u, [0, 1], [82, -82]); // vw: enter right → exit left
+  // ±65° gives a 115° corner between the back wall and each side wall.
+  const rotateY = useTransform(u, [0, 0.5, 1], [-65, 0, 65]);
+  const z = useTransform(u, [0, 0.5, 1], [40, -440, 40]); // near at edges, far at back
+  const opacity = useTransform(u, [0, 0.14, 0.86, 1], [0, 1, 1, 0]);
+  const transform = useMotionTemplate`translate(-50%, -50%) translateX(${x}vw) translateZ(${z}px) rotateY(${rotateY}deg)`;
+
+  return (
+    <motion.span className="sl-stat3" style={{ transform, opacity, color: stat.color }}>
+      <b>{stat.value}</b>
+      <i>{stat.label}</i>
+    </motion.span>
   );
 }
 
@@ -590,6 +600,26 @@ function MediaFrame({ feature }: { feature: (typeof FEATURES)[number] }) {
   const isVideo = feature.media === "video" && Boolean(feature.video);
   const [paused, setPaused] = useState(reduce);
 
+  // Explicitly play/pause the video as it enters/leaves the viewport. Muted
+  // autoplay is often deferred by browsers for offscreen videos, so this ensures
+  // the lotus footage actually plays once the section is visible.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !isVideo || reduce) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          v.play().then(() => setPaused(false)).catch(() => undefined);
+        } else {
+          v.pause();
+        }
+      },
+      { threshold: 0.35 }
+    );
+    io.observe(v);
+    return () => io.disconnect();
+  }, [isVideo, reduce]);
+
   function toggleVideo() {
     const v = videoRef.current;
     if (!v) return;
@@ -614,7 +644,7 @@ function MediaFrame({ feature }: { feature: (typeof FEATURES)[number] }) {
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="auto"
         />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
@@ -886,8 +916,12 @@ body:has(.sl-root) { height: auto; min-height: 100%; overflow-x: clip; overflow-
   transition: background .3s ease, border-color .3s ease, backdrop-filter .3s ease;
 }
 .sl-nav.is-scrolled { background: rgba(0,0,0,0.55); backdrop-filter: blur(14px); border-bottom-color: var(--sl-border); }
-.sl-nav-logo { display: inline-flex; align-items: center; gap: 8px; color: #fff; text-decoration: none; font-family: var(--sl-display); font-size: 1.2rem; letter-spacing: 0.02em; }
-.sl-nav-logo svg { color: var(--sl-purple); }
+.sl-nav-brand { display: inline-flex; align-items: center; gap: 10px; }
+.sl-nav-home { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 50%; color: #fff; border: none; background: var(--sl-purple); box-shadow: 0 0 0 3px rgba(109,85,230,0.28), 0 6px 18px -4px rgba(109,85,230,0.7); text-decoration: none; transition: transform .2s ease, box-shadow .2s ease, filter .2s ease; }
+.sl-nav-home:hover { transform: scale(1.08); filter: brightness(1.1); box-shadow: 0 0 0 4px rgba(109,85,230,0.4), 0 8px 22px -4px rgba(109,85,230,0.85); }
+.sl-nav-home svg { stroke-width: 2.4; }
+.sl-nav-logo { display: inline-flex; align-items: center; gap: 8px; color: #fff; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--sl-display); font-size: 1.2rem; letter-spacing: 0.02em; text-transform: uppercase; }
+.sl-nav-logo:hover { opacity: 0.85; }
 .sl-nav-links { display: flex; align-items: center; gap: 6px; }
 .sl-nav-item { position: relative; }
 .sl-nav-trigger {
@@ -1025,16 +1059,20 @@ body:has(.sl-root) { height: auto; min-height: 100%; overflow-x: clip; overflow-
 .sl-cloud-tile img { width: 100%; height: 100%; object-fit: cover; }
 
 /* ---------- stats marquee ---------- */
-.sl-marquee-wrap { padding: clamp(50px,9vw,120px) 0; overflow: hidden; }
-.sl-marquee-persp { perspective: 1300px; }
-.sl-marquee-track {
-  display: flex; align-items: center; gap: 7vw; width: max-content;
-  cursor: grab; transform: rotateX(9deg) rotateY(-7deg); transform-origin: center;
+/* Stats room — giant stats flow continuously through a 3-wall corridor. */
+.sl-marquee-wrap { overflow: hidden; background: #000; }
+.sl-room3 { position: relative; height: min(80vh, 680px); perspective: 1000px; perspective-origin: 50% 46%; overflow: hidden; }
+.sl-room3-inner { position: absolute; inset: 0; transform-style: preserve-3d; }
+.sl-stat3 {
+  position: absolute; left: 50%; top: 50%;
+  display: inline-flex; flex-direction: column; align-items: center; text-align: center;
+  user-select: none; white-space: nowrap; will-change: transform, opacity; backface-visibility: hidden;
 }
-.sl-marquee-track:active { cursor: grabbing; }
-.sl-stat { display: flex; flex-direction: column; align-items: flex-start; user-select: none; }
-.sl-stat-value { font-family: var(--sl-display); font-size: clamp(6rem,17vw,15rem); line-height: 0.82; letter-spacing: -0.02em; }
-.sl-stat-label { font-family: var(--sl-display); text-transform: uppercase; font-size: clamp(1rem,2vw,2rem); letter-spacing: 0; margin-top: 4px; white-space: nowrap; }
+.sl-stat3 b { font-family: var(--sl-display); font-size: clamp(9rem,26vw,28rem); line-height: 0.76; letter-spacing: 0.03em; }
+.sl-stat3 i { font-family: var(--sl-display); font-style: normal; text-transform: uppercase; font-size: clamp(1.3rem,2.8vw,2.8rem); letter-spacing: 0.05em; margin-top: 10px; }
+@media (max-width: 760px) {
+  .sl-room3 { height: 60vh; perspective: 640px; }
+}
 
 /* ---------- features ---------- */
 .sl-features { display: flex; flex-direction: column; gap: clamp(60px,9vw,130px); padding: clamp(40px,7vw,90px) clamp(20px,5vw,64px); max-width: 1440px; margin: 0 auto; }
