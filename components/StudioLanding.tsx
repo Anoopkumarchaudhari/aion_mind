@@ -539,7 +539,7 @@ function StatFlow({
     return x < 0 ? x + 1 : x;
   });
   // Travel range tuned so stats are close but never overlap.
-  const x = useTransform(u, [0, 1], [82, -82]); // vw: enter right → exit left
+  const x = useTransform(u, [0, 1], [66, -66]); // vw: enter right → exit left
   // ±65° gives a 115° corner between the back wall and each side wall.
   const rotateY = useTransform(u, [0, 0.5, 1], [-65, 0, 65]);
   const z = useTransform(u, [0, 0.5, 1], [40, -440, 40]); // near at edges, far at back
